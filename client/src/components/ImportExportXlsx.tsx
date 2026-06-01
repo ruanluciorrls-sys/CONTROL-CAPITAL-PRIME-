@@ -71,7 +71,7 @@ export default function ImportExportXlsx() {
             const exists = state.casas.find((c) => c.id === item.id || c.nome === item.nome);
             if (!exists) {
               const { id, criadoEm, ...payload } = item;
-              addCasa(payload);
+              await addCasa(payload);
               countCasas++;
             }
           }
@@ -82,7 +82,7 @@ export default function ImportExportXlsx() {
                const exists = state.relatorios.find((r) => r.id === rel.id);
                if (!exists) {
                  const { id, criadoEm, ...payload } = rel;
-                 addRelatorio(payload);
+                 await addRelatorio(payload);
                  countRelatorios++;
                }
              }
@@ -135,7 +135,7 @@ export default function ImportExportXlsx() {
 
             const exists = state.casas.find((c) => c.nome === casaPayload.nome);
             if (!exists) {
-              addCasa(casaPayload);
+              await addCasa(casaPayload);
               importedCasas++;
             }
           }
@@ -151,7 +151,7 @@ export default function ImportExportXlsx() {
               if (typeof relPayload.rows === "string") {
                 try { relPayload.rows = JSON.parse(relPayload.rows); } catch { relPayload.rows = []; }
               }
-              addRelatorio(relPayload);
+              await addRelatorio(relPayload);
               importedRelatorios++;
             }
           }
@@ -159,8 +159,8 @@ export default function ImportExportXlsx() {
 
         showMessage("success", `Dados importados com sucesso! Casas: ${importedCasas}, Relatórios: ${importedRelatorios}`);
       } catch (error) {
-        console.error(error);
-        showMessage("error", "Erro ao processar o arquivo. Verifique o formato.");
+        console.error("Erro no import:", error);
+        showMessage("error", "Erro ao processar o arquivo. Verifique o formato e tente novamente.");
       } finally {
         setLoading(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
