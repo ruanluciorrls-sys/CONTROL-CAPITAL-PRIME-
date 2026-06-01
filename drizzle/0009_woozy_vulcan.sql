@@ -1,1 +1,0 @@
-ALTER TABLE `casas` MODIFY COLUMN `status` enum('ativa','finalizada','lixeira') NOT NULL DEFAULT 'ativa';

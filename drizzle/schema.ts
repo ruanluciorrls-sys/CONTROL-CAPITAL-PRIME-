@@ -1,30 +1,31 @@
-import { decimal, int, json, mysqlEnum, mysqlTable, text, timestamp, varchar, date } from "drizzle-orm/mysql-core";
+import { integer, pgEnum, pgTable, serial, text, timestamp, varchar, decimal, jsonb, date } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+
+// Enums PostgreSQL
+export const roleEnum = pgEnum("role", ["user", "admin"]);
+export const subscriptionStatusEnum = pgEnum("subscriptionStatus", ["active", "inactive", "trial"]);
+export const casaStatusEnum = pgEnum("casa_status", ["ativa", "finalizada", "lixeira"]);
+export const relatorioStatusEnum = pgEnum("relatorio_status", ["ativo", "finalizado", "lixeira"]);
+export const contaStatusEnum = pgEnum("conta_status", ["sacado", "sacando", "bloqueado"]);
 
 /**
  * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
  */
-export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
-  id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (legacy). Kept for backwards compatibility. */
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  /** Legacy OAuth identifier. Kept for compatibility. */
   openId: varchar("openId", { length: 64 }).unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }).unique(),
   passwordHash: text("passwordHash"),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: roleEnum("role").default("user").notNull(),
   /** Subscription status: active = liberado, inactive = bloqueado, trial = período de teste */
-  subscriptionStatus: mysqlEnum("subscriptionStatus", ["active", "inactive", "trial"]).default("trial").notNull(),
+  subscriptionStatus: subscriptionStatusEnum("subscriptionStatus").default("trial").notNull(),
   subscriptionExpiresAt: timestamp("subscriptionExpiresAt"),
-  isActive: int("isActive").default(1).notNull(),
+  isActive: integer("isActive").default(1).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
@@ -32,9 +33,9 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 // Tabela de casas
-export const casas = mysqlTable("casas", {
+export const casas = pgTable("casas", {
   id: varchar("id", { length: 64 }).primaryKey(),
-  userId: int("userId").notNull(),
+  userId: integer("userId").notNull(),
   nome: text("nome").notNull(),
   login: text("login"),
   senha: text("senha"),
@@ -45,9 +46,9 @@ export const casas = mysqlTable("casas", {
   prazo: text("prazo"),
   dataInicio: date("dataInicio"),
   dataFim: date("dataFim"),
-  status: mysqlEnum("status", ["ativa", "finalizada", "lixeira"]).default("ativa").notNull(),
+  status: casaStatusEnum("status").default("ativa").notNull(),
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
-  atualizadoEm: timestamp("atualizadoEm").defaultNow().onUpdateNow().notNull(),
+  atualizadoEm: timestamp("atualizadoEm").defaultNow().notNull(),
 });
 
 export type Casa = typeof casas.$inferSelect;
@@ -57,16 +58,16 @@ export type InsertCasa = Omit<typeof casas.$inferInsert, 'id' | 'userId' | 'cria
 };
 
 // Tabela de relatórios
-export const relatorios = mysqlTable("relatorios", {
+export const relatorios = pgTable("relatorios", {
   id: varchar("id", { length: 64 }).primaryKey(),
-  userId: int("userId").notNull(),
+  userId: integer("userId").notNull(),
   casaId: varchar("casaId", { length: 64 }).notNull(),
   agente: text("agente").notNull(),
-  status: mysqlEnum("status", ["ativo", "finalizado", "lixeira"]).default("ativo").notNull(),
-  rows: json("rows").$type<Array<Record<string, unknown>>>().notNull(),
+  status: relatorioStatusEnum("status").default("ativo").notNull(),
+  rows: jsonb("rows").$type<Array<Record<string, unknown>>>().notNull(),
   cooperacao: decimal("cooperacao", { precision: 10, scale: 2 }).default("0").notNull(),
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
-  atualizadoEm: timestamp("atualizadoEm").defaultNow().onUpdateNow().notNull(),
+  atualizadoEm: timestamp("atualizadoEm").defaultNow().notNull(),
 });
 
 export type Relatorio = typeof relatorios.$inferSelect;
@@ -82,35 +83,26 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const casasRelations = relations(casas, ({ one, many }) => ({
-  user: one(users, {
-    fields: [casas.userId],
-    references: [users.id],
-  }),
+  user: one(users, { fields: [casas.userId], references: [users.id] }),
   relatorios: many(relatorios),
 }));
 
 export const relatoriosRelations = relations(relatorios, ({ one }) => ({
-  user: one(users, {
-    fields: [relatorios.userId],
-    references: [users.id],
-  }),
-  casa: one(casas, {
-    fields: [relatorios.casaId],
-    references: [casas.id],
-  }),
+  user: one(users, { fields: [relatorios.userId], references: [users.id] }),
+  casa: one(casas, { fields: [relatorios.casaId], references: [casas.id] }),
 }));
 
 // Tabela de contas
-export const contas = mysqlTable("contas", {
+export const contas = pgTable("contas", {
   id: varchar("id", { length: 64 }).primaryKey(),
-  userId: int("userId").notNull(),
+  userId: integer("userId").notNull(),
   usuario: text("usuario").notNull(),
   senha: text("senha"),
   valor: decimal("valor", { precision: 10, scale: 2 }),
-  casa: text("casa"), // Nome da casa que a conta pertence
-  status: mysqlEnum("status", ["sacado", "sacando", "bloqueado"]).default("sacando").notNull(),
+  casa: text("casa"),
+  status: contaStatusEnum("status").default("sacando").notNull(),
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
-  atualizadoEm: timestamp("atualizadoEm").defaultNow().onUpdateNow().notNull(),
+  atualizadoEm: timestamp("atualizadoEm").defaultNow().notNull(),
 });
 
 export type Conta = typeof contas.$inferSelect;
@@ -120,56 +112,41 @@ export type InsertConta = Omit<typeof contas.$inferInsert, 'id' | 'userId' | 'cr
   casa?: string;
 };
 
-// Relação de contas
 export const contasRelations = relations(contas, ({ one }) => ({
-  user: one(users, {
-    fields: [contas.userId],
-    references: [users.id],
-  }),
-}));
-
-// Atualizar relação de usuários
-export const usersRelationsUpdated = relations(users, ({ many }) => ({
-  casas: many(casas),
-  relatorios: many(relatorios),
-  contas: many(contas),
+  user: one(users, { fields: [contas.userId], references: [users.id] }),
 }));
 
 // Tabela de configuracoes do usuario
-export const userSettings = mysqlTable("userSettings", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull().unique(),
-  nomeApp: text("nomeApp").default("RUAN DARK CPA"),
-  corPrimaria: varchar("corPrimaria", { length: 7 }).default("#2563EB"),
+export const userSettings = pgTable("userSettings", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().unique(),
+  nomeApp: text("nomeApp").default("CAPITAL PRIME CONTROL"),
+  corPrimaria: varchar("corPrimaria", { length: 7 }).default("#1a3a8f"),
   fundoUrl: text("fundoUrl"),
   logoUrl: text("logoUrl"),
-  nomeColorido: text("nomeColorido").default("Juan Dark"),
-  coresColorido: json("coresColorido").$type<string[]>().default([]),
-  emojisColorido: json("emojisColorido").$type<string[]>().default([]),
+  nomeColorido: text("nomeColorido").default("Capital Prime"),
+  coresColorido: jsonb("coresColorido").$type<string[]>().default([]),
+  emojisColorido: jsonb("emojisColorido").$type<string[]>().default([]),
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
-  atualizadoEm: timestamp("atualizadoEm").defaultNow().onUpdateNow().notNull(),
+  atualizadoEm: timestamp("atualizadoEm").defaultNow().notNull(),
 });
 
 export type UserSettings = typeof userSettings.$inferSelect;
 export type InsertUserSettings = typeof userSettings.$inferInsert;
 
-// Relacao de user settings
 export const userSettingsRelations = relations(userSettings, ({ one }) => ({
-  user: one(users, {
-    fields: [userSettings.userId],
-    references: [users.id],
-  }),
+  user: one(users, { fields: [userSettings.userId], references: [users.id] }),
 }));
 
 // Tabela de gastos com proxy
-export const gastosProxy = mysqlTable("gastosProxy", {
+export const gastosProxy = pgTable("gastosProxy", {
   id: varchar("id", { length: 64 }).primaryKey(),
-  userId: int("userId").notNull(),
+  userId: integer("userId").notNull(),
   valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
   descricao: text("descricao"),
   data: date("data").notNull(),
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
-  atualizadoEm: timestamp("atualizadoEm").defaultNow().onUpdateNow().notNull(),
+  atualizadoEm: timestamp("atualizadoEm").defaultNow().notNull(),
 });
 
 export type GastoProxy = typeof gastosProxy.$inferSelect;
@@ -178,20 +155,13 @@ export type InsertGastoProxy = Omit<typeof gastosProxy.$inferInsert, 'id' | 'use
   userId: number;
 };
 
-// Relação de gastos proxy
 export const gastosProxyRelations = relations(gastosProxy, ({ one }) => ({
-  user: one(users, {
-    fields: [gastosProxy.userId],
-    references: [users.id],
-  }),
+  user: one(users, { fields: [gastosProxy.userId], references: [users.id] }),
 }));
 
-// Atualizar relação de usuários
-export const usersRelationsFinal = relations(users, ({ many }) => ({
+export const usersRelationsFull = relations(users, ({ many }) => ({
   casas: many(casas),
   relatorios: many(relatorios),
   contas: many(contas),
   gastosProxy: many(gastosProxy),
 }));
-
-// TODO: Add your tables here

@@ -1,1 +1,0 @@
-ALTER TABLE `relatorios` MODIFY COLUMN `rows` json NOT NULL;

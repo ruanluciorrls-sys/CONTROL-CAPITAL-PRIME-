@@ -1,1 +1,0 @@
-ALTER TABLE `relatorios` MODIFY COLUMN `status` enum('ativo','finalizado','lixeira') NOT NULL DEFAULT 'ativo';
