@@ -83,12 +83,13 @@ export default function GastoProxy() {
       </div>
 
       {/* Card de Total */}
-      <Card className="bg-gradient-to-r from-purple-500 to-pink-500 border-0">
-        <CardHeader>
-          <CardTitle className="text-white">Total de Gastos com Proxy</CardTitle>
+      <Card className="relative overflow-hidden bg-card border border-border/50 rounded-2xl shadow-2xl group transition-all duration-500 hover:border-purple-500/30 hover:shadow-purple-900/20">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-900/20 opacity-60"></div>
+        <CardHeader className="relative z-10">
+          <CardTitle className="text-muted-foreground text-xs md:text-sm tracking-[0.2em] font-semibold uppercase">Total de Gastos com Proxy</CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-4xl font-bold text-white">
+        <CardContent className="relative z-10">
+          <p className="text-5xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-purple-400 to-pink-200 drop-shadow-sm font-mono mt-2">
             R$ {totalGastos.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </CardContent>

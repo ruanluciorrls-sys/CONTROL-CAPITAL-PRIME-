@@ -370,8 +370,8 @@ export default function Relatorios() {
 
           {/* Mensagem Vazia */}
           {relatoriosAtivos.length === 0 && !showNewForm && (
-            <div className="bg-blue-50 rounded-lg p-8 border border-blue-200 text-center">
-              <p className="text-blue-900">
+            <div className="bg-card backdrop-blur-sm border border-border/50 shadow-lg rounded-xl p-8 text-center">
+              <p className="text-muted-foreground text-lg">
                 Nenhum relatório criado. Clique em "Criar Novo Relatório" para começar!
               </p>
             </div>
@@ -410,8 +410,8 @@ export default function Relatorios() {
           </div>
           
           {relatoriosLixeira.length === 0 ? (
-            <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-8 border border-border dark:border-slate-700 text-center">
-              <p className="text-muted-foreground dark:text-slate-400">
+            <div className="bg-card backdrop-blur-sm border border-border/50 shadow-lg rounded-xl p-8 text-center">
+              <p className="text-muted-foreground text-lg">
                 Nenhum relatorio na lixeira
               </p>
             </div>

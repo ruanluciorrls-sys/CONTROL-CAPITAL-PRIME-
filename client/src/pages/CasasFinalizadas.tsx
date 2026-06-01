@@ -196,16 +196,18 @@ export default function CasasFinalizadas() {
       {activeTab === "finalizadas" && (
         <>
           {/* Total de Casas Finalizadas */}
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-8 text-white shadow-lg">
-            <div className="flex items-start justify-between">
+          <div className="relative overflow-hidden bg-card border border-border/50 rounded-2xl p-8 shadow-2xl group transition-all duration-500 hover:border-emerald-500/30 hover:shadow-emerald-900/20">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-900/20 opacity-60"></div>
+            <div className="relative z-10 flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium opacity-90 uppercase tracking-wide">
+                <p className="text-muted-foreground text-xs md:text-sm tracking-[0.2em] font-semibold mb-3 uppercase">
                   Lucro Total - Casas Finalizadas
                 </p>
-                <p className="text-5xl font-bold mt-3 font-mono">
+                <p className="text-5xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-emerald-400 to-teal-200 drop-shadow-sm mt-3 font-mono">
                   R$ {(totalLucrosTodosFiltrados || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
-                <p className="text-sm mt-2 opacity-75">
+                <p className="text-muted-foreground/70 text-xs mt-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   {casasFiltradas.length} casas {filtroNomeInicial ? "filtradas" : "finalizadas"}
                 </p>
               </div>
@@ -214,16 +216,18 @@ export default function CasasFinalizadas() {
 
           {/* Lucro com Desconto de Proxy */}
           {totalGastosProxy > 0 && (
-            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-8 text-white shadow-lg">
-              <div className="flex items-start justify-between">
+            <div className="relative overflow-hidden bg-card border border-border/50 rounded-2xl p-8 shadow-2xl group transition-all duration-500 hover:border-orange-500/30 hover:shadow-orange-900/20 mt-6">
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-red-900/20 opacity-60"></div>
+              <div className="relative z-10 flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium opacity-90 uppercase tracking-wide">
+                  <p className="text-muted-foreground text-xs md:text-sm tracking-[0.2em] font-semibold mb-3 uppercase">
                     Lucro (Com Desconto de Proxy)
                   </p>
-                  <p className="text-5xl font-bold mt-3 font-mono">
+                  <p className="text-5xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-orange-400 to-red-200 drop-shadow-sm mt-3 font-mono">
                     R$ {((totalLucrosTodosFiltrados || 0) - totalGastosProxy).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
-                  <p className="text-sm mt-2 opacity-75">
+                  <p className="text-muted-foreground/70 text-xs mt-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
                     Desconto de Proxy: R$ {totalGastosProxy.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
@@ -441,8 +445,8 @@ export default function CasasFinalizadas() {
           </div>
 
           {casasLixeira.length === 0 ? (
-            <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-8 border border-border text-center">
-              <p className="text-muted-foreground dark:text-slate-400">
+            <div className="bg-card backdrop-blur-sm border border-border/50 shadow-lg rounded-xl p-8 text-center">
+              <p className="text-muted-foreground text-lg">
                 Nenhuma casa na lixeira
               </p>
             </div>

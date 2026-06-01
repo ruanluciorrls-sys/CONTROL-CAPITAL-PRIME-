@@ -454,8 +454,8 @@ export default function GerenciarCasas() {
           </div>
 
           {casasAtivas.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Nenhuma casa adicionada. Clique em "Adicionar Nova Casa" para começar.</p>
+            <div className="bg-card backdrop-blur-sm border border-border/50 shadow-lg rounded-xl p-8 text-center mt-6">
+              <p className="text-muted-foreground text-lg">Nenhuma casa adicionada. Clique em "Adicionar Nova Casa" para começar.</p>
             </div>
           )}
         </>
