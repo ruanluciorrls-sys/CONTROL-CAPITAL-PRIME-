@@ -95,7 +95,7 @@ function AppContent() {
 
   return (
     <div
-      className="min-h-screen bg-background flex flex-col"
+      className="min-h-screen bg-background flex flex-col md:flex-row w-full"
       style={{
         backgroundImage: state.fundoUrl ? `url(${state.fundoUrl})` : undefined,
         backgroundSize: "cover",
@@ -107,28 +107,141 @@ function AppContent() {
         <div className="fixed inset-0 bg-black/30 pointer-events-none z-0" />
       )}
 
-      <HeaderWithThemeToggle
-        nomeApp={state.nomeApp || "CAPITAL PRIME CONTROL"}
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        tabs={tabs}
-      />
-
-      <div className="relative z-10 hidden md:block">
-        <TabNavigation
-          tabs={tabs}
+      {/* ── MOBILE HEADER (ONLY VISIBLE ON MOBILE SCREENS) ── */}
+      <div className="md:hidden w-full sticky top-0 z-20">
+        <HeaderWithThemeToggle
+          nomeApp={state.nomeApp || "CAPITAL PRIME CONTROL"}
           activeTab={activeTab}
           onTabChange={handleTabChange}
+          tabs={tabs}
         />
       </div>
 
-      <main
-        className={`relative z-0 md:z-10 flex-1 overflow-y-auto p-4 md:p-8 max-w-7xl mx-auto w-full transition-opacity duration-300 ${
-          isVisible ? "page-transition-enter" : "page-transition-exit"
-        }`}
-      >
-        {renderContent()}
-      </main>
+      {/* ── DESKTOP SIDEBAR (ONLY VISIBLE ON DESKTOP SCREENS) ── */}
+      <aside className="hidden md:flex w-72 h-screen sticky top-0 flex-col flex-shrink-0 z-20" style={{
+        background: "linear-gradient(180deg, #070e20 0%, #0f1e45 70%, #050b18 100%)",
+        borderRight: "2px solid rgba(212,160,23,0.35)",
+        boxShadow: "4px 0 30px rgba(0,0,0,0.3)",
+      }}>
+        {/* Sidebar Header branding */}
+        <div className="p-6 flex flex-col items-center text-center border-b border-white/5 relative">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#d4a017] to-transparent opacity-85" />
+          
+          <div className="relative group cursor-pointer mb-4">
+            <div className="absolute -inset-1.5 bg-gradient-to-r from-[#1a3a8f] to-[#d4a017] rounded-xl blur opacity-45 group-hover:opacity-75 transition duration-500"></div>
+            <div className="relative" style={{
+              width: 52, height: 52,
+              background: "linear-gradient(135deg, #101e40, #1c3570)",
+              border: "1.5px solid rgba(212,160,23,0.6)",
+              borderRadius: 14,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
+            }}>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" className="group-hover:rotate-12 transition duration-300">
+                <path d="M12 2L20 7V17L12 22L4 17V7L12 2Z" fill="#d4a017" opacity="0.95"/>
+                <path d="M12 6L17 9V15L12 18L7 15V9L12 6Z" fill="#0f1e45"/>
+              </svg>
+            </div>
+          </div>
+
+          <h1 className="font-extrabold tracking-[0.2em] uppercase transition-all duration-300 text-white" style={{
+            fontSize: "1.45rem",
+            textShadow: "0 0 15px rgba(212,160,23,0.3)",
+            background: "linear-gradient(135deg, #ffffff 10%, #f3d078 50%, #ffffff 90%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            fontWeight: 900,
+          }}>
+            CAPITAL PRIME
+          </h1>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="w-5 h-[1px]" style={{ background: "linear-gradient(to right, transparent, rgba(212,160,23,0.5))" }}></span>
+            <p className="text-[#d4a017] text-[0.68rem] tracking-[0.45em] font-extrabold">
+              CONTROL
+            </p>
+            <span className="w-5 h-[1px]" style={{ background: "linear-gradient(to left, transparent, rgba(212,160,23,0.5))" }}></span>
+          </div>
+        </div>
+
+        {/* Sidebar Scrollable Vertical Navigation Menu */}
+        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 custom-scrollbar">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-[10px] uppercase tracking-wider transition-all duration-300 relative group text-left ${
+                  isActive
+                    ? "bg-[#d4a017]/10 text-[#d4a017] border-l-4 border-[#d4a017]"
+                    : "text-white/60 hover:text-white hover:bg-white/5 border-l-4 border-transparent"
+                }`}
+              >
+                <span className={`transition-transform duration-300 group-hover:scale-110 ${
+                  isActive ? "text-[#d4a017]" : "text-white/40 group-hover:text-white"
+                }`}>
+                  {tab.icon}
+                </span>
+                <span className="truncate">{tab.label}</span>
+                
+                {/* Active indicator card glow */}
+                {isActive && (
+                  <span className="absolute right-3 w-1.5 h-1.5 bg-[#d4a017] rounded-full shadow-[0_0_8px_rgba(212,160,23,0.8)]" />
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Sidebar Footer with user info & quick actions */}
+        <div className="p-4 border-t border-white/5 flex flex-col gap-3 bg-[#050b18]/60 backdrop-blur-md">
+          {user && (
+            <div className="flex flex-col px-2">
+              <span className="text-[9px] text-white/30 uppercase tracking-widest font-bold">Logado como</span>
+              <span className="text-xs font-semibold text-white/70 truncate">{user.email || user.name}</span>
+            </div>
+          )}
+          
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="flex-1 p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 hover:bg-white/10 hover:scale-102 bg-white/5 border border-white/10"
+              style={{ 
+                color: "rgba(255,255,255,0.85)", 
+                borderColor: "rgba(255,255,255,0.08)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+              }}
+              title={`Alternar para modo ${theme === "light" ? "noturno" : "claro"}`}
+            >
+              {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+              <span className="text-[10px] font-bold uppercase tracking-wider">Tema</span>
+            </button>
+            
+            <button
+              onClick={logout}
+              className="p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center hover:bg-red-500/25 hover:scale-102 bg-red-500/10 border border-red-500/20"
+              style={{ 
+                color: "#ff6b6b", 
+                boxShadow: "0 4px 12px rgba(229,62,62,0.05)"
+              }}
+              title="Fazer logout"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* ── MAIN CONTENT AREA ── */}
+      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden relative">
+        <main
+          className={`relative z-10 flex-1 overflow-y-auto p-4 md:p-8 max-w-7xl mx-auto w-full transition-opacity duration-300 ${
+            isVisible ? "page-transition-enter" : "page-transition-exit"
+          }`}
+        >
+          {renderContent()}
+        </main>
+      </div>
     </div>
   );
 }
