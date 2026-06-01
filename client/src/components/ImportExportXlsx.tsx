@@ -103,11 +103,13 @@ export default function ImportExportXlsx() {
         if (casasSheetName) {
           const rawCasas = XLSX.utils.sheet_to_json<any>(workbook.Sheets[casasSheetName]);
           for (const raw of rawCasas) {
-            // Normaliza as chaves da planilha para minúsculo para aceitar 'Nome', 'NOME', 'Login', etc.
+            // Normaliza as chaves da planilha para minúsculo E SEM ACENTOS para aceitar 'Usuário', 'Nome da Casa', etc.
             const row: any = {};
             for (const key in raw) {
               if (Object.prototype.hasOwnProperty.call(raw, key)) {
-                row[key.toLowerCase().trim()] = raw[key];
+                // Ex: "Usuário" -> "usuario", "Data de Criação" -> "data de criacao"
+                const normalizedKey = key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+                row[normalizedKey] = raw[key];
               }
             }
 
@@ -123,8 +125,8 @@ export default function ImportExportXlsx() {
               nome: String(nome),
               login: String(row["login"] || row["usuario"] || row["user"] || ""),
               senha: String(row["senha"] || row["password"] || row["pass"] || ""),
-              meta: Number(row["meta"] || row["target"]) || 0,
-              media: Number(row["media"] || row["média"] || row["average"]) || 0,
+              meta: Number(row["meta"] || row["target"] || row["valor"]) || 0,
+              media: Number(row["media"] || row["average"]) || 0,
               prazo: String(row["prazo"] || row["dias"] || row["periodo"] || ""),
               linkCasa: String(row["linkcasa"] || row["link casa"] || row["link_casa"] || row["link"] || ""),
               linkContaFilha: String(row["linkcontafilha"] || row["link conta filha"] || row["conta filha"] || ""),
