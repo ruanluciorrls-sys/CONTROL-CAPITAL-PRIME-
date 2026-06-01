@@ -1,23 +1,96 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
+import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy } from "./db";
+import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById } from "./db";
 import { supabaseUploadJSON } from "./storage";
 import { InsertRelatorio } from "../drizzle/schema";
 import { nanoid } from "nanoid";
+import { sdk } from "./_core/sdk";
 
 export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    login: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const user = await verifyUserPassword(input.email, input.password);
+        if (!user) {
+          throw new Error("Email ou senha incorretos");
+        }
+        // Check subscription
+        if (user.subscriptionStatus === 'inactive' && user.role !== 'admin') {
+          throw new Error("Sua assinatura está inativa. Entre em contato com o administrador.");
+        }
+        const token = await sdk.createSessionToken(user.openId ?? `local_${user.id}`, {
+          name: user.name ?? user.email ?? "",
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: 365 * 24 * 60 * 60 * 1000 });
+        return { success: true, user };
+      }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+      return { success: true } as const;
+    }),
+  }),
+
+  // Admin router — apenas admins podem usar
+  admin: router({
+    users: router({
+      list: adminProcedure.query(async () => {
+        return listAllUsers();
+      }),
+      create: adminProcedure
+        .input(z.object({
+          name: z.string().min(1),
+          email: z.string().email(),
+          password: z.string().min(6),
+          role: z.enum(["user", "admin"]).default("user"),
+        }))
+        .mutation(async ({ input }) => {
+          const user = await createUserWithPassword(input);
+          return user;
+        }),
+      updateSubscription: adminProcedure
+        .input(z.object({
+          userId: z.number(),
+          subscriptionStatus: z.enum(["active", "inactive", "trial"]),
+          subscriptionExpiresAt: z.string().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          await updateUserSubscription(input.userId, {
+            subscriptionStatus: input.subscriptionStatus,
+            subscriptionExpiresAt: input.subscriptionExpiresAt
+              ? new Date(input.subscriptionExpiresAt)
+              : null,
+          });
+          return { success: true };
+        }),
+      resetPassword: adminProcedure
+        .input(z.object({
+          userId: z.number(),
+          newPassword: z.string().min(6),
+        }))
+        .mutation(async ({ input }) => {
+          await updateUserPassword(input.userId, input.newPassword);
+          return { success: true };
+        }),
+      toggleActive: adminProcedure
+        .input(z.object({
+          userId: z.number(),
+          isActive: z.boolean(),
+        }))
+        .mutation(async ({ input }) => {
+          await toggleUserActive(input.userId, input.isActive);
+          return { success: true };
+        }),
     }),
   }),
 

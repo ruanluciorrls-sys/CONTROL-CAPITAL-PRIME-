@@ -1,6 +1,7 @@
 import { eq, and, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, casas, relatorios, contas, userSettings, gastosProxy, Casa, Relatorio, InsertCasa, InsertRelatorio, Conta, InsertConta, UserSettings, GastoProxy, InsertGastoProxy } from "../drizzle/schema";
+import bcrypt from "bcryptjs";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -87,6 +88,80 @@ export async function getUserByOpenId(openId: string) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function listAllUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(users).orderBy(desc(users.createdAt));
+}
+
+export async function createUserWithPassword(data: {
+  name: string;
+  email: string;
+  password: string;
+  role?: 'user' | 'admin';
+}) {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  const passwordHash = await bcrypt.hash(data.password, 12);
+  const openId = `local_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  await db.insert(users).values({
+    name: data.name,
+    email: data.email,
+    passwordHash,
+    openId,
+    role: data.role ?? 'user',
+    subscriptionStatus: 'trial',
+    isActive: 1,
+    lastSignedIn: new Date(),
+  } as any);
+  return getUserByEmail(data.email);
+}
+
+export async function verifyUserPassword(email: string, password: string) {
+  const user = await getUserByEmail(email);
+  if (!user || !user.passwordHash) return null;
+  if (!user.isActive) return null;
+  const valid = await bcrypt.compare(password, user.passwordHash);
+  if (!valid) return null;
+  return user;
+}
+
+export async function updateUserPassword(userId: number, newPassword: string) {
+  const db = await getDb();
+  if (!db) return;
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await db.update(users).set({ passwordHash } as any).where(eq(users.id, userId));
+}
+
+export async function updateUserSubscription(userId: number, data: {
+  subscriptionStatus: 'active' | 'inactive' | 'trial';
+  subscriptionExpiresAt?: Date | null;
+}) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set(data as any).where(eq(users.id, userId));
+}
+
+export async function toggleUserActive(userId: number, isActive: boolean) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ isActive: isActive ? 1 : 0 } as any).where(eq(users.id, userId));
 }
 
 // Casas queries
