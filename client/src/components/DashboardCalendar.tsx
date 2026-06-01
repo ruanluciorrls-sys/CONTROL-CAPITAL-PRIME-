@@ -47,24 +47,24 @@ const plataformasInicial: Plataforma[] = [
   { id: "27", nome: "MK", diasPrazo: 3, dia: "DOMINGO" },
 ];
 
-// Cores para cada plataforma
+// Cores para cada plataforma (Design Elegante/Translucido)
 const coresPorPlataforma: { [key: string]: string } = {
-  WE: "bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700",
-  "777CLUBE": "bg-purple-100 dark:bg-purple-900 border-purple-300 dark:border-purple-700",
-  EK: "bg-pink-100 dark:bg-pink-900 border-pink-300 dark:border-pink-700",
-  VOY: "bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700",
-  "888": "bg-yellow-100 dark:bg-yellow-900 border-yellow-300 dark:border-yellow-700",
-  MANGA: "bg-red-100 dark:bg-red-900 border-red-300 dark:border-red-700",
-  ANJO: "bg-indigo-100 dark:bg-indigo-900 border-indigo-300 dark:border-indigo-700",
-  GAME: "bg-cyan-100 dark:bg-cyan-900 border-cyan-300 dark:border-cyan-700",
-  "91": "bg-orange-100 dark:bg-orange-900 border-orange-300 dark:border-orange-700",
-  OKOK: "bg-teal-100 dark:bg-teal-900 border-teal-300 dark:border-teal-700",
-  A8: "bg-lime-100 dark:bg-lime-900 border-lime-300 dark:border-lime-700",
-  DY: "bg-emerald-100 dark:bg-emerald-900 border-emerald-300 dark:border-emerald-700",
-  MK: "bg-violet-100 dark:bg-violet-900 border-violet-300 dark:border-violet-700",
-  WP: "bg-fuchsia-100 dark:bg-fuchsia-900 border-fuchsia-300 dark:border-fuchsia-700",
-  W1: "bg-sky-100 dark:bg-sky-900 border-sky-300 dark:border-sky-700",
-  DZ: "bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700",
+  WE: "bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20 hover:border-blue-500/50",
+  "777CLUBE": "bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20 hover:border-purple-500/50",
+  EK: "bg-pink-500/10 border-pink-500/30 text-pink-400 hover:bg-pink-500/20 hover:border-pink-500/50",
+  VOY: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/50",
+  "888": "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/50",
+  MANGA: "bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/50",
+  ANJO: "bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20 hover:border-indigo-500/50",
+  GAME: "bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 hover:border-cyan-500/50",
+  "91": "bg-orange-500/10 border-orange-500/30 text-orange-400 hover:bg-orange-500/20 hover:border-orange-500/50",
+  OKOK: "bg-teal-500/10 border-teal-500/30 text-teal-400 hover:bg-teal-500/20 hover:border-teal-500/50",
+  A8: "bg-lime-500/10 border-lime-500/30 text-lime-400 hover:bg-lime-500/20 hover:border-lime-500/50",
+  DY: "bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20 hover:border-green-500/50",
+  MK: "bg-violet-500/10 border-violet-500/30 text-violet-400 hover:bg-violet-500/20 hover:border-violet-500/50",
+  WP: "bg-fuchsia-500/10 border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-500/20 hover:border-fuchsia-500/50",
+  W1: "bg-sky-500/10 border-sky-500/30 text-sky-400 hover:bg-sky-500/20 hover:border-sky-500/50",
+  DZ: "bg-slate-500/10 border-slate-500/30 text-slate-400 hover:bg-slate-500/20 hover:border-slate-500/50",
 };
 
 export default function DashboardCalendar() {
@@ -76,39 +76,39 @@ export default function DashboardCalendar() {
   }));
 
   const getCorPlataforma = (nome: string): string => {
-    return coresPorPlataforma[nome] || "bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-700";
+    return coresPorPlataforma[nome] || "bg-muted/50 border-border/50 text-muted-foreground hover:bg-muted";
   };
 
   return (
-    <div className="mt-8">
-      <h2 className="text-2xl font-bold text-foreground mb-6">📅 Calendário de Casas</h2>
+    <div className="mt-8 bg-card border border-border/60 rounded-2xl shadow-sm p-6">
+      <div className="flex items-center gap-3 mb-8">
+        <h2 className="text-xl font-bold text-foreground">📅 Calendário de Casas</h2>
+      </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {plataformasPorDia.map((dia) => (
           <div
             key={dia.dia}
-            className="bg-card dark:bg-slate-800 rounded-lg border border-border p-4"
+            className="bg-background/40 backdrop-blur-sm border border-border/40 rounded-xl p-5 hover:border-border/80 transition-colors"
           >
-            <h3 className="text-lg font-semibold text-foreground mb-3">{dia.dia}</h3>
+            <h3 className="text-sm tracking-widest font-bold text-muted-foreground mb-4">{dia.dia}</h3>
             
             {dia.plataformas.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2.5">
                 {dia.plataformas.map((plat) => (
                   <div
                     key={plat.id}
-                    className={`${getCorPlataforma(plat.nome)} border-2 rounded-lg px-3 py-2 text-sm font-semibold text-foreground transition-all hover:shadow-md cursor-pointer`}
+                    className={`${getCorPlataforma(plat.nome)} border rounded-lg px-3 py-1.5 text-xs font-bold transition-all hover:shadow-lg cursor-pointer flex items-center gap-2`}
                   >
-                    <div className="flex items-center gap-2">
-                      <span>{plat.nome}</span>
-                      <span className="text-xs bg-foreground/20 rounded-full px-2 py-0.5">
-                        {plat.diasPrazo}d
-                      </span>
-                    </div>
+                    <span className="tracking-wide">{plat.nome}</span>
+                    <span className="bg-background/30 rounded-full px-2 py-0.5 opacity-90">
+                      {plat.diasPrazo}d
+                    </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm">Nenhuma casa agendada</p>
+              <p className="text-muted-foreground/60 text-xs italic">Nenhuma casa agendada</p>
             )}
           </div>
         ))}

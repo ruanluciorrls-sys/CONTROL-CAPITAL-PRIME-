@@ -67,67 +67,31 @@ export default function Dashboard() {
     const cooperacao = Number(rel.cooperacao || 0);
     const cooperacaoValid = isNaN(cooperacao) ? 0 : cooperacao;
     return total + resultadoTotal + cooperacaoValid;
-  }, 0);
-
-  // Cores para os cards
+  // Cores de destaque para os cards
   const colors = [
-    "bg-blue-100 border-blue-300 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-700 dark:hover:bg-blue-800",
-    "bg-green-100 border-green-300 hover:bg-green-200 dark:bg-green-900 dark:border-green-700 dark:hover:bg-green-800",
-    "bg-purple-100 border-purple-300 hover:bg-purple-200 dark:bg-purple-900 dark:border-purple-700 dark:hover:bg-purple-800",
-    "bg-pink-100 border-pink-300 hover:bg-pink-200 dark:bg-pink-900 dark:border-pink-700 dark:hover:bg-pink-800",
-    "bg-yellow-100 border-yellow-300 hover:bg-yellow-200 dark:bg-yellow-900 dark:border-yellow-700 dark:hover:bg-yellow-800",
+    "from-blue-500/20 to-transparent border-blue-500/50 text-blue-400",
+    "from-emerald-500/20 to-transparent border-emerald-500/50 text-emerald-400",
+    "from-purple-500/20 to-transparent border-purple-500/50 text-purple-400",
+    "from-rose-500/20 to-transparent border-rose-500/50 text-rose-400",
+    "from-amber-500/20 to-transparent border-amber-500/50 text-amber-400",
   ];
 
-
-  
   const resumoCards = [
-    {
-      title: "Casas Ativas",
-      value: casasAtivas,
-      icon: Home,
-      color: colors[0],
-      href: "/relatorios",
-    },
-    {
-      title: "Casas Finalizadas",
-      value: casasFinalizadas,
-      icon: TrendingUp,
-      color: colors[1],
-      href: "/casas-finalizadas",
-    },
-    {
-      title: "Relatórios Criados",
-      value: relatoriosCriados,
-      icon: FileText,
-      color: colors[2],
-      href: "/relatorios",
-    },
-    {
-      title: "Contas para Sacar",
-      value: contasParaSacar,
-      icon: Wallet,
-      color: colors[3],
-      href: "/contas",
-    },
-    {
-      title: "Gasto com Proxy",
-      value: `R$ ${totalGastosProxy.toFixed(2)}`,
-      icon: DollarSign,
-      color: colors[4],
-      href: "/gasto-proxy",
-    },
+    { title: "Casas Ativas", value: casasAtivas, icon: Home, color: colors[0], href: "/relatorios" },
+    { title: "Casas Finalizadas", value: casasFinalizadas, icon: TrendingUp, color: colors[1], href: "/casas-finalizadas" },
+    { title: "Relatórios Criados", value: relatoriosCriados, icon: FileText, color: colors[2], href: "/relatorios" },
+    { title: "Contas para Sacar", value: contasParaSacar, icon: Wallet, color: colors[3], href: "/contas" },
+    { title: "Gasto com Proxy", value: `R$ ${totalGastosProxy.toFixed(2)}`, icon: DollarSign, color: colors[4], href: "/gasto-proxy" },
   ];
 
-  // Cores para as plataformas
+  // Cores luxuosas para as plataformas
   const coresPlataformas = [
-    "bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400",
-    "bg-green-50 dark:bg-green-900 border-green-300 dark:border-green-700 text-green-600 dark:text-green-400",
-    "bg-purple-50 dark:bg-purple-900 border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400",
-    "bg-pink-50 dark:bg-pink-900 border-pink-300 dark:border-pink-700 text-pink-600 dark:text-pink-400",
-    "bg-yellow-50 dark:bg-yellow-900 border-yellow-300 dark:border-yellow-700 text-yellow-600 dark:text-yellow-400",
-    "bg-red-50 dark:bg-red-900 border-red-300 dark:border-red-700 text-red-600 dark:text-red-400",
-    "bg-indigo-50 dark:bg-indigo-900 border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400",
-    "bg-cyan-50 dark:bg-cyan-900 border-cyan-300 dark:border-cyan-700 text-cyan-600 dark:text-cyan-400",
+    { bg: "bg-blue-500/10", border: "border-blue-500/20 border-l-blue-500", text: "text-blue-400" },
+    { bg: "bg-emerald-500/10", border: "border-emerald-500/20 border-l-emerald-500", text: "text-emerald-400" },
+    { bg: "bg-purple-500/10", border: "border-purple-500/20 border-l-purple-500", text: "text-purple-400" },
+    { bg: "bg-rose-500/10", border: "border-rose-500/20 border-l-rose-500", text: "text-rose-400" },
+    { bg: "bg-amber-500/10", border: "border-amber-500/20 border-l-amber-500", text: "text-amber-400" },
+    { bg: "bg-cyan-500/10", border: "border-cyan-500/20 border-l-cyan-500", text: "text-cyan-400" },
   ];
   
   // Obter plataformas de hoje do calendário
@@ -148,45 +112,64 @@ export default function Dashboard() {
   ][hoje.getMonth()]}`;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-background p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Dashboard CPA</h1>
-          <p className="text-slate-600 dark:text-slate-400">Resumo de todas as suas operações</p>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard CPA</h1>
+          <p className="text-muted-foreground">Visão geral elegante e detalhada de suas operações.</p>
         </div>
 
         {/* Card de Lucro em Caixa */}
-        <Card className="bg-gradient-to-r from-green-400 to-green-600 dark:from-green-700 dark:to-green-900 text-white mb-8 p-8 shadow-lg">
-          <div className="flex items-center justify-between">
+        <div className="relative overflow-hidden bg-card border border-border/50 rounded-2xl p-8 shadow-2xl group transition-all duration-500 hover:border-emerald-500/30 hover:shadow-emerald-900/20">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-900/10 opacity-60"></div>
+          
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <p className="text-green-100 text-lg mb-2">LUCRO EM CAIXA</p>
-              <p className="text-5xl font-bold">R$ {lucroCaixa.toFixed(2)}</p>
-              <p className="text-green-100 text-sm mt-2">Soma de todos os relatórios finalizados</p>
+              <p className="text-muted-foreground text-xs md:text-sm tracking-[0.2em] font-semibold mb-3 uppercase">
+                Lucro em Caixa
+              </p>
+              <p className="text-5xl md:text-6xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-emerald-400 to-teal-200 drop-shadow-sm">
+                R$ {lucroCaixa.toFixed(2)}
+              </p>
+              <p className="text-muted-foreground/70 text-xs mt-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Soma de todos os relatórios finalizados
+              </p>
             </div>
-            <DollarSign size={64} className="opacity-20" />
+            
+            <div className="hidden md:flex items-center justify-center w-24 h-24 rounded-full bg-emerald-500/10 border border-emerald-500/20 group-hover:scale-110 transition-transform duration-500">
+              <DollarSign size={40} className="text-emerald-400" />
+            </div>
           </div>
-        </Card>
+        </div>
 
         {/* Seção de Resumo em Quadradinhos */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Resumo Rápido</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div>
+          <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <TrendingUp size={20} className="text-primary" />
+            Métricas Principais
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {resumoCards.map((card, index) => {
               const Icon = card.icon;
+              const accentColor = card.color.split(' ').pop();
               return (
                 <Link
                   key={index}
                   href={card.href}
-                  className={`${card.color} border-2 rounded-lg p-6 transition-all hover:shadow-lg hover:scale-105 cursor-pointer text-left block`}
+                  className="bg-card border border-border/60 rounded-xl p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-border cursor-pointer text-left block relative overflow-hidden group"
                 >
+                  {/* Linha brilhante no topo */}
+                  <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r ${card.color.split(' ')[0]} ${card.color.split(' ')[1]} opacity-40 group-hover:opacity-100 transition-opacity`}></div>
+                  
                   <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <p className="text-slate-700 dark:text-slate-300 font-semibold text-lg">{card.title}</p>
-                      <p className="text-3xl font-bold text-slate-900 dark:text-white mt-2">{card.value}</p>
+                    <p className="text-muted-foreground font-medium text-sm">{card.title}</p>
+                    <div className="p-2 rounded-lg bg-background/50 border border-border/30 group-hover:bg-background transition-colors">
+                       <Icon size={18} className={accentColor} />
                     </div>
-                    <Icon size={32} className="text-slate-600 dark:text-slate-400 opacity-60" />
                   </div>
+                  <p className="text-3xl font-bold text-foreground tracking-tight">{card.value}</p>
                 </Link>
               );
             })}
@@ -194,42 +177,56 @@ export default function Dashboard() {
         </div>
 
         {/* Seção de Lançamentos de Hoje */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <Calendar size={28} className="text-blue-600 dark:text-blue-400" />
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Lançamentos de Hoje</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400 ml-auto">{dataFormatada}</p>
+        <div className="bg-card border border-border/60 rounded-2xl shadow-sm p-6 relative overflow-hidden">
+          {/* Fundo sutil decorativo */}
+          <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-primary/10 rounded-xl">
+                <Calendar size={22} className="text-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Lançamentos de Hoje</h2>
+                <p className="text-sm text-muted-foreground">{dataFormatada}</p>
+              </div>
+            </div>
           </div>
 
-          {plataformasDeHoje.length > 0 ? (
-            <div className="space-y-2">
-              {plataformasDeHoje.map((plat, index) => {
-                const corClasses = coresPlataformas[index % coresPlataformas.length];
-                return (
-                  <div key={plat.id} className={`${corClasses} border rounded-lg p-3 flex items-center justify-between hover:shadow-md transition-shadow`}>
-                    <div className="flex items-center gap-3">
-                      <Clock size={18} className={corClasses.split(" ").slice(-3).join(" ")} />
+          <div className="relative z-10">
+            {plataformasDeHoje.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {plataformasDeHoje.map((plat, index) => {
+                  const cor = coresPlataformas[index % coresPlataformas.length];
+                  return (
+                    <div key={plat.id} className={`bg-background/40 backdrop-blur-sm border ${cor.border} border-l-4 rounded-xl p-4 flex items-center gap-4 hover:bg-muted/30 transition-all duration-300 hover:shadow-md`}>
+                      <div className={`${cor.bg} p-2.5 rounded-lg border border-white/5`}>
+                        <Clock size={18} className={cor.text} />
+                      </div>
                       <div>
-                        <p className="font-bold text-slate-900 dark:text-white">{plat.nome}</p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400">
-                          {plat.diasPrazo === 0 ? "Sem prazo" : `${plat.diasPrazo} dias`}
+                        <p className="font-bold text-foreground tracking-wide">{plat.nome}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {plat.diasPrazo === 0 ? "Imediato / Sem prazo" : `Prazo: ${plat.diasPrazo} dias`}
                         </p>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-8 text-center">
-              <p className="text-slate-600 dark:text-slate-400 text-lg">Nenhum lançamento para hoje</p>
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="bg-background/50 border border-border/50 border-dashed rounded-xl p-8 text-center">
+                <p className="text-muted-foreground text-sm font-medium">✨ O dia está livre. Nenhum lançamento agendado para hoje.</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Seção de Calendário */}
-      <DashboardCalendar />
+        {/* Seção de Calendário */}
+        <DashboardCalendar />
+      </div>
+    </div>
+  );
+}rdCalendar />
     </div>
   );
 }
