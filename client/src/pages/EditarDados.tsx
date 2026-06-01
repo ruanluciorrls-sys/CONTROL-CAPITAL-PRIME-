@@ -30,13 +30,7 @@ export default function EditarDados() {
         </div>
       )}
 
-      {/* Editor de Nome Colorido */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-border space-y-6">
-        <h3 className="text-xl font-bold text-foreground">
-          Editar Nome Colorido
-        </h3>
-        <ColorfulNameEditor initialName={state.nomeApp} />
-      </div>
+
 
       {/* Importação e Exportação XLSX */}
       <ImportExportXlsx />
@@ -123,74 +117,7 @@ export default function EditarDados() {
         </button>
       </div>
 
-      {/* Resumo de Dados */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-border">
-        <h3 className="text-xl font-bold text-foreground mb-4">
-          Resumo do Sistema
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 bg-secondary dark:bg-slate-700 rounded-lg border border-border">
-            <p className="text-sm text-muted-foreground">Total de Casas</p>
-            <p className="text-3xl font-bold text-primary">{state.casas.length}</p>
-          </div>
-          <div className="p-4 bg-secondary dark:bg-slate-700 rounded-lg border border-border">
-            <p className="text-sm text-muted-foreground">Total de Relatórios</p>
-            <p className="text-3xl font-bold text-primary">
-              {state.relatorios.length}
-            </p>
-          </div>
-          <div className="p-4 bg-secondary dark:bg-slate-700 rounded-lg border border-border">
-            <p className="text-sm text-muted-foreground">Casas Ativas</p>
-            <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-              {state.casas.filter((c) => c.status === "ativa").length}
-            </p>
-          </div>
-          <div className="p-4 bg-secondary dark:bg-slate-700 rounded-lg border border-border">
-            <p className="text-sm text-muted-foreground">Casas Finalizadas</p>
-            <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-              {state.casas.filter((c) => c.status === "finalizada").length}
-            </p>
-          </div>
-        </div>
-      </div>
 
-      {/* Relatórios Finalizados */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-border">
-        <h3 className="text-xl font-bold text-foreground mb-4">
-          Relatórios Finalizados
-        </h3>
-        {state.relatorios.filter((r) => r.status === "finalizado").length === 0 ? (
-          <p className="text-muted-foreground">
-            Nenhum relatório finalizado ainda
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {state.relatorios
-              .filter((r) => r.status === "finalizado")
-              .map((rel) => {
-                const casa = state.casas.find((c) => c.id === rel.casaId);
-                return (
-                  <div
-                    key={rel.id}
-                    className="p-3 bg-secondary dark:bg-slate-700 rounded-lg border border-border flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="font-semibold text-foreground">
-                        {casa?.nome || "Casa não encontrada"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {rel.agente} • {new Date(rel.criadoEm).toLocaleDateString("pt-BR")}
-                      </p>
-                    </div>
-                    <p className="text-sm font-bold text-primary">
-                      R$ {(rel.rows.reduce((sum, r) => sum + r.resultado, 0) + (rel.cooperacao || 0)).toFixed(2)}
-                    </p>
-                  </div>
-                );
-              })}
-          </div>
-        )}
-      </div>
 
       {/* Informações de Armazenamento */}
       <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">

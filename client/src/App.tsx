@@ -172,68 +172,121 @@ function HeaderWithThemeToggle({
   const { logout, user } = useAuth();
 
   return (
-    <div className="relative z-10 bg-white dark:bg-slate-900 border-b border-border sticky top-0" style={{
-      background: "linear-gradient(135deg, #0f1e45 0%, #1a3a8f 100%)",
-      borderBottom: "1px solid rgba(212,160,23,0.2)",
+    <div className="relative z-20 bg-white dark:bg-slate-900 border-b border-border sticky top-0" style={{
+      background: "linear-gradient(135deg, #070e20 0%, #0f1e45 50%, #152757 100%)",
+      borderBottom: "2px solid rgba(212,160,23,0.35)",
+      boxShadow: "0 4px 30px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.05)",
     }}>
-      <div className="px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {/* Logo hexagonal */}
-          <div style={{
-            width: 36, height: 36,
-            background: "linear-gradient(135deg, #1a3a8f, #d4a017)",
-            borderRadius: 9,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L20 7V17L12 22L4 17V7L12 2Z" fill="white" opacity="0.9"/>
-              <path d="M12 6L17 9V15L12 18L7 15V9L12 6Z" fill="rgba(212,160,23,0.6)"/>
-            </svg>
-          </div>
-          <div>
-            <h1 className="font-extrabold truncate" style={{
-              color: "white",
-              fontSize: "clamp(0.9rem, 2vw, 1.2rem)",
-              letterSpacing: "0.04em",
-              lineHeight: 1.1,
+      {/* Glossy top-border highlight */}
+      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#d4a017] to-transparent opacity-80" />
+      
+      <div className="px-4 md:px-8 py-4 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0">
+        
+        {/* Left Side: Hexagonal Premium Logo and Badge */}
+        <div className="flex items-center gap-3 w-full md:w-1/4 justify-center md:justify-start">
+          <div className="relative group cursor-pointer">
+            {/* Soft gold glow behind the logo */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-[#1a3a8f] to-[#d4a017] rounded-xl blur opacity-45 group-hover:opacity-75 transition duration-500"></div>
+            <div className="relative" style={{
+              width: 42, height: 42,
+              background: "linear-gradient(135deg, #101e40, #1c3570)",
+              border: "1.5px solid rgba(212,160,23,0.6)",
+              borderRadius: 11,
+              display: "flex", alignItems: "center", justifyItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              transition: "transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
             }}>
-              CAPITAL PRIME
-            </h1>
-            <p style={{ color: "#d4a017", fontSize: "0.6rem", letterSpacing: "0.2em", fontWeight: 700 }}>
-              CONTROL
-            </p>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="group-hover:rotate-12 transition duration-300">
+                <path d="M12 2L20 7V17L12 22L4 17V7L12 2Z" fill="#d4a017" opacity="0.95"/>
+                <path d="M12 6L17 9V15L12 18L7 15V9L12 6Z" fill="#0f1e45"/>
+              </svg>
+            </div>
+          </div>
+          <div className="hidden lg:flex flex-col">
+            <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#d4a017]">Premium Client</span>
+            <span className="text-[11px] text-white/60 font-medium">Dashboard v2026</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-3">
+        {/* Center: Large, Elegant & Professional Title */}
+        <div className="flex flex-col items-center justify-center text-center flex-1 w-full md:w-2/4">
+          <div className="relative group">
+            <h1 className="font-extrabold tracking-[0.25em] uppercase transition-all duration-300 hover:scale-[1.02]" style={{
+              color: "#ffffff",
+              fontSize: "clamp(1.5rem, 3.5vw, 2.4rem)",
+              textShadow: "0 0 20px rgba(212,160,23,0.35)",
+              background: "linear-gradient(135deg, #ffffff 10%, #f3d078 50%, #ffffff 90%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              lineHeight: 1.1,
+              fontWeight: 900,
+            }}>
+              CAPITAL PRIME
+            </h1>
+          </div>
+          <div className="flex items-center gap-3 mt-1">
+            <span className="w-8 h-[1px]" style={{ background: "linear-gradient(to right, transparent, rgba(212,160,23,0.5))" }}></span>
+            <p className="text-[#d4a017]" style={{
+              fontSize: "clamp(0.65rem, 1.2vw, 0.8rem)",
+              letterSpacing: "0.5em",
+              fontWeight: 800,
+              textTransform: "uppercase",
+              textShadow: "0 0 10px rgba(212,160,23,0.5)",
+              marginRight: "-0.5em" /* Compensa o letter-spacing da última letra */
+            }}>
+              CONTROL
+            </p>
+            <span className="w-8 h-[1px]" style={{ background: "linear-gradient(to left, transparent, rgba(212,160,23,0.5))" }}></span>
+          </div>
+        </div>
+
+        {/* Right Side: Account and Utility Actions */}
+        <div className="flex items-center gap-3 w-full md:w-1/4 justify-center md:justify-end">
           {user && (
-            <span className="hidden sm:inline text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>
-              {user.email || user.name}
-            </span>
+            <div className="hidden sm:flex flex-col text-right mr-1">
+              <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Logado como</span>
+              <span className="text-xs font-semibold text-white/80">{user.email || user.name}</span>
+            </div>
           )}
+          
+          <div className="h-6 w-[1px] bg-white/10 hidden sm:block"></div>
+
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
-            style={{ color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.08)" }}
+            className="p-2 rounded-xl transition-all duration-300 min-h-[42px] min-w-[42px] flex items-center justify-center hover:bg-white/10 hover:scale-105 active:scale-95"
+            style={{ 
+              color: "rgba(255,255,255,0.85)", 
+              background: "rgba(255,255,255,0.05)", 
+              border: "1px solid rgba(255,255,255,0.08)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+            }}
             title={`Alternar para modo ${theme === "light" ? "noturno" : "claro"}`}
             aria-label="Alternar tema"
           >
-            {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+            {theme === "light" ? <Moon size={19} /> : <Sun size={19} />}
           </button>
+          
           <button
             onClick={logout}
-            className="p-2 rounded-lg transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
-            style={{ color: "rgba(255,100,100,0.9)", background: "rgba(229,62,62,0.1)" }}
+            className="p-2 rounded-xl transition-all duration-300 min-h-[42px] min-w-[42px] flex items-center justify-center hover:bg-red-500/20 hover:scale-105 active:scale-95"
+            style={{ 
+              color: "#ff6b6b", 
+              background: "rgba(229,62,62,0.08)", 
+              border: "1px solid rgba(229,62,62,0.2)",
+              boxShadow: "0 4px 12px rgba(229,62,62,0.05)"
+            }}
             title="Fazer logout"
             aria-label="Fazer logout"
           >
-            <LogOut size={18} />
+            <LogOut size={19} />
           </button>
+
           <div className="md:hidden">
             <MobileNav tabs={tabs} activeTab={activeTab} onTabChange={onTabChange} />
           </div>
         </div>
+
       </div>
     </div>
   );
