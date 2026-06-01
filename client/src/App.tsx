@@ -38,6 +38,7 @@ const adminTab = { id: "admin", label: "Painel Admin", icon: <Shield size={20} /
 
 function AppContent() {
   const { state } = useApp();
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem("lastActiveTab") || "dashboard";
   });
