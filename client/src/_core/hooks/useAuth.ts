@@ -42,23 +42,21 @@ export function useAuth(options?: UseAuthOptions) {
   }, [logoutMutation, utils]);
 
   const state = useMemo(() => {
-    localStorage.setItem(
-      "manus-runtime-user-info",
-      JSON.stringify(meQuery.data)
-    );
-    return {
-      user: meQuery.data ?? null,
-      loading: meQuery.isLoading || logoutMutation.isPending,
-      error: meQuery.error ?? logoutMutation.error ?? null,
-      isAuthenticated: Boolean(meQuery.data),
+    // BYPASS AUTHENTICATION FOR MIGRATION
+    const mockUser = {
+      id: "admin",
+      name: "Admin",
+      email: "admin@cpa.com",
+      role: "admin",
     };
-  }, [
-    meQuery.data,
-    meQuery.error,
-    meQuery.isLoading,
-    logoutMutation.error,
-    logoutMutation.isPending,
-  ]);
+    
+    return {
+      user: mockUser,
+      loading: false,
+      error: null,
+      isAuthenticated: true,
+    };
+  }, []);
 
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
