@@ -1,0 +1,31 @@
+
+  // Listener de teclado para atalhos
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!selectedContaId) return;
+
+      const conta = contas.find((c) => c.id === selectedContaId);
+      if (!conta) return;
+
+      // Ctrl+U para copiar usuario
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "u") {
+        e.preventDefault();
+        navigator.clipboard.writeText(conta.usuario);
+        toast.success("Usuario copiado!");
+      }
+
+      // Ctrl+S para copiar senha
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (conta.senha) {
+          navigator.clipboard.writeText(conta.senha);
+          toast.success("Senha copiada!");
+        } else {
+          toast.error("Esta conta nao tem senha salva");
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedContaId, contas]);

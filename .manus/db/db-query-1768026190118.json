@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE casas ADD COLUMN IF NOT EXISTS prazo TEXT, ADD COLUMN IF NOT EXISTS dataInicio DATE, ADD COLUMN IF NOT EXISTS dataFim DATE;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2zd1NdXmRzZqT1v.root --database 82AubqmMHAgQoembg23wka --execute ALTER TABLE casas ADD COLUMN IF NOT EXISTS prazo TEXT, ADD COLUMN IF NOT EXISTS dataInicio DATE, ADD COLUMN IF NOT EXISTS dataFim DATE;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 998
+}

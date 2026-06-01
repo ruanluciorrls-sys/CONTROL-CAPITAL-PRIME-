@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `contas` (\n  `id` varchar(64) NOT NULL,\n  `userId` int NOT NULL,\n  `usuario` text NOT NULL,\n  `senha` text NOT NULL,\n  `valor` decimal(10,2) NOT NULL,\n  `status` enum('sacado', 'sacando', 'bloqueado') NOT NULL DEFAULT 'sacando',\n  `criadoEm` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `atualizadoEm` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  CONSTRAINT `contas_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2zd1NdXmRzZqT1v.root --database 82AubqmMHAgQoembg23wka --execute CREATE TABLE IF NOT EXISTS `contas` (\n  `id` varchar(64) NOT NULL,\n  `userId` int NOT NULL,\n  `usuario` text NOT NULL,\n  `senha` text NOT NULL,\n  `valor` decimal(10,2) NOT NULL,\n  `status` enum('sacado', 'sacando', 'bloqueado') NOT NULL DEFAULT 'sacando',\n  `criadoEm` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `atualizadoEm` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  CONSTRAINT `contas_id` PRIMARY KEY(`id`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 209
+}

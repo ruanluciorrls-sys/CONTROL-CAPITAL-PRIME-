@@ -1,0 +1,620 @@
+import { useApp } from "@/contexts/AppContext";
+import { Trash2, Edit2, RotateCcw, Eye, EyeOff, CheckSquare2, Square } from "lucide-react";
+import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+
+export default function CasasFinalizadas() {
+  const { state, deleteCasa, updateCasa, deletePermanentementeCasa, esvaziarLixeiraCasas } = useApp();
+  const { data: totalGastosProxy = 0 } = trpc.gastosProxy.total.useQuery();
+  const [editingCasa, setEditingCasa] = useState<any>(null);
+  const [editData, setEditData] = useState<any>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState<"finalizadas" | "lixeira">("finalizadas");
+  const [filtroNomeInicial, setFiltroNomeInicial] = useState("");
+  const [filtroMes, setFiltroMes] = useState<string | null>(null);
+  const [selectedLixeira, setSelectedLixeira] = useState<Set<string>>(new Set());
+
+  // Extrair nome inicial (primeira palavra) de cada casa
+  const getNomeInicial = (nome: string) => {
+    const palavras = nome.trim().split(/\s+/);
+    return palavras[0].toUpperCase();
+  };
+
+  const casasFinalizadas = state.casas.filter((c) => c.status === "finalizada");
+  const casasLixeira = state.casas.filter((c) => c.status === "lixeira");
+
+  const getMesesDisponiveis = () => {
+    const meses: string[] = [];
+    const hoje = new Date();
+    for (let i = 0; i < 12; i++) {
+      const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+      const mesKey = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+      meses.push(mesKey);
+    }
+    return meses;
+  };
+
+  const mesesDisponiveis = getMesesDisponiveis();
+
+  const getCasasMes = (mesKey: string) => {
+    return casasFinalizadas.filter((casa) => {
+      if (!casa.dataFim) return false;
+      const dataCasa = new Date(casa.dataFim);
+      const casaMesKey = `${dataCasa.getFullYear()}-${String(dataCasa.getMonth() + 1).padStart(2, '0')}`;
+      return casaMesKey === mesKey;
+    });
+  };
+
+  const casasFiltradas = filtroMes === null || filtroMes === "todas"
+    ? casasFinalizadas
+    : getCasasMes(filtroMes);
+
+  const casasFiltroNome = filtroNomeInicial === ""
+    ? casasFiltradas
+    : casasFiltradas.filter((casa) => getNomeInicial(casa.nome) === filtroNomeInicial);
+
+  const calculateCasaLucros = (casaId: string) => {
+    const relatoriosCasa = state.relatorios.filter((r) => r.casaId === casaId && r.status === "finalizado");
+    const totalResultado = relatoriosCasa.reduce((total, r) => total + r.rows.reduce((sum, row) => sum + row.resultado, 0), 0);
+    const totalCooperacao = relatoriosCasa.reduce((total, r) => total + r.cooperacao, 0);
+    return totalResultado + totalCooperacao;
+  };
+
+  const totalLucrosFinalizados = casasFiltroNome.reduce((total, casa) => {
+    return total + calculateCasaLucros(casa.id);
+  }, 0);
+
+  const totalLucrosTodosFiltrados = casasFiltroNome.reduce((total, casa) => {
+    return total + calculateCasaLucros(casa.id);
+  }, 0);
+
+  const handleEditClick = (casa: any) => {
+    setEditingCasa(casa);
+    setEditData({ ...casa });
+  };
+
+  const handleSaveEdit = () => {
+    if (editData) {
+      updateCasa(editData.id, editData);
+      setEditingCasa(null);
+      setEditData(null);
+    }
+  };
+
+  const handleReactivate = (casaId: string) => {
+    updateCasa(casaId, { status: "ativa" });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedLixeira.size === casasLixeira.length) {
+      setSelectedLixeira(new Set());
+    } else {
+      setSelectedLixeira(new Set(casasLixeira.map((c) => c.id)));
+    }
+  };
+
+  const toggleSelectItem = (id: string) => {
+    const newSelected = new Set(selectedLixeira);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedLixeira(newSelected);
+  };
+
+  const handleDeleteMultiple = () => {
+    if (confirm(`Deletar permanentemente ${selectedLixeira.size} casa(s)?`)) {
+      selectedLixeira.forEach((id) => deletePermanentementeCasa(id));
+      setSelectedLixeira(new Set());
+    }
+  };
+
+  const handleEsvaziarLixeira = () => {
+    if (confirm(`Esvaziar lixeira? ${casasLixeira.length} casa(s) serão deletada(s) permanentemente.`)) {
+      esvaziarLixeiraCasas();
+    }
+  };
+
+  const handleRecoverMultiple = () => {
+    if (selectedLixeira.size === 0) return;
+    if (confirm(`Recuperar ${selectedLixeira.size} casa(s)? Serão movidas para 'Casas Ativas'.`)) {
+      selectedLixeira.forEach((id) => {
+        updateCasa(id, { status: "ativa" });
+      });
+      setSelectedLixeira(new Set());
+    }
+  };
+
+  // Agrupar casas por nome inicial
+  const casasAgrupadasPorNomeInicial = Array.from(
+    new Set(casasFinalizadas.map((c) => getNomeInicial(c.nome)))
+  )
+    .sort()
+    .map((nomeInicial) => ({
+      nomeInicial,
+      casas: casasFinalizadas.filter((c) => getNomeInicial(c.nome) === nomeInicial),
+    }));
+
+  // Nomes iniciais únicos para filtro
+  const nomesIniciais = casasAgrupadasPorNomeInicial.map((g) => g.nomeInicial);
+
+  const handleExportarCasas = () => {
+    const casasParaExportar = activeTab === "finalizadas" ? casasFiltradas : Array.from(selectedLixeira).map((id) => casasLixeira.find((c) => c.id === id)).filter(Boolean);
+    if (casasParaExportar.length === 0) {
+      alert("Nenhuma casa para exportar!");
+      return;
+    }
+    const csv = [
+      ["Nome", "Login", "Senha", "Status", "Lucro", "Criada em"],
+      ...casasParaExportar.map((casa: any) => [
+        casa.nome,
+        casa.login || "-",
+        casa.senha || "-",
+        casa.status,
+        calculateCasaLucros(casa.id).toFixed(2),
+        casa.criadoEm ? new Date(casa.criadoEm).toLocaleDateString("pt-BR") : "-",
+      ]),
+    ]
+      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `casas-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Abas */}
+      <div className="flex gap-4 border-b border-border">
+        <button
+          onClick={() => setActiveTab("finalizadas")}
+          className={`px-6 py-3 font-semibold transition-colors ${
+            activeTab === "finalizadas"
+              ? "text-primary border-b-2 border-primary"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Casas Finalizadas ({casasFinalizadas.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("lixeira")}
+          className={`px-6 py-3 font-semibold transition-colors ${
+            activeTab === "lixeira"
+              ? "text-primary border-b-2 border-primary"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          🗑️ Lixeira ({casasLixeira.length})
+        </button>
+      </div>
+
+      {activeTab === "finalizadas" && (
+        <>
+          {/* Total de Casas Finalizadas */}
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-8 text-white shadow-lg">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-medium opacity-90 uppercase tracking-wide">
+                  Lucro Total - Casas Finalizadas
+                </p>
+                <p className="text-5xl font-bold mt-3 font-mono">
+                  R$ {(totalLucrosTodosFiltrados || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-sm mt-2 opacity-75">
+                  {casasFiltradas.length} casas {filtroNomeInicial ? "filtradas" : "finalizadas"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Lucro com Desconto de Proxy */}
+          {totalGastosProxy > 0 && (
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-8 text-white shadow-lg">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium opacity-90 uppercase tracking-wide">
+                    Lucro (Com Desconto de Proxy)
+                  </p>
+                  <p className="text-5xl font-bold mt-3 font-mono">
+                    R$ {((totalLucrosTodosFiltrados || 0) - totalGastosProxy).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-sm mt-2 opacity-75">
+                    Desconto de Proxy: R$ {totalGastosProxy.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Botão de Exportação */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={handleExportarCasas}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
+            >
+              📥 Exportar CSV
+            </button>
+          </div>
+
+          {/* Filtro por Mês */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-border mb-6">
+            <label className="block text-sm font-medium text-foreground mb-3">
+              Filtrar por Mês
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setFiltroMes("todas")}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  filtroMes === "todas" || filtroMes === null
+                    ? "bg-primary text-white"
+                    : "bg-secondary dark:bg-slate-700 text-foreground hover:bg-secondary/80"
+                }`}
+              >
+                Todas
+              </button>
+              {mesesDisponiveis.map((mesKey) => {
+                const [ano, mes] = mesKey.split('-');
+                const data = new Date(parseInt(ano), parseInt(mes) - 1);
+                const mesLabel = data.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+                const casasMes = getCasasMes(mesKey);
+                return (
+                  <button
+                    key={mesKey}
+                    onClick={() => setFiltroMes(mesKey)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      filtroMes === mesKey
+                        ? "bg-primary text-white"
+                        : "bg-secondary dark:bg-slate-700 text-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    {mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1)} ({casasMes.length})
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Filtro por Nome */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-border">
+            <label className="block text-sm font-medium text-foreground mb-3">
+              Filtrar por Nome da Casa
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setFiltroNomeInicial("")}
+                className={`px-4 py-2 rounded-lg transition-colors font-medium text-sm ${
+                  filtroNomeInicial === ""
+                    ? "bg-primary text-white"
+                    : "bg-gray-100 dark:bg-slate-700 text-foreground hover:bg-gray-200 dark:hover:bg-slate-600"
+                }`}
+              >
+                Todas
+              </button>
+              {nomesIniciais.map((nomeInicial: string) => {
+                const casasDoGrupo = casasFinalizadas.filter((c) => getNomeInicial(c.nome) === nomeInicial);
+                return (
+                  <button
+                    key={nomeInicial}
+                    onClick={() => setFiltroNomeInicial(nomeInicial)}
+                    className={`px-4 py-2 rounded-lg transition-colors font-medium text-sm ${
+                      filtroNomeInicial === nomeInicial
+                        ? "bg-primary text-white"
+                        : "bg-gray-100 dark:bg-slate-700 text-foreground hover:bg-gray-200 dark:hover:bg-slate-600"
+                    }`}
+                  >
+                    {nomeInicial} ({casasDoGrupo.length})
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Lista de Casas Finalizadas */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-border">
+            <h3 className="text-xl font-bold text-foreground mb-4">
+              Histórico de Casas
+            </h3>
+            {casasFiltroNome.length === 0 ? (
+              <p className="text-muted-foreground">
+                {filtroNomeInicial ? "Nenhuma casa encontrada com esse nome inicial" : "Nenhuma casa finalizada ainda"}
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {casasFiltroNome.map((casa) => {
+                  const lucrosCasa = calculateCasaLucros(casa.id);
+                  const isLucro = lucrosCasa > 0;
+
+                  return (
+                    <div
+                      key={casa.id}
+                      className={`p-4 rounded-lg border-2 flex justify-between items-start transition-all ${
+                        isLucro
+                          ? "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700"
+                          : "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700"
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-foreground">
+                            {casa.nome}
+                          </h4>
+                          <span
+                            className={`text-xs font-bold px-2 py-1 rounded ${
+                              isLucro
+                                ? "bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-100"
+                                : "bg-red-200 dark:bg-red-800 text-red-900 dark:text-red-100"
+                            }`}
+                          >
+                            {isLucro ? "✓ Lucro" : "✗ Prejuízo"}
+                          </span>
+                        </div>
+                        <p className={`text-sm font-mono font-bold mt-2 ${
+                          isLucro
+                            ? "text-green-700 dark:text-green-400"
+                            : "text-red-700 dark:text-red-400"
+                        }`}>
+                          R$ {(lucrosCasa || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Finalizada em:{" "}
+                          {casa.dataFim
+                            ? new Date(casa.dataFim).toLocaleDateString("pt-BR")
+                            : "N/A"}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditClick(casa)}
+                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                          title="Editar casa"
+                        >
+                          <Edit2 size={20} />
+                        </button>
+                        <button
+                          onClick={() => handleReactivate(casa.id)}
+                          className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                          title="Reativar casa"
+                        >
+                          <RotateCcw size={20} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm("Tem certeza que deseja mover esta casa para a lixeira?")) {
+                              updateCasa(casa.id, { status: "lixeira" });
+                            }
+                          }}
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                          title="Mover para lixeira"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {activeTab === "lixeira" && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h2 className="text-2xl font-bold text-foreground dark:text-white">Lixeira de Casas</h2>
+            {casasLixeira.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                {selectedLixeira.size > 0 && (
+                  <>
+                    <button
+                      onClick={handleRecoverMultiple}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                    >
+                      Recuperar {selectedLixeira.size}
+                    </button>
+                    <button
+                      onClick={handleDeleteMultiple}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
+                    >
+                      Deletar {selectedLixeira.size}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {casasLixeira.length === 0 ? (
+            <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-8 border border-border text-center">
+              <p className="text-muted-foreground dark:text-slate-400">
+                Nenhuma casa na lixeira
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-slate-800 rounded-lg border border-border overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border dark:border-slate-700 bg-gray-50 dark:bg-slate-700">
+                    <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white w-12">
+                      <button
+                        onClick={toggleSelectAll}
+                        className="p-1 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition-colors"
+                      >
+                        {selectedLixeira.size === casasLixeira.length && casasLixeira.length > 0 ? (
+                          <CheckSquare2 size={18} className="text-primary" />
+                        ) : (
+                          <Square size={18} />
+                        )}
+                      </button>
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Nome</th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Agente</th>
+                    <th className="text-center py-3 px-4 font-semibold text-foreground dark:text-white">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {casasLixeira.map((casa) => (
+                    <tr key={casa.id} className="border-b border-border dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700">
+                      <td className="py-3 px-4 text-foreground dark:text-white w-12">
+                        <button
+                          onClick={() => toggleSelectItem(casa.id)}
+                          className="p-1 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition-colors"
+                        >
+                          {selectedLixeira.has(casa.id) ? (
+                            <CheckSquare2 size={18} className="text-primary" />
+                          ) : (
+                            <Square size={18} />
+                          )}
+                        </button>
+                      </td>
+                      <td className="py-3 px-4 text-foreground dark:text-white">
+                        {casa.nome}
+                      </td>
+                      <td className="py-3 px-4 text-foreground dark:text-white">
+                        -
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex gap-2 justify-center">
+                          <button
+                            onClick={() => handleEditClick(casa)}
+                            className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                            title="Editar casa"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              updateCasa(casa.id, { status: "ativa" });
+                            }}
+                            className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                            title="Recuperar casa"
+                          >
+                            <RotateCcw size={18} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm("Tem certeza que deseja deletar permanentemente esta casa?")) {
+                                deletePermanentementeCasa(casa.id);
+                              }
+                            }}
+                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                            title="Deletar permanentemente"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal de Edição */}
+      {editingCasa && editData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-lg p-6 max-w-md w-full space-y-4">
+            <h3 className="text-xl font-bold text-foreground">Editar Casa</h3>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Nome da Casa
+                </label>
+                <input
+                  type="text"
+                  value={editData.nome || ""}
+                  onChange={(e) => setEditData({ ...editData, nome: e.target.value })}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Login
+                </label>
+                <input
+                  type="text"
+                  value={editData.login || ""}
+                  onChange={(e) => setEditData({ ...editData, login: e.target.value })}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Senha
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={editData.senha || ""}
+                    onChange={(e) => setEditData({ ...editData, senha: e.target.value })}
+                    className="w-full px-3 py-2 pr-10 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Agente
+                </label>
+                <input
+                  type="text"
+                  value={editData.agente || ""}
+                  onChange={(e) => setEditData({ ...editData, agente: e.target.value })}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Meta
+                </label>
+                <input
+                  type="number"
+                  value={editData.meta || 0}
+                  onChange={(e) => setEditData({ ...editData, meta: parseFloat(e.target.value) })}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-4 border-t border-border">
+              <button
+                onClick={handleSaveEdit}
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
+              >
+                Salvar
+              </button>
+              <button
+                onClick={() => {
+                  setEditingCasa(null);
+                  setEditData(null);
+                }}
+                className="flex-1 px-4 py-2 bg-gray-300 dark:bg-slate-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-slate-600 transition-colors font-medium"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

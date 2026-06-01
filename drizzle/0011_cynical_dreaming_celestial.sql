@@ -1,0 +1,1 @@
+ALTER TABLE `relatorios` ADD `comentarios` json DEFAULT ('[]') NOT NULL;
