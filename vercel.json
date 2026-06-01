@@ -4,7 +4,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://<NOME-DO-APP-NO-FLY>.fly.dev/api/$1"
+      "destination": "https://cpa-report-2026.fly.dev/api/$1"
     },
     {
       "source": "/(.*)",
