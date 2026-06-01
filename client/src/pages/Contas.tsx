@@ -374,7 +374,7 @@ export default function Contas() {
             {openForms.map((form) => (
               <div
                 key={form.id}
-                className="bg-white dark:bg-slate-900 rounded-lg p-6 border border-border dark:border-slate-600 space-y-4 animate-in fade-in shadow-lg"
+                className="bg-card backdrop-blur-md rounded-xl p-6 border border-border/50 space-y-4 animate-in fade-in shadow-xl"
               >
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold text-foreground dark:text-white">
@@ -643,10 +643,10 @@ export default function Contas() {
                 {filteredContas.map((conta) => (
                   <div
                     key={conta.id}
-                    className={`bg-white dark:bg-slate-900 rounded-lg p-4 border-2 space-y-3 hover:shadow-lg transition-all ${
+                    className={`bg-card backdrop-blur-sm rounded-xl p-5 border space-y-3 hover:shadow-xl transition-all duration-300 ${
                       selectedIds.has(conta.id)
-                        ? "border-blue-500 dark:border-blue-400 shadow-lg bg-blue-50 dark:bg-blue-900/20"
-                        : "border-border dark:border-slate-700"
+                        ? "border-primary shadow-primary/20 bg-primary/5"
+                        : "border-border/60 hover:border-border"
                     }`}
                   >
                     {/* Checkbox */}

@@ -36,7 +36,7 @@ export default function EditarDados() {
       <ImportExportXlsx />
 
       {/* Configurações do App */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-border space-y-6">
+      <div className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-lg space-y-6">
         <h3 className="text-xl font-bold text-foreground">
           Configurações Gerais
         </h3>

@@ -15,7 +15,7 @@ import Calendario from "@/pages/Calendario";
 import GastoProxy from "@/pages/GastoProxy";
 import AdminPanel from "@/pages/AdminPanel";
 import Login from "@/pages/Login";
-import { CheckCircle, Edit3, Home, Settings, FileText, Moon, Sun, LogOut, Calendar, Zap, Shield } from "lucide-react";
+import { CheckCircle, Edit3, Home, Settings, FileText, Moon, Sun, LogOut, Calendar, Zap, Shield, Crown, Wallet } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { usePageTransition } from "@/hooks/usePageTransition";
@@ -26,12 +26,12 @@ const publicTabs = [
   { id: "dashboard", label: "Dashboard", icon: <Home size={20} /> },
   { id: "casas-finalizadas", label: "Casas Finalizadas", icon: <CheckCircle size={20} /> },
   { id: "gasto-proxy", label: "Gasto com Proxy", icon: <Zap size={20} /> },
-  { id: "gerenciar-casas", label: "Gerenciar Casas", icon: <Settings size={20} /> },
-  { id: "relatorios", label: "Relatórios Ativos", icon: <FileText size={20} /> },
-  { id: "contas", label: "Contas", icon: <FileText size={20} /> },
+  { id: "gerenciar-casas", label: "Gerenciar Casas", icon: <Home size={20} /> },
+  { id: "relatorios", label: "Operação CPA", icon: <FileText size={20} /> },
+  { id: "contas", label: "Contas Não Sacadas", icon: <Wallet size={20} /> },
   { id: "relatorios-finalizados", label: "Relatórios Finalizados", icon: <CheckCircle size={20} /> },
   { id: "calendario", label: "Calendário", icon: <Calendar size={20} /> },
-  { id: "editar-dados", label: "Editar Dados", icon: <Edit3 size={20} /> },
+  { id: "editar-dados", label: "Configurações", icon: <Settings size={20} /> },
 ];
 
 const adminTab = { id: "admin", label: "Painel Admin", icon: <Shield size={20} /> };
@@ -129,19 +129,16 @@ function AppContent() {
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#d4a017] to-transparent opacity-85" />
           
           <div className="relative group cursor-pointer mb-4">
-            <div className="absolute -inset-1.5 bg-gradient-to-r from-[#1a3a8f] to-[#d4a017] rounded-xl blur opacity-45 group-hover:opacity-75 transition duration-500"></div>
+            <div className="absolute -inset-1.5 bg-gradient-to-r from-orange-400 to-orange-600 rounded-xl blur opacity-45 group-hover:opacity-75 transition duration-500"></div>
             <div className="relative" style={{
               width: 52, height: 52,
-              background: "linear-gradient(135deg, #101e40, #1c3570)",
-              border: "1.5px solid rgba(212,160,23,0.6)",
+              background: "linear-gradient(135deg, #f97316, #ea580c)",
+              border: "1.5px solid rgba(255,255,255,0.2)",
               borderRadius: 14,
               display: "flex", alignItems: "center", justifyContent: "center",
               transition: "transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
             }}>
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" className="group-hover:rotate-12 transition duration-300">
-                <path d="M12 2L20 7V17L12 22L4 17V7L12 2Z" fill="#d4a017" opacity="0.95"/>
-                <path d="M12 6L17 9V15L12 18L7 15V9L12 6Z" fill="#0f1e45"/>
-              </svg>
+              <Crown color="white" size={28} className="group-hover:rotate-12 transition duration-300" strokeWidth={2.5} />
             </div>
           </div>
 
@@ -299,22 +296,18 @@ function HeaderWithThemeToggle({
         {/* Left Side: Hexagonal Premium Logo and Badge */}
         <div className="flex items-center gap-3 w-full md:w-1/4 justify-center md:justify-start">
           <div className="relative group cursor-pointer">
-            {/* Soft gold glow behind the logo */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-[#1a3a8f] to-[#d4a017] rounded-xl blur opacity-45 group-hover:opacity-75 transition duration-500"></div>
+            <div className="absolute -inset-1 bg-gradient-to-r from-orange-400 to-orange-600 rounded-xl blur opacity-45 group-hover:opacity-75 transition duration-500"></div>
             <div className="relative" style={{
               width: 42, height: 42,
-              background: "linear-gradient(135deg, #101e40, #1c3570)",
-              border: "1.5px solid rgba(212,160,23,0.6)",
+              background: "linear-gradient(135deg, #f97316, #ea580c)",
+              border: "1.5px solid rgba(255,255,255,0.2)",
               borderRadius: 11,
               display: "flex", alignItems: "center", justifyItems: "center",
               justifyContent: "center",
               flexShrink: 0,
               transition: "transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
             }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="group-hover:rotate-12 transition duration-300">
-                <path d="M12 2L20 7V17L12 22L4 17V7L12 2Z" fill="#d4a017" opacity="0.95"/>
-                <path d="M12 6L17 9V15L12 18L7 15V9L12 6Z" fill="#0f1e45"/>
-              </svg>
+              <Crown color="white" size={24} className="group-hover:rotate-12 transition duration-300" strokeWidth={2.5} />
             </div>
           </div>
           <div className="hidden lg:flex flex-col">

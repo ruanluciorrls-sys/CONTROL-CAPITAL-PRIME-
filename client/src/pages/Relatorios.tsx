@@ -175,7 +175,7 @@ export default function Relatorios() {
 
           {/* Formulário de Novo Relatório */}
           {showNewForm && (
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-border space-y-4">
+            <div className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-lg space-y-4">
               <h3 className="text-lg font-bold">Novo Relatório</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
                 <select
@@ -238,20 +238,20 @@ export default function Relatorios() {
 
           {/* Lista de Relatórios */}
           {relatoriosAtivos.length > 0 && (
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-border">
+            <div className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-lg">
               <h3 className="text-lg font-bold mb-6">Relatórios Criados</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(() => {
                   const colors = [
-                    "bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700",
-                    "bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700",
-                    "bg-purple-100 dark:bg-purple-900 border-purple-300 dark:border-purple-700",
-                    "bg-pink-100 dark:bg-pink-900 border-pink-300 dark:border-pink-700",
-                    "bg-yellow-100 dark:bg-yellow-900 border-yellow-300 dark:border-yellow-700",
-                    "bg-indigo-100 dark:bg-indigo-900 border-indigo-300 dark:border-indigo-700",
-                    "bg-red-100 dark:bg-red-900 border-red-300 dark:border-red-700",
-                    "bg-cyan-100 dark:bg-cyan-900 border-cyan-300 dark:border-cyan-700",
-                    "bg-orange-100 dark:bg-orange-900 border-orange-300 dark:border-orange-700",
+                    "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:border-blue-500/50",
+                    "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:border-emerald-500/50",
+                    "bg-purple-500/10 border-purple-500/20 text-purple-400 hover:border-purple-500/50",
+                    "bg-pink-500/10 border-pink-500/20 text-pink-400 hover:border-pink-500/50",
+                    "bg-amber-500/10 border-amber-500/20 text-amber-400 hover:border-amber-500/50",
+                    "bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:border-indigo-500/50",
+                    "bg-rose-500/10 border-rose-500/20 text-rose-400 hover:border-rose-500/50",
+                    "bg-cyan-500/10 border-cyan-500/20 text-cyan-400 hover:border-cyan-500/50",
+                    "bg-orange-500/10 border-orange-500/20 text-orange-400 hover:border-orange-500/50",
                   ];
                   return relatoriosAtivos.map((rel, index) => {
                     const bgColor = colors[index % colors.length];
@@ -416,7 +416,7 @@ export default function Relatorios() {
               </p>
             </div>
           ) : (
-            <div className="bg-white dark:bg-slate-800 rounded-lg border border-border dark:border-slate-700 overflow-x-auto">
+            <div className="bg-card backdrop-blur-sm rounded-xl border border-border/50 shadow-lg overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border dark:border-slate-700 bg-gray-50 dark:bg-slate-700">

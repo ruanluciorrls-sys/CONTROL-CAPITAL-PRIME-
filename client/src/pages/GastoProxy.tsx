@@ -95,7 +95,7 @@ export default function GastoProxy() {
       </Card>
 
       {/* Formulário */}
-      <Card>
+      <Card className="bg-card backdrop-blur-sm border-border/50 shadow-lg">
         <CardHeader>
           <CardTitle>{editingId ? "Editar Gasto" : "Adicionar Novo Gasto"}</CardTitle>
           <CardDescription>Preencha os dados do gasto com proxy</CardDescription>
@@ -149,7 +149,7 @@ export default function GastoProxy() {
       </Card>
 
       {/* Lista de Gastos */}
-      <Card>
+      <Card className="bg-card backdrop-blur-sm border-border/50 shadow-lg mt-6">
         <CardHeader>
           <CardTitle>Histórico de Gastos</CardTitle>
           <CardDescription>{gastos.length} gasto(s) registrado(s)</CardDescription>
@@ -162,7 +162,7 @@ export default function GastoProxy() {
               {gastos.map((gasto: any) => (
                 <div
                   key={gasto.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition"
+                  className="flex items-center justify-between p-4 border border-border/60 rounded-xl hover:bg-muted/30 transition shadow-sm"
                 >
                   <div className="flex-1">
                     <div className="font-medium">
