@@ -99,16 +99,18 @@ export default function RelatoriosFinalizados() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-8 text-white shadow-lg">
-        <div className="flex items-start justify-between">
+      <div className="relative overflow-hidden bg-card border border-border/50 rounded-2xl p-8 shadow-2xl group transition-all duration-500 hover:border-purple-500/30 hover:shadow-purple-900/20">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-indigo-900/20 opacity-60"></div>
+        <div className="relative z-10 flex items-start justify-between">
           <div>
-            <p className="text-sm font-medium opacity-90 uppercase tracking-wide">
+            <p className="text-muted-foreground text-xs md:text-sm tracking-[0.2em] font-semibold mb-3 uppercase">
               Relatórios Finalizados
             </p>
-            <p className="text-5xl font-bold mt-3 font-mono">
+            <p className="text-5xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-purple-400 to-indigo-200 drop-shadow-sm font-mono mt-3">
               {relatoriosFinalizados.length}
             </p>
-            <p className="text-sm mt-2 opacity-75">
+            <p className="text-muted-foreground/70 text-xs mt-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
               Total de relatórios finalizados
             </p>
           </div>
@@ -118,7 +120,7 @@ export default function RelatoriosFinalizados() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Lista de Relatórios */}
         <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-border">
+          <div className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-lg">
             <h3 className="text-lg font-bold text-foreground dark:text-white mb-4">
               Filtrar por Nomenclatura
             </h3>
@@ -178,7 +180,7 @@ export default function RelatoriosFinalizados() {
           {selectedRelatorio ? (
             <div className="space-y-4">
               {/* Header */}
-              <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-border dark:border-slate-700">
+              <div className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-lg">
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-2xl font-bold text-foreground dark:text-white">
@@ -250,7 +252,7 @@ export default function RelatoriosFinalizados() {
               </div>
 
               {/* Tabela de Dados */}
-              <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-border dark:border-slate-700 overflow-x-auto">
+              <div className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-lg overflow-x-auto">
                 <h4 className="font-semibold text-foreground dark:text-white mb-4">Dados do Relatório</h4>
                 <table className="w-full text-sm">
                   <thead>
@@ -373,8 +375,8 @@ export default function RelatoriosFinalizados() {
               </div>
             </div>
           ) : (
-            <div className="bg-blue-50 dark:bg-slate-700 rounded-lg p-8 border border-blue-200 dark:border-slate-600 text-center">
-              <p className="text-blue-900 dark:text-slate-200">
+            <div className="bg-card backdrop-blur-sm border border-border/50 shadow-lg rounded-xl p-8 text-center">
+              <p className="text-muted-foreground text-lg">
                 Selecione um relatório para visualizar os detalhes
               </p>
             </div>

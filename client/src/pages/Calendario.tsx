@@ -99,8 +99,8 @@ export default function Calendario() {
   }));
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="space-y-8">
+      <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">
@@ -112,7 +112,7 @@ export default function Calendario() {
         </div>
 
         {/* Adicionar Nova Plataforma */}
-        <div className="bg-card border border-border rounded-lg p-6 mb-8">
+        <div className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-lg">
           <h2 className="text-xl font-bold text-foreground mb-4">
             ➕ Adicionar Nova Plataforma
           </h2>
@@ -186,7 +186,7 @@ export default function Calendario() {
         {/* Calendário */}
         <div className="space-y-6">
           {plataformasPorDia.map(({ dia, plataformas: plats }) => (
-            <div key={dia} className="bg-card border border-border rounded-lg p-6">
+            <div key={dia} className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-lg">
               <h3 className="text-2xl font-bold text-primary mb-4">
                 {dia}
               </h3>
@@ -199,7 +199,7 @@ export default function Calendario() {
                   {plats.map((plat) => (
                     <div
                       key={plat.id}
-                      className="flex items-center justify-between bg-background p-4 rounded-lg border border-border hover:border-primary transition"
+                      className="flex items-center justify-between bg-card backdrop-blur-md p-4 rounded-xl border border-border/50 hover:border-primary/50 hover:shadow-lg transition"
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-4">
@@ -241,8 +241,8 @@ export default function Calendario() {
 
         {/* Modal de Edição */}
         {editandoId && plataformaEmEdicao && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-card border border-border rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-2xl max-w-md w-full mx-4">
               <h2 className="text-2xl font-bold text-foreground mb-4">Editar Plataforma</h2>
               <div className="space-y-4">
                 <div>
@@ -309,14 +309,17 @@ export default function Calendario() {
         )}
 
         {/* Resumo */}
-        <div className="mt-8 bg-green-500 text-white rounded-lg p-6">
-          <h3 className="text-2xl font-bold mb-2">📊 Resumo</h3>
-          <p className="text-lg">
-            Total de plataformas: <strong>{plataformas.length}</strong>
-          </p>
-          <p className="text-sm mt-2 opacity-90">
-            OBS: OS DIAS CONTAR A PARTIR DO DIA SEGUINTE
-          </p>
+        <div className="relative overflow-hidden bg-card border border-border/50 rounded-2xl p-8 shadow-2xl group transition-all duration-500 hover:border-emerald-500/30 hover:shadow-emerald-900/20">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-900/20 opacity-60"></div>
+          <div className="relative z-10">
+            <h3 className="text-2xl font-bold mb-2 text-foreground">📊 Resumo</h3>
+            <p className="text-lg text-foreground">
+              Total de plataformas: <strong className="text-emerald-500">{plataformas.length}</strong>
+            </p>
+            <p className="text-sm mt-2 opacity-90 text-muted-foreground">
+              OBS: OS DIAS CONTAR A PARTIR DO DIA SEGUINTE
+            </p>
+          </div>
         </div>
       </div>
     </div>
