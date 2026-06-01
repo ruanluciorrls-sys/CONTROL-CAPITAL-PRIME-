@@ -52,20 +52,62 @@ export default function ImportExportXlsx() {
 
     setLoading(true);
     const reader = new FileReader();
+
     reader.onload = async (event) => {
       try {
         const data = event.target?.result;
+        
+        // Se for JSON
+        if (file.name.endsWith('.json')) {
+          const text = data as string;
+          const parsed = JSON.parse(text);
+          
+          let countCasas = 0;
+          let countRelatorios = 0;
+
+          // Se for um array de casas
+          const items = Array.isArray(parsed) ? parsed : (parsed.casas || []);
+          for (const item of items) {
+            const exists = state.casas.find((c) => c.id === item.id || c.nome === item.nome);
+            if (!exists) {
+              const { id, criadoEm, ...payload } = item;
+              addCasa(payload);
+              countCasas++;
+            }
+          }
+
+          // Se tiver relatorios
+          if (parsed.relatorios && Array.isArray(parsed.relatorios)) {
+             for (const rel of parsed.relatorios) {
+               const exists = state.relatorios.find((r) => r.id === rel.id);
+               if (!exists) {
+                 const { id, criadoEm, ...payload } = rel;
+                 addRelatorio(payload);
+                 countRelatorios++;
+               }
+             }
+          }
+          
+          showMessage("success", `Importado via JSON: ${countCasas} casas e ${countRelatorios} relatórios!`);
+          return;
+        }
+
+        // Se for Excel (XLSX)
         const workbook = XLSX.read(data, { type: "binary" });
 
-        // Importar Casas
-        if (workbook.SheetNames.includes("Casas")) {
-          const casasData = XLSX.utils.sheet_to_json<CasaData>(workbook.Sheets["Casas"]);
+        let importedCasas = 0;
+        let importedRelatorios = 0;
+
+        // Importar Casas (procura a aba 'Casas' ou usa a primeira aba)
+        const casasSheetName = workbook.SheetNames.includes("Casas") ? "Casas" : workbook.SheetNames[0];
+        if (casasSheetName) {
+          const casasData = XLSX.utils.sheet_to_json<CasaData>(workbook.Sheets[casasSheetName]);
           for (const casa of casasData) {
-            // Verifica se a casa já existe
-            const exists = state.casas.find((c) => c.id === casa.id);
+            const exists = state.casas.find((c) => c.id === casa.id || c.nome === casa.nome);
             if (!exists) {
               const { id, criadoEm, ...casaPayload } = casa;
               addCasa(casaPayload);
+              importedCasas++;
             }
           }
         }
@@ -78,18 +120,15 @@ export default function ImportExportXlsx() {
             if (!exists) {
               const { id, criadoEm, ...relPayload } = rel;
               if (typeof relPayload.rows === "string") {
-                try {
-                  relPayload.rows = JSON.parse(relPayload.rows);
-                } catch {
-                  relPayload.rows = [];
-                }
+                try { relPayload.rows = JSON.parse(relPayload.rows); } catch { relPayload.rows = []; }
               }
               addRelatorio(relPayload);
+              importedRelatorios++;
             }
           }
         }
 
-        showMessage("success", "Dados importados com sucesso!");
+        showMessage("success", `Dados importados com sucesso! Casas: ${importedCasas}, Relatórios: ${importedRelatorios}`);
       } catch (error) {
         console.error(error);
         showMessage("error", "Erro ao processar o arquivo. Verifique o formato.");
@@ -98,7 +137,12 @@ export default function ImportExportXlsx() {
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     };
-    reader.readAsBinaryString(file);
+
+    if (file.name.endsWith('.json')) {
+      reader.readAsText(file);
+    } else {
+      reader.readAsBinaryString(file);
+    }
   };
 
   return (
@@ -131,7 +175,7 @@ export default function ImportExportXlsx() {
 
         <input
           type="file"
-          accept=".xlsx"
+          accept=".xlsx,.json"
           className="hidden"
           ref={fileInputRef}
           onChange={handleImport}
