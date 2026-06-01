@@ -13,9 +13,10 @@ export default function GerenciarCasas() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [errorsMultiple, setErrorsMultiple] = useState<Record<string, Record<string, string>>>({});
+  const [selectedCasas, setSelectedCasas] = useState<string[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
-    type: "delete" | "finalize" | null;
+    type: "delete" | "finalize" | "deleteSelected" | null;
     casaId: string | null;
   }>({ isOpen: false, type: null, casaId: null });
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -272,51 +273,96 @@ export default function GerenciarCasas() {
 
       {activeTab === "ativa" && (
         <>
-          {/* Botão Adicionar */}
-          <button
-            onClick={() => {
-              setEditingId(null);
-              setFormData({
-                nome: "",
-                login: "",
-                senha: "",
-                meta: 0,
-                media: 0,
-                prazo: "",
-                linkCasa: "",
-                linkContaFilha: "",
-              });
-              setErrors({});
-              setFormDataList([{
-                id: Date.now().toString(),
-                nome: "",
-                login: "",
-                senha: "",
-                meta: 0,
-                media: 0,
-                prazo: "",
-                linkCasa: "",
-                linkContaFilha: "",
-              }]);
-              setShowModal(true);
-            }}
-            className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
-          >
-            <Plus size={20} />
-            Adicionar Nova Casa
-          </button>
+          {/* Botões do Topo */}
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <button
+              onClick={() => {
+                setEditingId(null);
+                setFormData({
+                  nome: "",
+                  login: "",
+                  senha: "",
+                  meta: 0,
+                  media: 0,
+                  prazo: "",
+                  linkCasa: "",
+                  linkContaFilha: "",
+                });
+                setErrors({});
+                setFormDataList([{
+                  id: Date.now().toString(),
+                  nome: "",
+                  login: "",
+                  senha: "",
+                  meta: 0,
+                  media: 0,
+                  prazo: "",
+                  linkCasa: "",
+                  linkContaFilha: "",
+                }]);
+                setShowModal(true);
+              }}
+              className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium w-full sm:w-auto justify-center"
+            >
+              <Plus size={20} />
+              Adicionar Nova Casa
+            </button>
+
+            {casasAtivas.length > 0 && (
+              <div className="flex items-center gap-4 bg-card border border-border p-2 px-4 rounded-lg w-full sm:w-auto h-full min-h-[48px]">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    checked={selectedCasas.length === casasAtivas.length && casasAtivas.length > 0}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedCasas(casasAtivas.map(c => c.id));
+                      } else {
+                        setSelectedCasas([]);
+                      }
+                    }}
+                  />
+                  <span className="text-sm font-medium text-foreground">Selecionar Todas</span>
+                </label>
+
+                {selectedCasas.length > 0 && (
+                  <button
+                    onClick={() => setConfirmDialog({ isOpen: true, type: "deleteSelected", casaId: null })}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-red-500/10 text-red-600 hover:bg-red-500/20 rounded-md text-sm font-bold transition-colors ml-auto sm:ml-0"
+                  >
+                    <Trash2 size={16} /> Apagar Selecionadas ({selectedCasas.length})
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Grid de Casas */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {casasAtivas.map((casa, index) => (
               <div
                 key={casa.id}
-                className={`${colors[index % colors.length]} rounded-lg p-4 border-2 cursor-pointer hover:shadow-lg transition-all min-h-[280px] flex flex-col`}
+                className={`${colors[index % colors.length]} rounded-lg p-4 border-2 cursor-pointer hover:shadow-lg transition-all min-h-[280px] flex flex-col ${selectedCasas.includes(casa.id) ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}
               >
                 <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-sm md:text-base text-foreground truncate">{casa.nome}</h3>
-                    {casa.prazo && <p className="text-xs text-muted-foreground">Prazo: {casa.prazo}</p>}
+                  <div className="flex-1 flex gap-3 items-start">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 mt-1 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer shrink-0"
+                      checked={selectedCasas.includes(casa.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedCasas([...selectedCasas, casa.id]);
+                        } else {
+                          setSelectedCasas(selectedCasas.filter(id => id !== casa.id));
+                        }
+                      }}
+                    />
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-sm md:text-base text-foreground truncate">{casa.nome}</h3>
+                      {casa.prazo && <p className="text-xs text-muted-foreground">Prazo: {casa.prazo}</p>}
+                    </div>
                   </div>
                   <button
                     onClick={() => setConfirmDialog({ isOpen: true, type: "delete", casaId: casa.id })}
@@ -684,12 +730,16 @@ export default function GerenciarCasas() {
       {/* Confirm Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        title={confirmDialog.type === "delete" ? "Deletar Casa" : confirmDialog.type === "finalize" ? "Finalizar Casa" : "Esvaziar Lixeira"}
-        description={confirmDialog.type === "delete" ? "Tem certeza que deseja deletar esta casa? Ela irá para a lixeira." : confirmDialog.type === "finalize" ? "Tem certeza que deseja finalizar esta casa? Ela será movida para Casas Finalizadas." : "Tem certeza que deseja esvaziar a lixeira? Esta ação não pode ser desfeita."}
+        title={confirmDialog.type === "delete" ? "Deletar Casa" : confirmDialog.type === "deleteSelected" ? "Deletar Selecionadas" : confirmDialog.type === "finalize" ? "Finalizar Casa" : "Esvaziar Lixeira"}
+        description={confirmDialog.type === "delete" ? "Tem certeza que deseja deletar esta casa? Ela irá para a lixeira." : confirmDialog.type === "deleteSelected" ? `Tem certeza que deseja mover as ${selectedCasas.length} casas selecionadas para a lixeira?` : confirmDialog.type === "finalize" ? "Tem certeza que deseja finalizar esta casa? Ela será movida para Casas Finalizadas." : "Tem certeza que deseja esvaziar a lixeira? Esta ação não pode ser desfeita."}
         onConfirm={() => {
           if (confirmDialog.type === "delete" && confirmDialog.casaId) {
             deleteCasa(confirmDialog.casaId);
             toast.success("Casa movida para lixeira");
+          } else if (confirmDialog.type === "deleteSelected") {
+            selectedCasas.forEach(id => deleteCasa(id));
+            toast.success(`${selectedCasas.length} casas movidas para lixeira`);
+            setSelectedCasas([]);
           } else if (confirmDialog.type === "finalize" && confirmDialog.casaId) {
             finalizarCasa(confirmDialog.casaId);
             toast.success("Casa finalizada com sucesso!");
