@@ -2,6 +2,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useState } from "react";
 import ImageUpload from "@/components/ImageUpload";
 import ColorfulNameEditor from "@/components/ColorfulNameEditor";
+import ImportExportXlsx from "@/components/ImportExportXlsx";
 
 export default function EditarDados() {
   const { state, updateAppName, updateCorPrimaria, updateFundo, updateLogo } = useApp();
@@ -36,6 +37,9 @@ export default function EditarDados() {
         </h3>
         <ColorfulNameEditor initialName={state.nomeApp} />
       </div>
+
+      {/* Importação e Exportação XLSX */}
+      <ImportExportXlsx />
 
       {/* Configurações do App */}
       <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-border space-y-6">
