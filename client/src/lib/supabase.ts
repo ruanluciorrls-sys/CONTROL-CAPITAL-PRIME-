@@ -1,8 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
 // Credenciais do Supabase
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://clmmijcxcxiiregyzlqe.supabase.co";
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_ngCUw6J_gAH7mywmdwqMeg_xWqFSSoY";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://jisrkfdgwzurbantqsjf.supabase.co";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_IdSOFpTIt-yt2FczylDJUA_ZlsZgAMC";
 
 // Verificar se as credenciais estão configuradas
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
