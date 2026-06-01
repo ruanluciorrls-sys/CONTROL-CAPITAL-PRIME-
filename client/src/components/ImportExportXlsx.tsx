@@ -101,11 +101,38 @@ export default function ImportExportXlsx() {
         // Importar Casas (procura a aba 'Casas' ou usa a primeira aba)
         const casasSheetName = workbook.SheetNames.includes("Casas") ? "Casas" : workbook.SheetNames[0];
         if (casasSheetName) {
-          const casasData = XLSX.utils.sheet_to_json<CasaData>(workbook.Sheets[casasSheetName]);
-          for (const casa of casasData) {
-            const exists = state.casas.find((c) => c.id === casa.id || c.nome === casa.nome);
+          const rawCasas = XLSX.utils.sheet_to_json<any>(workbook.Sheets[casasSheetName]);
+          for (const raw of rawCasas) {
+            // Normaliza as chaves da planilha para minúsculo para aceitar 'Nome', 'NOME', 'Login', etc.
+            const row: any = {};
+            for (const key in raw) {
+              if (Object.prototype.hasOwnProperty.call(raw, key)) {
+                row[key.toLowerCase().trim()] = raw[key];
+              }
+            }
+
+            // O 'nome' é obrigatório no servidor, então ignoramos linhas vazias
+            const nome = row["nome"] || row["casa"] || row["nome da casa"] || row["name"];
+            if (!nome || String(nome).trim() === "") continue;
+
+            // Extrai as outras propriedades lidando com variações de nomes de colunas
+            const statusParse = String(row["status"] || "").toLowerCase();
+            const statusValido = ["ativa", "finalizada", "lixeira"].includes(statusParse) ? statusParse : "ativa";
+
+            const casaPayload = {
+              nome: String(nome),
+              login: String(row["login"] || row["usuario"] || row["user"] || ""),
+              senha: String(row["senha"] || row["password"] || row["pass"] || ""),
+              meta: Number(row["meta"] || row["target"]) || 0,
+              media: Number(row["media"] || row["média"] || row["average"]) || 0,
+              prazo: String(row["prazo"] || row["dias"] || row["periodo"] || ""),
+              linkCasa: String(row["linkcasa"] || row["link casa"] || row["link_casa"] || row["link"] || ""),
+              linkContaFilha: String(row["linkcontafilha"] || row["link conta filha"] || row["conta filha"] || ""),
+              status: statusValido as "ativa" | "finalizada" | "lixeira",
+            };
+
+            const exists = state.casas.find((c) => c.nome === casaPayload.nome);
             if (!exists) {
-              const { id, criadoEm, ...casaPayload } = casa;
               addCasa(casaPayload);
               importedCasas++;
             }
