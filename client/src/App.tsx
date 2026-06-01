@@ -42,7 +42,7 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem("lastActiveTab") || "dashboard";
   });
-  const { user, loading, isAuthenticated } = useAuth({ redirectOnUnauthenticated: true });
+  const { user, loading, isAuthenticated, logout } = useAuth({ redirectOnUnauthenticated: true });
 
   // Tabs visíveis para este usuário
   const tabs = user?.role === "admin" ? [...publicTabs, adminTab] : publicTabs;
