@@ -67,6 +67,8 @@ export default function Dashboard() {
     const cooperacao = Number(rel.cooperacao || 0);
     const cooperacaoValid = isNaN(cooperacao) ? 0 : cooperacao;
     return total + resultadoTotal + cooperacaoValid;
+  }, 0);
+
   // Cores de destaque para os cards
   const colors = [
     "from-blue-500/20 to-transparent border-blue-500/50 text-blue-400",
@@ -224,9 +226,6 @@ export default function Dashboard() {
         {/* Seção de Calendário */}
         <DashboardCalendar />
       </div>
-    </div>
-  );
-}rdCalendar />
     </div>
   );
 }
