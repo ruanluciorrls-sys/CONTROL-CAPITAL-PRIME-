@@ -13,12 +13,14 @@ import MinhasOperacoes from "@/pages/MinhasOperacoes";
 import Relatorios from "@/pages/Relatorios";
 import RelatoriosFinalizados from "@/pages/RelatoriosFinalizados";
 import Calendario from "@/pages/Calendario";
+import Faturamento from "@/pages/Faturamento";
 import GastoProxy from "@/pages/GastoProxy";
 import AdminPanel from "@/pages/AdminPanel";
 import Login from "@/pages/Login";
 import ChavesPix from "@/pages/ChavesPix";
-import { CheckCircle, Edit3, Home, Settings, FileText, Moon, Sun, LogOut, Calendar, Zap, Shield, Crown, Wallet, Key } from "lucide-react";
+import { CheckCircle, Edit3, Home, Settings, FileText, Moon, Sun, LogOut, Calendar, Zap, Shield, Crown, Wallet, Key, DollarSign, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { usePageTransition } from "@/hooks/usePageTransition";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -26,6 +28,7 @@ import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 
 const publicTabs = [
   { id: "dashboard", label: "Dashboard", icon: <Home size={20} /> },
+  { id: "faturamento", label: "Faturamento", icon: <DollarSign size={20} /> },
   { id: "gasto-proxy", label: "Gasto com Proxy", icon: <Zap size={20} /> },
   { id: "gerenciar-casas", label: "MINHAS OPERAÇÃO", icon: <Home size={20} /> },
   { id: "contas", label: "Contas Não Sacadas", icon: <Wallet size={20} /> },
@@ -39,10 +42,19 @@ const adminTab = { id: "admin", label: "Painel Admin", icon: <Shield size={20} /
 function AppContent() {
   const { state } = useApp();
   const { theme, toggleTheme } = useTheme();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem("lastActiveTab") || "dashboard";
   });
   const { user, loading, isAuthenticated, logout } = useAuth({ redirectOnUnauthenticated: true });
+
+  const handleRefreshSite = () => {
+    setIsRefreshing(true);
+    setRefreshKey(prev => prev + 1);
+    toast.success("Dados atualizados!");
+    setTimeout(() => setIsRefreshing(false), 800);
+  };
 
   // Tabs visíveis para este usuário
   const tabs = user?.role === "admin" ? [...publicTabs, adminTab] : publicTabs;
@@ -60,6 +72,7 @@ function AppContent() {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard": return <Dashboard />;
+      case "faturamento": return <Faturamento />;
       case "gasto-proxy": return <GastoProxy />;
       case "gerenciar-casas": return <MinhasOperacoes />;
       case "contas": return <Contas />;
@@ -231,13 +244,24 @@ function AppContent() {
       {/* ── MAIN CONTENT AREA ── */}
       <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden relative">
         <main
+          key={refreshKey}
           className={`relative z-10 flex-1 overflow-y-auto p-4 md:p-8 max-w-7xl mx-auto w-full transition-opacity duration-300 ${
-            isVisible ? "page-transition-enter" : "page-transition-exit"
+            isVisible && !isRefreshing ? "page-transition-enter" : "page-transition-exit"
           }`}
         >
           {renderContent()}
         </main>
       </div>
+
+      {/* ── FLOATING REFRESH BUTTON ── */}
+      <button
+        onClick={handleRefreshSite}
+        disabled={isRefreshing}
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 bg-white text-black font-semibold rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:scale-105 active:scale-95 transition-all duration-300"
+      >
+        <RefreshCw size={18} className={`text-black ${isRefreshing ? "animate-spin" : ""}`} />
+        <span className="text-sm">Atualizar</span>
+      </button>
     </div>
   );
 }
