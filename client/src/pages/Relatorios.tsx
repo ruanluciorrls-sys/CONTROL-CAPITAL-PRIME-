@@ -530,7 +530,7 @@ export default function Relatorios() {
                         <div className="mb-4">
                           <p className="text-xs font-semibold text-foreground opacity-70">PRAZO</p>
                           <p className="text-sm font-mono text-foreground">
-                            {getCasaPrazo(rel.casaId) ? new Date(getCasaPrazo(rel.casaId)).toLocaleDateString('pt-BR') : 'Sem prazo'}
+                            {rel.prazo ? new Date(rel.prazo + "T00:00:00").toLocaleDateString('pt-BR') : 'Sem prazo'}
                           </p>
                         </div>
                         <div className="mb-4 pb-4 border-b border-current border-opacity-20">
@@ -587,7 +587,7 @@ export default function Relatorios() {
                 key={`${selectedRelatorioId}-${currentRelatorio.id}`}
                 casaNome={getCasaNome(currentRelatorio.casaId)}
                 agente={currentRelatorio.agente}
-                prazo={getCasaPrazo(currentRelatorio.casaId)}
+                prazo={currentRelatorio.prazo || ""}
 
                 cooperacao={currentRelatorio.cooperacao}
                 onCooperacaoChange={(valor) =>
