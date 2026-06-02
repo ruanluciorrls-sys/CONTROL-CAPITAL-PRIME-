@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { trpc } from "@/lib/trpc";
 import {
   Play,
   Filter,
@@ -47,6 +48,7 @@ function getMesAtual(): string {
 
 export default function Faturamento() {
   const { state } = useApp();
+  const { data: gastosProxyList = [] } = trpc.gastosProxy.list.useQuery();
   const [activeTab, setActiveTab] = useState("visao-geral");
   const [period, setPeriod] = useState("mes");
   const [showApresentacao, setShowApresentacao] = useState(false);
@@ -137,6 +139,18 @@ export default function Faturamento() {
   ];
 
   const corLucro = lucroExibido >= 0 ? "#4ade80" : "#f87171";
+
+  // Gastos proxy filtrados pelo período
+  const gastosNoPeriodo = (gastosProxyList as any[]).reduce((sum, g) => {
+    const d = new Date(g.data + "T12:00:00");
+    const limite =
+      period === "hoje" ? inicioHoje :
+      period === "7dias" ? inicio7Dias :
+      period === "mes" ? inicioMes : new Date(0);
+    if (d >= limite) return sum + parseFloat(g.valor?.toString() || "0");
+    return sum;
+  }, 0);
+  const lucroRealPeriodo = lucroExibido - gastosNoPeriodo;
 
   return (
     <div className="min-h-screen text-white p-4 md:p-6 font-sans">
@@ -291,6 +305,26 @@ export default function Faturamento() {
                     </p>
                   </div>
                 </div>
+
+                {/* Linha sutil: gastos proxy + lucro real */}
+                {gastosNoPeriodo > 0 && (
+                  <div className="relative z-10 mt-3 pt-3 border-t border-white/5 flex flex-wrap items-center gap-5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1 h-1 rounded-full bg-red-400/50"></span>
+                      <span className="text-[9px] font-semibold uppercase tracking-widest text-white/25">Proxy</span>
+                      <span className="text-[11px] font-bold text-red-400/60">
+                        – R$ {gastosNoPeriodo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1 h-1 rounded-full" style={{ background: lucroRealPeriodo >= 0 ? "#4ade8066" : "#f8717166" }}></span>
+                      <span className="text-[9px] font-semibold uppercase tracking-widest text-white/25">Lucro Real</span>
+                      <span className="text-[11px] font-bold" style={{ color: lucroRealPeriodo >= 0 ? "#4ade8099" : "#f8717199" }}>
+                        R$ {lucroRealPeriodo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 4 Stats */}

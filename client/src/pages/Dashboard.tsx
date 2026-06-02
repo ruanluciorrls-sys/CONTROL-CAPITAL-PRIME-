@@ -17,6 +17,7 @@ export default function Dashboard() {
   const { state } = useApp();
   const [, navigate] = useLocation();
   const { data: totalGastosProxy = 0 } = trpc.gastosProxy.total.useQuery();
+  const { data: gastosProxyList = [] } = trpc.gastosProxy.list.useQuery();
   const { data: contasData = [] } = trpc.contas.list.useQuery();
   
   // Estado para plataformas do calendário
@@ -68,6 +69,16 @@ export default function Dashboard() {
     const cooperacaoValid = isNaN(cooperacao) ? 0 : cooperacao;
     return total + resultadoTotal + cooperacaoValid;
   }, 0);
+
+  // Gastos proxy do mês atual
+  const gastosDoMes = (gastosProxyList as any[]).reduce((sum, g) => {
+    const d = new Date(g.data + "T12:00:00");
+    if (d.getMonth() === hoje.getMonth() && d.getFullYear() === hoje.getFullYear()) {
+      return sum + parseFloat(g.valor?.toString() || "0");
+    }
+    return sum;
+  }, 0);
+  const lucroRealMes = lucroCaixa - gastosDoMes;
 
   // Cores de destaque para os cards
   const colors = [
@@ -144,6 +155,26 @@ export default function Dashboard() {
               <DollarSign size={40} className="text-emerald-400" />
             </div>
           </div>
+
+          {/* Despesas proxy + lucro real — sutil */}
+          {gastosDoMes > 0 && (
+            <div className="relative z-10 mt-5 pt-4 border-t border-white/6 flex flex-wrap items-center gap-6">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400/60"></span>
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-white/30">Proxy (mês)</span>
+                <span className="text-xs font-bold text-red-400/70">
+                  – R$ {gastosDoMes.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: lucroRealMes >= 0 ? "#4ade80" : "#f87171" }}></span>
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-white/30">Lucro Real</span>
+                <span className="text-xs font-bold" style={{ color: lucroRealMes >= 0 ? "#4ade80" : "#f87171" }}>
+                  R$ {lucroRealMes.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Seção de Resumo em Quadradinhos */}
