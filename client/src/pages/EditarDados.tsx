@@ -30,7 +30,7 @@ export default function EditarDados() {
       >
         {[
           { id: "configuracoes", label: "Configurações", icon: <Settings size={14} /> },
-          { id: "calendario", label: "Calendário", icon: <Calendar size={14} /> },
+          { id: "calendario", label: "Plataformas", icon: <Calendar size={14} /> },
         ].map((tab) => (
           <button
             key={tab.id}

@@ -10,7 +10,7 @@ export default function MinhasOperacoes() {
 
   const subTabs = [
     { id: "operacao-cpa", label: "Operação CPA", icon: <FileText size={16} /> },
-    { id: "gerenciar-casas", label: "Gerenciar Casas", icon: <Home size={16} /> },
+    { id: "gerenciar-casas", label: "Criação Meta", icon: <Home size={16} /> },
     { id: "casas-finalizadas", label: "Casas Finalizadas", icon: <CheckCircle size={16} /> },
     { id: "relatorios-finalizados", label: "Relatórios Finalizados", icon: <List size={16} /> },
   ];
