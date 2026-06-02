@@ -9,6 +9,7 @@ import Contas from "@/pages/Contas";
 import Dashboard from "@/pages/Dashboard";
 import EditarDados from "@/pages/EditarDados";
 import GerenciarCasas from "@/pages/GerenciarCasas";
+import MinhasOperacoes from "@/pages/MinhasOperacoes";
 import Relatorios from "@/pages/Relatorios";
 import RelatoriosFinalizados from "@/pages/RelatoriosFinalizados";
 import Calendario from "@/pages/Calendario";
@@ -25,13 +26,10 @@ import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 
 const publicTabs = [
   { id: "dashboard", label: "Dashboard", icon: <Home size={20} /> },
-  { id: "casas-finalizadas", label: "Casas Finalizadas", icon: <CheckCircle size={20} /> },
   { id: "gasto-proxy", label: "Gasto com Proxy", icon: <Zap size={20} /> },
-  { id: "gerenciar-casas", label: "Gerenciar Casas", icon: <Home size={20} /> },
-  { id: "relatorios", label: "Operação CPA", icon: <FileText size={20} /> },
+  { id: "gerenciar-casas", label: "MINHAS OPERAÇÃO", icon: <Home size={20} /> },
   { id: "contas", label: "Contas Não Sacadas", icon: <Wallet size={20} /> },
   { id: "chaves-pix", label: "Chaves PIX", icon: <Key size={20} /> },
-  { id: "relatorios-finalizados", label: "Relatórios Finalizados", icon: <CheckCircle size={20} /> },
   { id: "calendario", label: "Calendário", icon: <Calendar size={20} /> },
   { id: "editar-dados", label: "Configurações", icon: <Settings size={20} /> },
 ];
@@ -62,13 +60,10 @@ function AppContent() {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard": return <Dashboard />;
-      case "casas-finalizadas": return <CasasFinalizadas />;
       case "gasto-proxy": return <GastoProxy />;
-      case "gerenciar-casas": return <GerenciarCasas />;
-      case "relatorios": return <Relatorios />;
+      case "gerenciar-casas": return <MinhasOperacoes />;
       case "contas": return <Contas />;
       case "chaves-pix": return <ChavesPix />;
-      case "relatorios-finalizados": return <RelatoriosFinalizados />;
       case "calendario": return <Calendario />;
       case "editar-dados": return <EditarDados />;
       case "admin": return <AdminPanel />;
