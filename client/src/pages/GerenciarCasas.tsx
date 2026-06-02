@@ -648,26 +648,12 @@ export default function GerenciarCasas() {
                         </button>
                       </div>
 
-                      {/* Link da Conta Filha — primeiro campo */}
-                      <div>
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Link da Conta Filha</label>
-                        <input
-                          type="url"
-                          placeholder="https://..."
-                          value={form.linkContaFilha}
-                          onChange={(e) => handleFormChange(form.id, "linkContaFilha", e.target.value)}
-                          className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] ${
-                            errorsMultiple[form.id]?.linkContaFilha ? "border-red-500" : "border-white/15"
-                          }`}
-                        />
-                      </div>
-
-                      {/* Nome */}
+                      {/* 1. Nome da Casa */}
                       <div>
                         <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Nome da Casa *</label>
                         <input
                           type="text"
-                          placeholder="Ex: VOY, WE, 888..."
+                          placeholder="Ex: Casa 1, VOY, W1"
                           value={form.nome}
                           onChange={(e) => handleFormChange(form.id, "nome", e.target.value)}
                           className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] ${
@@ -678,11 +664,11 @@ export default function GerenciarCasas() {
                         {errorsMultiple[form.id]?.nome && <p className="text-red-400 text-xs mt-1">{errorsMultiple[form.id].nome}</p>}
                       </div>
 
-                      {/* Login + Senha */}
+                      {/* 2. Login | Senha */}
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Login</label>
-                          <input type="text" placeholder="Login" value={form.login}
+                          <input type="text" placeholder="Usuário" value={form.login}
                             onChange={(e) => handleFormChange(form.id, "login", e.target.value)}
                             className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
                           />
@@ -706,24 +692,53 @@ export default function GerenciarCasas() {
                         </div>
                       </div>
 
-                      {/* Link Casa + Prazo */}
+                      {/* 3. Meta | Média */}
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Link da Casa</label>
-                          <input type="url" placeholder="https://..." value={form.linkCasa}
-                            onChange={(e) => handleFormChange(form.id, "linkCasa", e.target.value)}
-                            className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] ${
-                              errorsMultiple[form.id]?.linkCasa ? "border-red-500" : "border-white/15"
-                            }`}
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Meta</label>
+                          <input type="number" placeholder="0.00" value={form.meta || ""}
+                            onChange={(e) => handleFormChange(form.id, "meta", e.target.value ? parseFloat(e.target.value) : 0)}
+                            className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
                           />
                         </div>
                         <div>
                           <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Média</label>
-                          <input type="number" placeholder="0" value={form.media || ""}
+                          <input type="number" placeholder="0.00" value={form.media || ""}
                             onChange={(e) => handleFormChange(form.id, "media", e.target.value ? parseFloat(e.target.value) : 0)}
                             className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
                           />
                         </div>
+                      </div>
+
+                      {/* 4. Prazo */}
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Prazo</label>
+                        <input type="text" placeholder="DD/MM/YYYY" value={form.prazo}
+                          onChange={(e) => handleFormChange(form.id, "prazo", e.target.value)}
+                          className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
+                        />
+                      </div>
+
+                      {/* 5. Link da Casa */}
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Link da Casa</label>
+                        <input type="url" placeholder="https://..." value={form.linkCasa}
+                          onChange={(e) => handleFormChange(form.id, "linkCasa", e.target.value)}
+                          className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] ${
+                            errorsMultiple[form.id]?.linkCasa ? "border-red-500" : "border-white/15"
+                          }`}
+                        />
+                      </div>
+
+                      {/* 6. Link da Conta-Filha */}
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Link da Conta-Filha</label>
+                        <input type="url" placeholder="https://..." value={form.linkContaFilha}
+                          onChange={(e) => handleFormChange(form.id, "linkContaFilha", e.target.value)}
+                          className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] ${
+                            errorsMultiple[form.id]?.linkContaFilha ? "border-red-500" : "border-white/15"
+                          }`}
+                        />
                       </div>
                     </div>
                   ))}
