@@ -245,38 +245,52 @@ export default function CasasFinalizadas() {
             </button>
           </div>
 
-          {/* Filtro por Mês */}
-          <div className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-lg mb-6">
-            <label className="block text-sm font-medium text-foreground mb-3">
-              Filtrar por Mês
-            </label>
+          {/* Filtro por Mês — elegante */}
+          <div className="rounded-2xl p-4 border border-white/8"
+            style={{ background: "rgba(255,255,255,0.03)" }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-4 rounded-full" style={{ background: "#d4a017" }} />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">Filtrar por Mês</span>
+            </div>
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setFiltroMes("todas")}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  filtroMes === "todas" || filtroMes === null
-                    ? "bg-primary text-white"
-                    : "bg-secondary dark:bg-slate-700 text-foreground hover:bg-secondary/80"
-                }`}
+                className="px-4 py-2 rounded-xl text-xs font-bold transition-all"
+                style={filtroMes === "todas" || filtroMes === null ? {
+                  background: "linear-gradient(135deg, #d4a017, #f59e0b)",
+                  color: "#050b18",
+                  boxShadow: "0 4px 12px rgba(212,160,23,0.3)",
+                } : {
+                  background: "rgba(255,255,255,0.05)",
+                  color: "rgba(255,255,255,0.5)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
               >
-                Todas
+                Todas ({casasFinalizadas.length})
               </button>
-              {mesesDisponiveis.map((mesKey) => {
+              {mesesDisponiveis.filter(m => getCasasMes(m).length > 0).map((mesKey) => {
                 const [ano, mes] = mesKey.split('-');
                 const data = new Date(parseInt(ano), parseInt(mes) - 1);
-                const mesLabel = data.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+                const mesLabel = data.toLocaleString('pt-BR', { month: 'short', year: 'numeric' });
                 const casasMes = getCasasMes(mesKey);
+                const isActive = filtroMes === mesKey;
                 return (
                   <button
                     key={mesKey}
                     onClick={() => setFiltroMes(mesKey)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      filtroMes === mesKey
-                        ? "bg-primary text-white"
-                        : "bg-secondary dark:bg-slate-700 text-foreground hover:bg-secondary/80"
-                    }`}
+                    className="px-4 py-2 rounded-xl text-xs font-bold transition-all capitalize"
+                    style={isActive ? {
+                      background: "linear-gradient(135deg, #d4a017, #f59e0b)",
+                      color: "#050b18",
+                      boxShadow: "0 4px 12px rgba(212,160,23,0.3)",
+                    } : {
+                      background: "rgba(255,255,255,0.05)",
+                      color: "rgba(255,255,255,0.5)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
                   >
-                    {mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1)} ({casasMes.length})
+                    {mesLabel} <span className="opacity-60">({casasMes.length})</span>
                   </button>
                 );
               })}

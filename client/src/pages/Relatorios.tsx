@@ -1,8 +1,70 @@
 import { useApp } from "@/contexts/AppContext";
-import { Plus, Trash2, Copy } from "lucide-react";
-import { useState } from "react";
+import { Plus, Trash2, Copy, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
 import RelatorioSpreadsheet from "@/components/RelatorioSpreadsheet";
 import AbaProgresso from "@/components/AbaProgresso";
+
+// Plataformas do calendário (espelhando Calendario.tsx)
+const PLATAFORMAS_CALENDARIO = [
+  { id: "1", nome: "WE", diasPrazo: 4, dia: "SEGUNDA-FEIRA" },
+  { id: "2", nome: "777CLUBE", diasPrazo: 3, dia: "SEGUNDA-FEIRA" },
+  { id: "3", nome: "EK", diasPrazo: 4, dia: "TERÇA-FEIRA" },
+  { id: "4", nome: "VOY", diasPrazo: 4, dia: "TERÇA-FEIRA" },
+  { id: "5", nome: "888", diasPrazo: 3, dia: "TERÇA-FEIRA" },
+  { id: "6", nome: "MANGA", diasPrazo: 3, dia: "TERÇA-FEIRA" },
+  { id: "7", nome: "ANJO", diasPrazo: 3, dia: "TERÇA-FEIRA" },
+  { id: "8", nome: "GAME", diasPrazo: 6, dia: "TERÇA-FEIRA" },
+  { id: "9", nome: "91", diasPrazo: 3, dia: "QUARTA-FEIRA" },
+  { id: "10", nome: "OKOK", diasPrazo: 3, dia: "QUARTA-FEIRA" },
+  { id: "11", nome: "A8", diasPrazo: 7, dia: "QUARTA-FEIRA" },
+  { id: "12", nome: "DY", diasPrazo: 4, dia: "QUARTA-FEIRA" },
+  { id: "13", nome: "MK", diasPrazo: 4, dia: "QUARTA-FEIRA" },
+  { id: "14", nome: "WP", diasPrazo: 7, dia: "QUARTA-FEIRA" },
+  { id: "15", nome: "W1", diasPrazo: 3, dia: "QUINTA-FEIRA" },
+  { id: "16", nome: "DZ", diasPrazo: 0, dia: "QUINTA-FEIRA" },
+  { id: "17", nome: "777CLUBE", diasPrazo: 4, dia: "QUINTA-FEIRA" },
+  { id: "18", nome: "WE", diasPrazo: 3, dia: "SEXTA-FEIRA" },
+  { id: "19", nome: "MANGA", diasPrazo: 4, dia: "SEXTA-FEIRA" },
+  { id: "20", nome: "ANJO", diasPrazo: 4, dia: "SEXTA-FEIRA" },
+  { id: "21", nome: "888", diasPrazo: 4, dia: "SEXTA-FEIRA" },
+  { id: "22", nome: "VOY", diasPrazo: 3, dia: "SÁBADO" },
+  { id: "23", nome: "91", diasPrazo: 4, dia: "SÁBADO" },
+  { id: "24", nome: "EK", diasPrazo: 3, dia: "SÁBADO" },
+  { id: "25", nome: "W1", diasPrazo: 4, dia: "DOMINGO" },
+  { id: "26", nome: "DY", diasPrazo: 3, dia: "DOMINGO" },
+  { id: "27", nome: "MK", diasPrazo: 3, dia: "DOMINGO" },
+];
+
+const DIAS_SEMANA_MAP: Record<string, number> = {
+  "DOMINGO": 0, "SEGUNDA-FEIRA": 1, "TERÇA-FEIRA": 2,
+  "QUARTA-FEIRA": 3, "QUINTA-FEIRA": 4, "SEXTA-FEIRA": 5, "SÁBADO": 6,
+};
+
+function calcularPrazo(diaSemana: string, diasPrazo: number): string {
+  const hoje = new Date();
+  const divoAlvo = DIAS_SEMANA_MAP[diaSemana] ?? 0;
+  const diaAtual = hoje.getDay();
+  let diff = divoAlvo - diaAtual;
+  if (diff < 0) diff += 7;
+  if (diff === 0) diff = 0; // mesmo dia, conta hoje
+  const diaBase = new Date(hoje);
+  diaBase.setDate(diaBase.getDate() + diff);
+  diaBase.setDate(diaBase.getDate() + diasPrazo);
+  return diaBase.toISOString().split("T")[0];
+}
+
+function calcCountdown(prazoStr: string): string {
+  if (!prazoStr) return "";
+  const prazo = new Date(prazoStr + "T23:59:59");
+  const agora = new Date();
+  const diff = prazo.getTime() - agora.getTime();
+  if (diff <= 0) return "Prazo encerrado!";
+  const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const horas = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const min = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  if (dias > 0) return `${dias}d ${horas}h ${min}m restantes`;
+  return `${horas}h ${min}m restantes`;
+}
 
 export default function Relatorios() {
   const { state, addRelatorio, updateRelatorio, deleteRelatorio, finalizarRelatorio, duplicarRelatorio, esvaziarLixeira } = useApp();
@@ -14,7 +76,15 @@ export default function Relatorios() {
     agente: "",
     prazo: "",
   });
+  const [countdown, setCountdown] = useState("");
   const [selectedLixeira, setSelectedLixeira] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!newRelatorioData.prazo) { setCountdown(""); return; }
+    setCountdown(calcCountdown(newRelatorioData.prazo));
+    const interval = setInterval(() => setCountdown(calcCountdown(newRelatorioData.prazo)), 60000);
+    return () => clearInterval(interval);
+  }, [newRelatorioData.prazo]);
 
   const casasAtivas = state.casas.filter((c) => c.status === "ativa");
   const relatoriosAtivos = state.relatorios.filter((r) => r.status === "ativo");
@@ -175,60 +245,156 @@ export default function Relatorios() {
 
           {/* Formulário de Novo Relatório */}
           {showNewForm && (
-            <div className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-lg space-y-4">
-              <h3 className="text-lg font-bold">Novo Relatório</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-                <select
-                  value={newRelatorioData.casaId}
-                  onChange={(e) => {
-                    const casaSelecionada = casasAtivas.find((c) => c.id === e.target.value);
-                    setNewRelatorioData({
-                      ...newRelatorioData,
-                      casaId: e.target.value,
-                      prazo: casaSelecionada?.prazo || "",
-                    });
-                  }}
-                  className="px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="">Selecionar Casa</option>
-                  {casasAtivas.map((casa) => (
-                    <option key={casa.id} value={casa.id}>
-                      {casa.nome}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  placeholder="Nome do Agente"
-                  value={newRelatorioData.agente}
-                  onChange={(e) =>
-                    setNewRelatorioData({
-                      ...newRelatorioData,
-                      agente: e.target.value,
-                    })
-                  }
-                  className="px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              {/* Exibição do Prazo */}
-              <div className="bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg border border-yellow-300 dark:border-yellow-700">
-                <p className="text-sm text-yellow-700 dark:text-yellow-200 font-semibold">PRAZO:</p>
-                <p className="text-lg font-bold text-yellow-900 dark:text-yellow-100">
-                  {newRelatorioData.prazo
-                    ? new Date(newRelatorioData.prazo).toLocaleDateString('pt-BR')
-                    : 'Selecione uma casa para ver o prazo'}
+            <div className="rounded-2xl p-5 border border-white/8 space-y-5"
+              style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(8px)" }}
+            >
+              <h3 className="text-base font-black text-foreground">Novo Relatório</h3>
+
+              {/* Seletor de Plataforma do Calendário */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
+                  Plataforma do Calendário
+                </label>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 max-h-44 overflow-y-auto pr-1">
+                  {/* Opção manual */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewRelatorioData({ casaId: "", agente: "", prazo: "" });
+                    }}
+                    className="px-3 py-2 rounded-xl text-xs font-bold transition-all border text-center"
+                    style={!newRelatorioData.casaId && !newRelatorioData.prazo ? {
+                      background: "linear-gradient(135deg, #d4a017, #f59e0b)",
+                      color: "#050b18", border: "none",
+                    } : {
+                      background: "rgba(255,255,255,0.04)",
+                      color: "rgba(255,255,255,0.5)",
+                      borderColor: "rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    Manual
+                  </button>
+                  {PLATAFORMAS_CALENDARIO.map((plat) => {
+                    const casaMatch = casasAtivas.find((c) =>
+                      c.nome.toUpperCase().startsWith(plat.nome.toUpperCase())
+                    );
+                    const prazoCalc = calcularPrazo(plat.dia, plat.diasPrazo);
+                    const isSelected = newRelatorioData.casaId === (casaMatch?.id || plat.id) &&
+                      newRelatorioData.prazo === prazoCalc;
+                    return (
+                      <button
+                        key={plat.id}
+                        type="button"
+                        onClick={() => {
+                          setNewRelatorioData({
+                            casaId: casaMatch?.id || "",
+                            agente: "",
+                            prazo: prazoCalc,
+                          });
+                        }}
+                        className="px-3 py-2 rounded-xl text-xs font-bold transition-all border text-center"
+                        style={isSelected ? {
+                          background: "linear-gradient(135deg, #d4a017, #f59e0b)",
+                          color: "#050b18", border: "none",
+                          boxShadow: "0 4px 12px rgba(212,160,23,0.3)",
+                        } : {
+                          background: "rgba(255,255,255,0.04)",
+                          color: casaMatch ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)",
+                          borderColor: casaMatch ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)",
+                        }}
+                        title={`${plat.dia} — prazo: ${plat.diasPrazo}d${casaMatch ? " ✓ Casa vinculada" : " (sem casa ativa)"}`}
+                      >
+                        {plat.nome}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-white/25 mt-1.5">
+                  Botões em destaque = casa ativa vinculada encontrada. Plataformas pálidas = sem casa ativa correspondente.
                 </p>
               </div>
-              <div className="flex gap-2">
+
+              {/* Casa + Sufixo */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
+                    Casa Ativa (ou selecione acima)
+                  </label>
+                  <select
+                    value={newRelatorioData.casaId}
+                    onChange={(e) => {
+                      const casaSelecionada = casasAtivas.find((c) => c.id === e.target.value);
+                      setNewRelatorioData({
+                        ...newRelatorioData,
+                        casaId: e.target.value,
+                        prazo: casaSelecionada?.prazo || newRelatorioData.prazo,
+                      });
+                    }}
+                    className="w-full px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-background text-foreground text-sm"
+                  >
+                    <option value="">Selecionar Casa</option>
+                    {casasAtivas.map((casa) => (
+                      <option key={casa.id} value={casa.id}>{casa.nome}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
+                    Sufixo após o nome (ex: VOY-<span className="text-[#d4a017]">Ruan</span>)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Identificador, agente..."
+                    value={newRelatorioData.agente}
+                    onChange={(e) => setNewRelatorioData({ ...newRelatorioData, agente: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-background text-foreground text-sm"
+                  />
+                  {newRelatorioData.casaId && (
+                    <p className="text-[10px] text-white/30 mt-1">
+                      Exibido como: <span className="text-[#d4a017] font-bold">
+                        {getCasaNome(newRelatorioData.casaId)}{newRelatorioData.agente ? `-${newRelatorioData.agente}` : ""}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Prazo + Countdown */}
+              {newRelatorioData.prazo ? (
+                <div className="rounded-xl p-4 border border-[#d4a017]/20 flex items-center gap-4"
+                  style={{ background: "rgba(212,160,23,0.06)" }}
+                >
+                  <Clock size={18} className="text-[#d4a017] shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#d4a017]/60 mb-0.5">Prazo</p>
+                    <p className="text-lg font-black text-[#d4a017]">
+                      {new Date(newRelatorioData.prazo + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
+                    </p>
+                    {countdown && (
+                      <p className="text-xs text-white/40 mt-0.5">{countdown}</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl p-4 border border-white/8 text-center text-xs text-white/25">
+                  Selecione uma plataforma do calendário para ver o prazo automaticamente
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-1">
                 <button
                   onClick={handleCreateRelatorio}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  className="px-6 py-2.5 rounded-xl text-sm font-bold text-[#050b18] transition-all hover:scale-[1.02]"
+                  style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
                 >
                   Criar Relatório
                 </button>
                 <button
-                  onClick={() => setShowNewForm(false)}
-                  className="px-6 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors"
+                  onClick={() => {
+                    setShowNewForm(false);
+                    setNewRelatorioData({ casaId: "", agente: "", prazo: "" });
+                  }}
+                  className="px-6 py-2.5 rounded-xl text-sm font-medium text-white/50 border border-white/10 hover:bg-white/5 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -266,11 +432,8 @@ export default function Relatorios() {
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <h4 className="font-bold text-foreground text-lg truncate">
-                              {getCasaNome(rel.casaId)}
+                              {getCasaNome(rel.casaId)}{rel.agente ? `-${rel.agente}` : ""}
                             </h4>
-                            <p className="text-xs font-semibold text-foreground opacity-70 mt-1">
-                              AGENTE: {rel.agente}
-                            </p>
                           </div>
                         </div>
                         <div className="mt-3 mb-3 pb-3 border-b border-current border-opacity-20">

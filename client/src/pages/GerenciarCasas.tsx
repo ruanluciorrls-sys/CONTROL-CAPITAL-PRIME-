@@ -503,21 +503,37 @@ export default function GerenciarCasas() {
 
       {/* Modal Pop-up */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-background border-b border-border p-4 md:p-6 flex justify-between items-center">
-              <h2 className="text-xl md:text-2xl font-bold text-foreground">
-                {editingId ? "Editar Casa" : "Adicionar Casas"}
-              </h2>
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
+        >
+          <div className="rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative"
+            style={{
+              background: "linear-gradient(145deg, #070e20, #0f1e45)",
+              border: "1px solid rgba(212,160,23,0.25)",
+              boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div className="absolute top-0 left-0 w-full h-[1px]"
+              style={{ background: "linear-gradient(to right, transparent, rgba(212,160,23,0.6), transparent)" }}
+            />
+            <div className="sticky top-0 rounded-t-2xl p-5 flex justify-between items-center border-b border-white/8"
+              style={{ background: "rgba(7,14,32,0.95)", backdropFilter: "blur(12px)" }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[#050b18]"
+                  style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                >
+                  <Plus size={16} />
+                </div>
+                <h2 className="text-lg font-black text-white">
+                  {editingId ? "Editar Casa" : "Adicionar Casas"}
+                </h2>
+              </div>
               <button
-                onClick={() => {
-                  setShowModal(false);
-                  setFormDataList([]);
-                  setEditingId(null);
-                }}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => { setShowModal(false); setFormDataList([]); setEditingId(null); }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-white/30 hover:text-white/70 hover:bg-white/10 transition-colors"
               >
-                <X size={24} />
+                <X size={18} />
               </button>
             </div>
 
@@ -613,82 +629,105 @@ export default function GerenciarCasas() {
                   {errors.linkContaFilha && <p className="text-red-500 text-sm mt-1">{errors.linkContaFilha}</p>}
                 </div>
               ) : (
-                // Múltiplos formulários
-                <div className="space-y-4 max-h-[calc(90vh-200px)] overflow-y-auto">
+                // Múltiplos formulários (elegante)
+                <div className="space-y-4 max-h-[calc(90vh-200px)] overflow-y-auto pr-1">
                   {formDataList.map((form, index) => (
-                    <div key={form.id} className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4 border border-border space-y-3">
+                    <div key={form.id} className="rounded-xl p-4 border border-white/10 space-y-3"
+                      style={{ background: "rgba(255,255,255,0.03)" }}
+                    >
                       <div className="flex justify-between items-center">
-                        <h4 className="font-semibold text-foreground">Casa #{index + 1}</h4>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveForm(form.id)}
-                          className="text-red-500 hover:text-red-700 transition-colors"
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black text-[#050b18]"
+                            style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                          >
+                            {index + 1}
+                          </div>
+                          <h4 className="font-bold text-sm text-foreground">Nova Casa</h4>
+                        </div>
+                        <button type="button" onClick={() => handleRemoveForm(form.id)}
+                          className="text-red-400/60 hover:text-red-400 transition-colors"
                         >
-                          <X size={18} />
+                          <X size={16} />
                         </button>
                       </div>
 
-                      <input
-                        type="text"
-                        placeholder="Nome da Casa"
-                        value={form.nome}
-                        onChange={(e) => handleFormChange(form.id, "nome", e.target.value)}
-                        className={`w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground ${
-                          errorsMultiple[form.id]?.nome ? "border-red-500" : "border-border"
-                        }`}
-                        required
-                      />
+                      {/* Link da Conta Filha — primeiro campo */}
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Link da Conta Filha</label>
+                        <input
+                          type="url"
+                          placeholder="https://..."
+                          value={form.linkContaFilha}
+                          onChange={(e) => handleFormChange(form.id, "linkContaFilha", e.target.value)}
+                          className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] ${
+                            errorsMultiple[form.id]?.linkContaFilha ? "border-red-500" : "border-white/15"
+                          }`}
+                        />
+                      </div>
 
-                      <div className="grid grid-cols-2 gap-2">
+                      {/* Nome */}
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Nome da Casa *</label>
                         <input
                           type="text"
-                          placeholder="Login"
-                          value={form.login}
-                          onChange={(e) => handleFormChange(form.id, "login", e.target.value)}
-                          className="px-3 py-2 border border-border rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
+                          placeholder="Ex: VOY, WE, 888..."
+                          value={form.nome}
+                          onChange={(e) => handleFormChange(form.id, "nome", e.target.value)}
+                          className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] ${
+                            errorsMultiple[form.id]?.nome ? "border-red-500" : "border-white/15"
+                          }`}
+                          required
                         />
-                        <div className="relative">
-                          <input
-                            type={showPassword[form.id] ? "text" : "password"}
-                            placeholder="Senha"
-                            value={form.senha}
-                            onChange={(e) => handleFormChange(form.id, "senha", e.target.value)}
-                            className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary pr-8 bg-background text-foreground"
+                        {errorsMultiple[form.id]?.nome && <p className="text-red-400 text-xs mt-1">{errorsMultiple[form.id].nome}</p>}
+                      </div>
+
+                      {/* Login + Senha */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Login</label>
+                          <input type="text" placeholder="Login" value={form.login}
+                            onChange={(e) => handleFormChange(form.id, "login", e.target.value)}
+                            className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
                           />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword({ ...showPassword, [form.id]: !showPassword[form.id] })}
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            {showPassword[form.id] ? <EyeOff size={16} /> : <Eye size={16} />}
-                          </button>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Senha</label>
+                          <div className="relative">
+                            <input
+                              type={showPassword[form.id] ? "text" : "password"}
+                              placeholder="Senha" value={form.senha}
+                              onChange={(e) => handleFormChange(form.id, "senha", e.target.value)}
+                              className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] pr-8"
+                            />
+                            <button type="button"
+                              onClick={() => setShowPassword({ ...showPassword, [form.id]: !showPassword[form.id] })}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60"
+                            >
+                              {showPassword[form.id] ? <EyeOff size={14} /> : <Eye size={14} />}
+                            </button>
+                          </div>
                         </div>
                       </div>
 
+                      {/* Link Casa + Prazo */}
                       <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="number"
-                          placeholder="Meta"
-                          value={form.meta || ""}
-                          onChange={(e) => handleFormChange(form.id, "meta", e.target.value ? parseFloat(e.target.value) : 0)}
-                          className="px-3 py-2 border border-border rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
-                        />
-                        <input
-                          type="number"
-                          placeholder="Média"
-                          value={form.media || ""}
-                          onChange={(e) => handleFormChange(form.id, "media", e.target.value ? parseFloat(e.target.value) : 0)}
-                          className="px-3 py-2 border border-border rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
-                        />
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Link da Casa</label>
+                          <input type="url" placeholder="https://..." value={form.linkCasa}
+                            onChange={(e) => handleFormChange(form.id, "linkCasa", e.target.value)}
+                            className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] ${
+                              errorsMultiple[form.id]?.linkCasa ? "border-red-500" : "border-white/15"
+                            }`}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Média</label>
+                          <input type="number" placeholder="0" value={form.media || ""}
+                            onChange={(e) => handleFormChange(form.id, "media", e.target.value ? parseFloat(e.target.value) : 0)}
+                            className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
+                          />
+                        </div>
                       </div>
-
-                      <input
-                        type="text"
-                        placeholder="Prazo (DD/MM/YYYY)"
-                        value={form.prazo}
-                        onChange={(e) => handleFormChange(form.id, "prazo", e.target.value)}
-                        className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
-                      />
                     </div>
                   ))}
                 </div>

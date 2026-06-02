@@ -138,142 +138,144 @@ export default function ChavesPix() {
   }, [keysList]);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white p-6 md:p-8 font-sans">
-      <div className="max-w-7xl mx-auto space-y-8">
-        
+    <div className="min-h-screen text-white p-4 md:p-6 font-sans">
+      <div className="max-w-7xl mx-auto space-y-6">
+
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-serif mb-1 tracking-tight" style={{ fontFamily: "ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif" }}>
-              Chaves PIX
-            </h1>
-            <p className="text-sm text-gray-400">Gerencie e importe chaves em lote - detecção automática</p>
-          </div>
-          <button 
-            onClick={() => {}}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#111111] border border-white/10 hover:bg-[#1a1a1a] transition-colors text-sm"
+        <div>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight"
+            style={{
+              background: "linear-gradient(135deg, #ffffff 10%, #f3d078 50%, #ffffff 90%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
           >
-            <RefreshCw size={14} className="text-gray-400" />
-            <span className="text-gray-300">Sync</span>
-          </button>
+            Chaves PIX
+          </h1>
+          <p className="text-xs text-white/40 mt-0.5 uppercase tracking-widest">Gerencie e importe chaves em lote — detecção automática</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-          <div className="bg-[#0f0f13] border border-[#2a2a35] rounded-xl p-4 flex flex-col justify-center border-l-4 border-l-gray-300">
-            <span className="text-2xl font-bold">{stats.total}</span>
-            <span className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">Total</span>
-          </div>
-          <div className="bg-[#091515] border border-[#162a2a] rounded-xl p-4 flex flex-col justify-center border-l-4 border-l-emerald-500">
-            <span className="text-2xl font-bold text-emerald-400">{stats.validas}</span>
-            <span className="text-[10px] uppercase text-emerald-700 font-bold tracking-wider">Válidas</span>
-          </div>
-          <div className="bg-[#0f131a] border border-[#1a2333] rounded-xl p-4 flex flex-col justify-center border-l-4 border-l-blue-500">
-            <span className="text-2xl font-bold text-blue-400">{stats.telefone}</span>
-            <span className="text-[10px] uppercase text-blue-700 font-bold tracking-wider">Telefone</span>
-          </div>
-          <div className="bg-[#15120d] border border-[#2d2516] rounded-xl p-4 flex flex-col justify-center border-l-4 border-l-orange-500">
-            <span className="text-2xl font-bold text-orange-400">{stats.cpf}</span>
-            <span className="text-[10px] uppercase text-orange-700 font-bold tracking-wider">CPF</span>
-          </div>
-          <div className="bg-[#130d15] border border-[#25182a] rounded-xl p-4 flex flex-col justify-center border-l-4 border-l-purple-500">
-            <span className="text-2xl font-bold text-purple-400">{stats.email}</span>
-            <span className="text-[10px] uppercase text-purple-700 font-bold tracking-wider">Email</span>
-          </div>
-          <div className="bg-[#160d0d] border border-[#331818] rounded-xl p-4 flex flex-col justify-center border-l-4 border-l-red-500">
-            <span className="text-2xl font-bold text-red-400">{stats.evp}</span>
-            <span className="text-[10px] uppercase text-red-700 font-bold tracking-wider">EVP</span>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          {[
+            { label: "Total", value: stats.total, color: "#d4a017" },
+            { label: "Válidas", value: stats.validas, color: "#4ade80" },
+            { label: "Telefone", value: stats.telefone, color: "#60a5fa" },
+            { label: "CPF", value: stats.cpf, color: "#fb923c" },
+            { label: "Email", value: stats.email, color: "#a78bfa" },
+            { label: "EVP", value: stats.evp, color: "#f87171" },
+          ].map((s) => (
+            <div key={s.label} className="rounded-xl p-4 flex flex-col justify-center border border-white/8"
+              style={{
+                background: "rgba(255,255,255,0.03)",
+                borderLeft: `3px solid ${s.color}`,
+              }}
+            >
+              <span className="text-2xl font-black" style={{ color: s.color }}>{s.value}</span>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-white/30">{s.label}</span>
+            </div>
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
           {/* Left Column: Import */}
-          <div className="lg:col-span-4 space-y-6">
-            
+          <div className="lg:col-span-4 space-y-4">
+
             {/* Import Box */}
-            <div className="bg-[#0a0a0a] border border-[#1f1f1f] rounded-2xl p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center">
-                  <span className="text-red-500 font-bold">+</span>
-                </div>
+            <div className="rounded-2xl p-5 border border-white/8"
+              style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+            >
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center text-[#050b18] font-black text-lg"
+                  style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                >+</div>
                 <div>
-                  <h3 className="font-serif text-lg text-white">Importar chaves</h3>
-                  <p className="text-xs text-gray-500">1 chave por linha - detecta tipo automaticamente</p>
+                  <h3 className="text-sm font-black text-white">Importar chaves</h3>
+                  <p className="text-[10px] text-white/30">1 chave por linha — detecta tipo automaticamente</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="text-[10px] uppercase text-gray-500 font-bold tracking-wider mb-2 block">Chaves PIX</label>
-                  <textarea 
+                  <label className="text-[10px] uppercase text-white/30 font-bold tracking-wider mb-2 block">Chaves PIX</label>
+                  <textarea
                     value={importText}
                     onChange={(e) => setImportText(e.target.value)}
-                    className="w-full h-32 bg-[#121212] border border-[#2a2a2a] rounded-xl p-4 text-sm text-gray-300 focus:outline-none focus:border-red-500/50 resize-none font-mono placeholder:text-gray-600"
-                    placeholder="11999887766&#10;111.456.789-00&#10;operador@email.com&#10;chave.evp.uuid..."
+                    className="w-full h-32 rounded-xl p-4 text-sm text-white/80 focus:outline-none resize-none font-mono placeholder:text-white/20 border border-white/10 bg-transparent"
+                    style={{ background: "rgba(0,0,0,0.3)" }}
+                    placeholder={"11999887766\n111.456.789-00\noperador@email.com\nchave.evp.uuid..."}
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] uppercase text-gray-500 font-bold tracking-wider mb-2 block">Banco (Opcional)</label>
-                  <input 
+                  <label className="text-[10px] uppercase text-white/30 font-bold tracking-wider mb-2 block">Banco (Opcional)</label>
+                  <input
                     type="text"
                     value={bankName}
                     onChange={(e) => setBankName(e.target.value)}
-                    className="w-full bg-[#121212] border border-[#2a2a2a] rounded-xl px-4 py-3 text-sm text-gray-300 focus:outline-none focus:border-red-500/50 placeholder:text-gray-600"
+                    className="w-full rounded-xl px-4 py-3 text-sm text-white/80 focus:outline-none focus:ring-1 focus:ring-[#d4a017] placeholder:text-white/20 border border-white/10 bg-transparent"
                     placeholder="Ex: Nubank, Inter, C6..."
                   />
                 </div>
 
                 <div className="flex gap-2">
-                  <button 
+                  <button
                     onClick={handleImport}
-                    className="flex-1 bg-[#1a2e1e] hover:bg-[#203a25] text-[#4ade80] border border-[#2a452f] rounded-xl py-3 text-sm font-medium transition-colors"
+                    className="flex-1 rounded-xl py-3 text-sm font-bold transition-all hover:scale-[1.02] text-[#050b18]"
+                    style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
                   >
                     Importar chaves
                   </button>
-                  
-                  <input 
-                    type="file" 
-                    accept=".txt" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    onChange={handleFileUpload} 
+
+                  <input
+                    type="file"
+                    accept=".txt"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleFileUpload}
                   />
-                  <button 
+                  <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="bg-[#121212] hover:bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 flex items-center justify-center transition-colors"
+                    className="rounded-xl px-4 flex items-center justify-center transition-colors border border-white/10 hover:bg-white/5"
                     title="Importar de arquivo .txt"
                   >
-                    <Upload size={16} className="text-gray-300" />
-                    <span className="text-xs font-bold text-gray-300 ml-1">.txt</span>
+                    <Upload size={15} className="text-white/50" />
+                    <span className="text-xs font-bold text-white/50 ml-1">.txt</span>
                   </button>
                 </div>
 
-                <div className="bg-[#121612] border border-[#1e2a20] rounded-xl p-3 flex items-center justify-between">
-                  <span className="text-sm font-medium text-[#4ade80]">{importText.split('\n').filter(l=>l.trim()).length} chave(s) pronta(s)</span>
+                <div className="rounded-xl p-3 flex items-center justify-between border border-white/8"
+                  style={{ background: "rgba(212,160,23,0.06)" }}
+                >
+                  <span className="text-sm font-bold text-[#d4a017]">
+                    {importText.split('\n').filter(l => l.trim()).length} chave(s) pronta(s)
+                  </span>
                 </div>
               </div>
             </div>
 
             {/* General Actions */}
-            <div className="bg-[#0a0a0a] border border-[#1f1f1f] rounded-2xl p-6">
-              <label className="text-[10px] uppercase text-gray-500 font-bold tracking-wider mb-4 block">Ações gerais</label>
-              
+            <div className="rounded-2xl p-5 border border-white/8"
+              style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+            >
+              <label className="text-[10px] uppercase text-white/30 font-bold tracking-wider mb-4 block">Ações gerais</label>
+
               <div className="space-y-3">
-                <button 
+                <button
                   onClick={handleCopyAllValid}
-                  className="w-full bg-white hover:bg-gray-100 text-black rounded-xl py-3 flex items-center justify-center gap-2 text-sm font-bold transition-colors"
+                  className="w-full rounded-xl py-3 flex items-center justify-center gap-2 text-sm font-bold transition-all hover:scale-[1.01] text-[#050b18]"
+                  style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
                 >
-                  <Copy size={16} />
+                  <Copy size={15} />
                   Copiar todas válidas ({stats.validas})
                 </button>
-                
-                <button 
+
+                <button
                   onClick={handleExportTxt}
-                  className="w-full bg-transparent hover:bg-white/5 border border-white/10 text-white rounded-xl py-3 flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+                  className="w-full rounded-xl py-3 flex items-center justify-center gap-2 text-sm font-medium transition-colors border border-white/10 hover:bg-white/5 text-white/60"
                 >
-                  <Download size={16} />
+                  <Download size={15} />
                   Exportar .txt
                 </button>
               </div>
@@ -282,98 +284,118 @@ export default function ChavesPix() {
           </div>
 
           {/* Right Column: List */}
-          <div className="lg:col-span-8 space-y-6">
-            
+          <div className="lg:col-span-8 space-y-4">
+
             {/* Top Bar: Search & Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-              
+            <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
               <div className="relative w-full sm:w-1/2">
-                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
-                <input 
-                  type="text" 
+                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25" />
+                <input
+                  type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar chave, banco..." 
-                  className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-gray-500 text-gray-200 placeholder:text-gray-600"
+                  placeholder="Buscar chave, banco..."
+                  className="w-full rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4a017] text-white/70 placeholder:text-white/20 border border-white/10 bg-transparent"
+                  style={{ background: "rgba(0,0,0,0.2)" }}
                 />
               </div>
 
-              <div className="flex gap-1 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0 hide-scrollbar">
+              <div className="flex gap-1 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 hide-scrollbar">
                 {(["TODOS", "TELEFONE", "CPF", "EMAIL", "EVP"] as const).map(type => (
                   <button
                     key={type}
                     onClick={() => setFilterType(type)}
-                    className={`px-4 py-2 rounded-lg text-[10px] font-bold tracking-wider transition-colors whitespace-nowrap ${
-                      filterType === type 
-                        ? type === "TODOS" ? "bg-white text-black" : "bg-red-500/20 text-red-500 border border-red-500/30"
-                        : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
-                    }`}
+                    className="px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wider transition-all whitespace-nowrap"
+                    style={filterType === type ? {
+                      background: "linear-gradient(135deg, #d4a017, #f59e0b)",
+                      color: "#050b18",
+                    } : {
+                      color: "rgba(255,255,255,0.35)",
+                      background: "rgba(255,255,255,0.04)",
+                    }}
                   >
                     {type}
                   </button>
                 ))}
               </div>
-
             </div>
 
-            <p className="text-xs text-gray-500">{filteredKeys.length} chave(s) encontrada(s)</p>
+            <p className="text-[10px] text-white/25 uppercase font-bold tracking-widest">{filteredKeys.length} chave(s) encontrada(s)</p>
 
             {/* List Items */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               {filteredKeys.length === 0 ? (
-                <div className="bg-[#0a0a0a] border border-[#1f1f1f] rounded-2xl p-12 text-center text-gray-500">
+                <div className="rounded-2xl p-12 text-center text-white/25 border border-white/8"
+                  style={{ background: "rgba(255,255,255,0.02)" }}
+                >
                   Nenhuma chave encontrada com os filtros atuais.
                 </div>
               ) : (
                 filteredKeys.map((item) => (
-                  <div key={item.id} className="bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl p-4 flex items-center justify-between group hover:border-[#333] transition-colors">
-                    
-                    <div className="flex items-center gap-4">
-                      {/* Icon Container based on type */}
-                      <div className="w-10 h-10 rounded-lg bg-[#111111] border border-white/5 flex items-center justify-center">
-                        <span className="text-[9px] font-bold text-gray-400 uppercase">{
-                          item.type === "TELEFONE" ? "TEL" :
-                          item.type === "DESCONHECIDO" ? "?" :
-                          item.type
-                        }</span>
+                  <div key={item.id} className="rounded-xl p-4 flex items-center justify-between group transition-all border border-white/6 hover:border-white/12"
+                    style={{ background: "rgba(255,255,255,0.03)" }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-white/8"
+                        style={{
+                          background: item.type === "TELEFONE" ? "rgba(96,165,250,0.08)" :
+                            item.type === "CPF" ? "rgba(251,146,60,0.08)" :
+                            item.type === "EMAIL" ? "rgba(167,139,250,0.08)" :
+                            item.type === "EVP" ? "rgba(212,160,23,0.08)" :
+                            "rgba(255,255,255,0.04)",
+                        }}
+                      >
+                        <span className="text-[9px] font-black uppercase"
+                          style={{
+                            color: item.type === "TELEFONE" ? "#60a5fa" :
+                              item.type === "CPF" ? "#fb923c" :
+                              item.type === "EMAIL" ? "#a78bfa" :
+                              item.type === "EVP" ? "#d4a017" : "#ffffff60",
+                          }}
+                        >
+                          {item.type === "TELEFONE" ? "TEL" : item.type === "DESCONHECIDO" ? "?" : item.type}
+                        </span>
                       </div>
-                      
+
                       <div>
-                        <p className="font-mono text-sm text-gray-200 font-medium">{item.key}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-md ${
-                            item.type === "TELEFONE" ? "bg-blue-500/10 text-blue-400" :
-                            item.type === "CPF" ? "bg-orange-500/10 text-orange-400" :
-                            item.type === "EMAIL" ? "bg-purple-500/10 text-purple-400" :
-                            item.type === "EVP" ? "bg-red-500/10 text-red-400" :
-                            "bg-gray-500/10 text-gray-400"
-                          }`}>
+                        <p className="font-mono text-sm text-white/80 font-medium">{item.key}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-md"
+                            style={{
+                              color: item.type === "TELEFONE" ? "#60a5fa" :
+                                item.type === "CPF" ? "#fb923c" :
+                                item.type === "EMAIL" ? "#a78bfa" :
+                                item.type === "EVP" ? "#d4a017" : "#ffffff40",
+                              background: "rgba(255,255,255,0.05)",
+                            }}
+                          >
                             {item.type.toLowerCase()}
                           </span>
                           {item.bank && (
-                            <span className="text-[10px] text-gray-500">• {item.bank}</span>
+                            <span className="text-[10px] text-white/25">• {item.bank}</span>
                           )}
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                      <button 
+                      <button
                         onClick={() => handleCopy(item.key)}
-                        className="w-8 h-8 rounded-lg bg-[#111111] hover:bg-[#1a1a1a] border border-white/5 flex items-center justify-center text-gray-400 transition-colors"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors border border-white/8 hover:border-[#d4a017]/40 text-white/40 hover:text-[#d4a017]"
+                        style={{ background: "rgba(255,255,255,0.04)" }}
                         title="Copiar"
                       >
-                        <Copy size={14} />
+                        <Copy size={13} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleDelete(item.id)}
-                        className="w-8 h-8 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 flex items-center justify-center text-red-400 transition-colors"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors border border-red-500/15 hover:border-red-500/40 text-red-400/50 hover:text-red-400"
+                        style={{ background: "rgba(239,68,68,0.05)" }}
                         title="Excluir"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={13} />
                       </button>
                     </div>
-
                   </div>
                 ))
               )}

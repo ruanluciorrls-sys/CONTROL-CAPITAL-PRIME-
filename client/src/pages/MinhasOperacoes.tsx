@@ -10,9 +10,9 @@ export default function MinhasOperacoes() {
 
   const subTabs = [
     { id: "operacao-cpa", label: "Operação CPA", icon: <FileText size={16} /> },
-    { id: "relatorios-finalizados", label: "Relatórios Finalizados", icon: <CheckCircle size={16} /> },
-    { id: "casas-finalizadas", label: "Casas Finalizadas", icon: <CheckCircle size={16} /> },
     { id: "gerenciar-casas", label: "Gerenciar Casas", icon: <Home size={16} /> },
+    { id: "casas-finalizadas", label: "Casas Finalizadas", icon: <CheckCircle size={16} /> },
+    { id: "relatorios-finalizados", label: "Relatórios Finalizados", icon: <List size={16} /> },
   ];
 
   return (
@@ -38,9 +38,9 @@ export default function MinhasOperacoes() {
       {/* Conteúdo da Aba Ativa */}
       <div className="flex-1 overflow-y-auto">
         {activeSubTab === "operacao-cpa" && <Relatorios />}
-        {activeSubTab === "relatorios-finalizados" && <RelatoriosFinalizados />}
-        {activeSubTab === "casas-finalizadas" && <CasasFinalizadas />}
         {activeSubTab === "gerenciar-casas" && <GerenciarCasas />}
+        {activeSubTab === "casas-finalizadas" && <CasasFinalizadas />}
+        {activeSubTab === "relatorios-finalizados" && <RelatoriosFinalizados />}
       </div>
     </div>
   );

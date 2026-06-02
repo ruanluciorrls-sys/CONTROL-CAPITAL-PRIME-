@@ -18,7 +18,7 @@ import GastoProxy from "@/pages/GastoProxy";
 import AdminPanel from "@/pages/AdminPanel";
 import Login from "@/pages/Login";
 import ChavesPix from "@/pages/ChavesPix";
-import { CheckCircle, Edit3, Home, Settings, FileText, Moon, Sun, LogOut, Calendar, Zap, Shield, Crown, Wallet, Key, DollarSign, RefreshCw } from "lucide-react";
+import { CheckCircle, Edit3, Home, Settings, FileText, Moon, Sun, LogOut, Zap, Shield, Crown, Wallet, Key, DollarSign, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -33,7 +33,6 @@ const publicTabs = [
   { id: "gerenciar-casas", label: "MINHAS OPERAÇÃO", icon: <Home size={20} /> },
   { id: "contas", label: "Contas Não Sacadas", icon: <Wallet size={20} /> },
   { id: "chaves-pix", label: "Chaves PIX", icon: <Key size={20} /> },
-  { id: "calendario", label: "Calendário", icon: <Calendar size={20} /> },
   { id: "editar-dados", label: "Configurações", icon: <Settings size={20} /> },
 ];
 
@@ -126,6 +125,8 @@ function AppContent() {
           activeTab={activeTab}
           onTabChange={handleTabChange}
           tabs={tabs}
+          onRefresh={handleRefreshSite}
+          isRefreshing={isRefreshing}
         />
       </div>
 
@@ -211,12 +212,28 @@ function AppContent() {
             </div>
           )}
           
+          <button
+            onClick={handleRefreshSite}
+            disabled={isRefreshing}
+            className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl transition-all duration-300 hover:bg-white/10 hover:scale-[1.02] border border-white/10"
+            style={{
+              background: "rgba(212,160,23,0.08)",
+              borderColor: "rgba(212,160,23,0.2)",
+              color: "#d4a017",
+              boxShadow: "0 4px 12px rgba(212,160,23,0.05)",
+            }}
+            title="Atualizar dados"
+          >
+            <RefreshCw size={15} className={isRefreshing ? "animate-spin" : ""} />
+            <span className="text-[10px] font-bold uppercase tracking-wider">Atualizar</span>
+          </button>
+
           <div className="flex items-center gap-2">
             <button
               onClick={toggleTheme}
               className="flex-1 p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 hover:bg-white/10 hover:scale-102 bg-white/5 border border-white/10"
-              style={{ 
-                color: "rgba(255,255,255,0.85)", 
+              style={{
+                color: "rgba(255,255,255,0.85)",
                 borderColor: "rgba(255,255,255,0.08)",
                 boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
               }}
@@ -225,12 +242,12 @@ function AppContent() {
               {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
               <span className="text-[10px] font-bold uppercase tracking-wider">Tema</span>
             </button>
-            
+
             <button
               onClick={logout}
               className="p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center hover:bg-red-500/25 hover:scale-102 bg-red-500/10 border border-red-500/20"
-              style={{ 
-                color: "#ff6b6b", 
+              style={{
+                color: "#ff6b6b",
                 boxShadow: "0 4px 12px rgba(229,62,62,0.05)"
               }}
               title="Fazer logout"
@@ -253,15 +270,6 @@ function AppContent() {
         </main>
       </div>
 
-      {/* ── FLOATING REFRESH BUTTON ── */}
-      <button
-        onClick={handleRefreshSite}
-        disabled={isRefreshing}
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 bg-white text-black font-semibold rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:scale-105 active:scale-95 transition-all duration-300"
-      >
-        <RefreshCw size={18} className={`text-black ${isRefreshing ? "animate-spin" : ""}`} />
-        <span className="text-sm">Atualizar</span>
-      </button>
     </div>
   );
 }
@@ -295,11 +303,15 @@ function HeaderWithThemeToggle({
   activeTab,
   onTabChange,
   tabs,
+  onRefresh,
+  isRefreshing,
 }: {
   nomeApp: string;
   activeTab: string;
   onTabChange: (tabId: string) => void;
   tabs: typeof publicTabs;
+  onRefresh: () => void;
+  isRefreshing: boolean;
 }) {
   const { theme, toggleTheme } = useTheme();
   const { logout, user } = useAuth();
@@ -371,22 +383,37 @@ function HeaderWithThemeToggle({
         </div>
 
         {/* Right Side: Account and Utility Actions */}
-        <div className="flex items-center gap-3 w-full md:w-1/4 justify-center md:justify-end">
+        <div className="flex items-center gap-2 w-full md:w-1/4 justify-center md:justify-end">
           {user && (
             <div className="hidden sm:flex flex-col text-right mr-1">
               <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Logado como</span>
               <span className="text-xs font-semibold text-white/80">{user.email || user.name}</span>
             </div>
           )}
-          
+
           <div className="h-6 w-[1px] bg-white/10 hidden sm:block"></div>
+
+          <button
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="p-2 rounded-xl transition-all duration-300 min-h-[42px] min-w-[42px] flex items-center justify-center hover:scale-105 active:scale-95"
+            style={{
+              color: "#d4a017",
+              background: "rgba(212,160,23,0.08)",
+              border: "1px solid rgba(212,160,23,0.2)",
+            }}
+            title="Atualizar dados"
+            aria-label="Atualizar"
+          >
+            <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
+          </button>
 
           <button
             onClick={toggleTheme}
             className="p-2 rounded-xl transition-all duration-300 min-h-[42px] min-w-[42px] flex items-center justify-center hover:bg-white/10 hover:scale-105 active:scale-95"
-            style={{ 
-              color: "rgba(255,255,255,0.85)", 
-              background: "rgba(255,255,255,0.05)", 
+            style={{
+              color: "rgba(255,255,255,0.85)",
+              background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.08)",
               boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
             }}
@@ -395,13 +422,13 @@ function HeaderWithThemeToggle({
           >
             {theme === "light" ? <Moon size={19} /> : <Sun size={19} />}
           </button>
-          
+
           <button
             onClick={logout}
             className="p-2 rounded-xl transition-all duration-300 min-h-[42px] min-w-[42px] flex items-center justify-center hover:bg-red-500/20 hover:scale-105 active:scale-95"
-            style={{ 
-              color: "#ff6b6b", 
-              background: "rgba(229,62,62,0.08)", 
+            style={{
+              color: "#ff6b6b",
+              background: "rgba(229,62,62,0.08)",
               border: "1px solid rgba(229,62,62,0.2)",
               boxShadow: "0 4px 12px rgba(229,62,62,0.05)"
             }}
