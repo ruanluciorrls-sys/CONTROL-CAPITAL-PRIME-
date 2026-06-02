@@ -710,16 +710,7 @@ export default function GerenciarCasas() {
                         </div>
                       </div>
 
-                      {/* 4. Prazo */}
-                      <div>
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Prazo</label>
-                        <input type="text" placeholder="DD/MM/YYYY" value={form.prazo}
-                          onChange={(e) => handleFormChange(form.id, "prazo", e.target.value)}
-                          className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
-                        />
-                      </div>
-
-                      {/* 5. Link da Conta-Filha */}
+                      {/* 4. Link da Conta-Filha */}
                       <div>
                         <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Link da Conta-Filha</label>
                         <input type="url" placeholder="https://..." value={form.linkContaFilha}
