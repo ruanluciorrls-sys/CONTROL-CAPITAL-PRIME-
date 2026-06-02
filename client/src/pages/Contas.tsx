@@ -329,39 +329,46 @@ export default function Contas() {
     <div className="space-y-4 md:space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <h1 className="text-2xl md:text-3xl font-bold text-white dark:text-white drop-shadow-lg">Contas</h1>
+        <div>
+          <h1 className="text-2xl md:text-3xl font-black"
+            style={{
+              background: "linear-gradient(135deg, #ffffff 10%, #f3d078 50%, #ffffff 90%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >Contas Não Sacadas</h1>
+          <p className="text-xs text-white/30 mt-0.5 uppercase tracking-widest">Gerenciamento de contas</p>
+        </div>
         <button
           onClick={addNewForm}
-          className="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium min-h-[44px] w-full md:w-auto"
-          aria-label="Criar nova conta"
+          className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold min-h-[44px] w-full md:w-auto transition-all hover:scale-[1.02] text-[#050b18]"
+          style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
         >
-          <Plus size={20} />
+          <Plus size={18} />
           Nova Conta
         </button>
       </div>
 
       {/* Abas */}
-      <div className="flex gap-2 md:gap-4 border-b border-border">
-        <button
-          onClick={() => setActiveTab("contas")}
-          className={`px-4 md:px-6 py-3 font-semibold transition-colors whitespace-nowrap text-sm md:text-base ${
-            activeTab === "contas"
-              ? "text-primary border-b-2 border-primary"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Contas ({contas.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("lixeira")}
-          className={`px-4 md:px-6 py-3 font-semibold transition-colors whitespace-nowrap text-sm md:text-base ${
-            activeTab === "lixeira"
-              ? "text-primary border-b-2 border-primary"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          🗑️ Lixeira ({contasLixeira.length})
-        </button>
+      <div className="flex gap-1 p-1 rounded-xl border border-white/10 w-fit"
+        style={{ background: "rgba(255,255,255,0.03)" }}
+      >
+        {[
+          { id: "contas", label: `Contas (${contas.length})` },
+          { id: "lixeira", label: `Lixeira (${contasLixeira.length})` },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className="px-5 py-2 rounded-lg text-xs font-bold transition-all"
+            style={activeTab === tab.id ? {
+              background: "linear-gradient(135deg, #d4a017, #f59e0b)",
+              color: "#050b18",
+            } : { color: "rgba(255,255,255,0.4)" }}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Formulários Abertos */}
@@ -374,7 +381,8 @@ export default function Contas() {
             {openForms.map((form) => (
               <div
                 key={form.id}
-                className="bg-card backdrop-blur-md rounded-xl p-6 border border-border/50 space-y-4 animate-in fade-in shadow-xl"
+                className="rounded-2xl p-5 border border-white/10 space-y-4"
+                style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
               >
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold text-foreground dark:text-white">
@@ -403,7 +411,7 @@ export default function Contas() {
                       onChange={(e) =>
                         updateFormData(form.id, "usuario", e.target.value)
                       }
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:border-slate-500 dark:text-white min-h-[44px] ${
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-transparent border-white/15 text-white min-h-[44px] ${
                         form.errors.usuario
                           ? "border-red-500"
                           : "border-border"
@@ -429,7 +437,7 @@ export default function Contas() {
                         onChange={(e) =>
                           updateFormData(form.id, "senha", e.target.value)
                         }
-                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:border-slate-500 dark:text-white pr-10 min-h-[44px] ${
+                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-transparent border-white/15 text-white pr-10 min-h-[44px] ${
                           form.errors.senha
                             ? "border-red-500"
                             : "border-border"
@@ -467,7 +475,7 @@ export default function Contas() {
                         updateFormData(form.id, "valor", e.target.value)
                       }
                       step="0.01"
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:border-slate-500 dark:text-white min-h-[44px] ${
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-transparent border-white/15 text-white min-h-[44px] ${
                         form.errors.valor
                           ? "border-red-500"
                           : "border-border"
@@ -492,7 +500,7 @@ export default function Contas() {
                       onChange={(e) =>
                         updateFormData(form.id, "casa", e.target.value)
                       }
-                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:border-slate-500 dark:text-white min-h-[44px]"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-transparent border-white/15 text-white min-h-[44px]"
                     />
                   </div>
 
@@ -510,7 +518,7 @@ export default function Contas() {
                           e.target.value as "sacado" | "sacando" | "bloqueado"
                         )
                       }
-                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:border-slate-500 dark:text-white min-h-[44px]"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-transparent border-white/15 text-white min-h-[44px]"
                     >
                       <option value="sacando">Sacando</option>
                       <option value="sacado">Sacado</option>
@@ -520,17 +528,18 @@ export default function Contas() {
                 </div>
 
                 {/* Botões */}
-                <div className="flex gap-2 pt-4 border-t border-border dark:border-slate-700">
+                <div className="flex gap-2 pt-4 border-t border-white/8">
                   <button
                     onClick={() => handleSaveForm(form)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium min-h-[44px]"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold min-h-[44px] text-[#050b18] transition-all hover:scale-[1.01]"
+                    style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
                   >
-                    <Save size={18} />
+                    <Save size={16} />
                     Salvar
                   </button>
                   <button
                     onClick={() => removeForm(form.id)}
-                    className="flex-1 px-4 py-3 bg-gray-300 dark:bg-slate-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-slate-600 transition-colors font-medium min-h-[44px]"
+                    className="flex-1 px-4 py-2.5 rounded-xl font-medium min-h-[44px] text-white/50 border border-white/12 hover:bg-white/5 transition-colors"
                   >
                     Cancelar
                   </button>
@@ -546,19 +555,19 @@ export default function Contas() {
         <>
           {/* Barra de ações em lote */}
           {selectedIds.size > 0 && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 space-y-3">
+            <div className="rounded-2xl p-4 border border-[#d4a017]/20 space-y-3"
+              style={{ background: "rgba(212,160,23,0.06)" }}
+            >
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                <p className="text-sm font-bold text-[#d4a017]">
                   {selectedIds.size} conta(s) selecionada(s)
                 </p>
-                <button
-                  onClick={() => setSelectedIds(new Set())}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                <button onClick={() => setSelectedIds(new Set())}
+                  className="text-xs text-white/40 hover:text-white/70 transition-colors"
                 >
                   Limpar seleção
                 </button>
               </div>
-
               <div className="flex flex-col md:flex-row gap-2">
                 <select
                   value={bulkStatusAction || ""}
@@ -566,32 +575,22 @@ export default function Contas() {
                     const value = e.target.value as "sacado" | "sacando" | "bloqueado" | "";
                     if (value) {
                       setBulkStatusAction(value);
-                      setConfirmDialog({
-                        isOpen: true,
-                        contaId: null,
-                        action: "changeStatus",
-                      });
+                      setConfirmDialog({ isOpen: true, contaId: null, action: "changeStatus" });
                     }
                   }}
-                  className="flex-1 px-4 py-2 border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-slate-900 text-foreground min-h-[44px]"
+                  className="flex-1 px-4 py-2 rounded-xl bg-transparent text-white/70 border border-white/15 focus:outline-none focus:ring-1 focus:ring-[#d4a017] min-h-[44px]"
                 >
                   <option value="">Alterar status para...</option>
                   <option value="sacado">Sacado</option>
                   <option value="sacando">Sacando</option>
                   <option value="bloqueado">Bloqueado</option>
                 </select>
-
                 <button
-                  onClick={() =>
-                    setConfirmDialog({
-                      isOpen: true,
-                      contaId: null,
-                      action: "deleteMultiple",
-                    })
-                  }
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium min-h-[44px]"
+                  onClick={() => setConfirmDialog({ isOpen: true, contaId: null, action: "deleteMultiple" })}
+                  className="px-4 py-2 rounded-xl font-bold min-h-[44px] text-red-400 border border-red-500/25 hover:bg-red-500/10 transition-colors flex items-center gap-2"
+                  style={{ background: "rgba(239,68,68,0.05)" }}
                 >
-                  <Trash2 size={18} className="inline mr-2" />
+                  <Trash2 size={16} />
                   Deletar Selecionadas
                 </button>
               </div>
@@ -632,10 +631,10 @@ export default function Contas() {
                 </h2>
                 <button
                   onClick={selectAllContas}
-                  className="text-sm px-3 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors min-h-[44px] flex items-center gap-2"
+                  className="text-xs px-4 py-2 rounded-xl font-bold min-h-[44px] flex items-center gap-2 border border-white/12 text-white/50 hover:bg-white/5 transition-colors"
                 >
-                  <Check size={16} />
-                  {selectedIds.size === filteredContas.length ? "Desselecionar Todos" : "Selecionar Todos"}
+                  <Check size={14} />
+                  {selectedIds.size === filteredContas.length ? "Desselecionar" : "Selecionar Todos"}
                 </button>
               </div>
 
@@ -643,11 +642,15 @@ export default function Contas() {
                 {filteredContas.map((conta) => (
                   <div
                     key={conta.id}
-                    className={`bg-card backdrop-blur-sm rounded-xl p-5 border space-y-3 hover:shadow-xl transition-all duration-300 ${
-                      selectedIds.has(conta.id)
-                        ? "border-primary shadow-primary/20 bg-primary/5"
-                        : "border-border/60 hover:border-border"
-                    }`}
+                    className="rounded-2xl p-4 border space-y-3 hover:border-white/15 transition-all duration-300"
+                    style={{
+                      background: selectedIds.has(conta.id)
+                        ? "rgba(212,160,23,0.06)"
+                        : "rgba(255,255,255,0.03)",
+                      borderColor: selectedIds.has(conta.id)
+                        ? "rgba(212,160,23,0.3)"
+                        : "rgba(255,255,255,0.08)",
+                    }}
                   >
                     {/* Checkbox */}
                     <div className="flex items-start justify-between">
@@ -660,7 +663,7 @@ export default function Contas() {
                       />
                       <div className="flex-1 ml-3">
                         {conta.casa && (
-                          <p className="text-xs font-semibold text-primary dark:text-blue-400 uppercase tracking-wide mb-1">
+                          <p className="text-xs font-semibold text-[#d4a017] uppercase tracking-wide mb-1">
                             {conta.casa}
                           </p>
                         )}
@@ -698,7 +701,7 @@ export default function Contas() {
                     </div>
 
                     {conta.valor && (
-                      <div className="bg-gray-50 dark:bg-slate-700/50 rounded p-2">
+                      <div className="rounded-lg p-2 border border-white/8">
                         <p className="text-sm text-muted-foreground">Valor</p>
                         <p className="font-bold text-foreground dark:text-white">
                           R$ {parseFloat(conta.valor).toFixed(2)}
@@ -706,7 +709,7 @@ export default function Contas() {
                       </div>
                     )}
 
-                    <div className="flex gap-2 pt-2 border-t border-border dark:border-slate-700">
+                    <div className="flex gap-2 pt-3 border-t border-white/8">
                       <button
                         onClick={() => {
                           const form: ContaForm = {
@@ -724,21 +727,17 @@ export default function Contas() {
                           };
                           setOpenForms([...openForms, form]);
                         }}
-                        className="flex-1 px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm font-medium min-h-[44px] flex items-center justify-center"
+                        className="flex-1 px-3 py-2 rounded-xl text-xs font-bold min-h-[40px] flex items-center justify-center text-[#050b18] transition-all hover:scale-[1.01]"
+                        style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
                       >
                         Editar
                       </button>
                       <button
-                        onClick={() =>
-                          setConfirmDialog({
-                            isOpen: true,
-                            contaId: conta.id,
-                            action: "delete",
-                          })
-                        }
-                        className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors min-h-[44px] flex items-center justify-center"
+                        onClick={() => setConfirmDialog({ isOpen: true, contaId: conta.id, action: "delete" })}
+                        className="px-3 py-2 rounded-xl min-h-[40px] flex items-center justify-center text-red-400 border border-red-500/20 hover:bg-red-500/10 transition-colors"
+                        style={{ background: "rgba(239,68,68,0.05)" }}
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </div>
@@ -772,7 +771,8 @@ export default function Contas() {
                       action: "deleteMultiple",
                     })
                   }
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
+                  className="px-4 py-2 rounded-xl font-bold text-sm text-red-400 border border-red-500/25 hover:bg-red-500/10 transition-colors"
+                  style={{ background: "rgba(239,68,68,0.05)" }}
                 >
                   Esvaziar Lixeira
                 </button>
@@ -781,7 +781,8 @@ export default function Contas() {
                 {contasLixeira.map((conta) => (
                   <div
                     key={conta.id}
-                    className="bg-white dark:bg-slate-900 rounded-lg p-4 border-2 border-red-200 dark:border-red-900 space-y-3 opacity-75"
+                    className="rounded-2xl p-4 border border-red-500/20 space-y-3 opacity-70"
+                    style={{ background: "rgba(239,68,68,0.04)" }}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -796,7 +797,7 @@ export default function Contas() {
                     </div>
 
                     {conta.valor && (
-                      <div className="bg-gray-50 dark:bg-slate-700/50 rounded p-2">
+                      <div className="rounded-lg p-2 border border-white/8">
                         <p className="text-sm text-muted-foreground">Valor</p>
                         <p className="font-bold text-foreground dark:text-white">
                           R$ {parseFloat(conta.valor).toFixed(2)}

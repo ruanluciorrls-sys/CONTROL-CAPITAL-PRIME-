@@ -99,28 +99,32 @@ export default function RelatoriosFinalizados() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="relative overflow-hidden bg-card border border-border/50 rounded-2xl p-8 shadow-2xl group transition-all duration-500 hover:border-purple-500/30 hover:shadow-purple-900/20">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-indigo-900/20 opacity-60"></div>
-        <div className="relative z-10 flex items-start justify-between">
-          <div>
-            <p className="text-muted-foreground text-xs md:text-sm tracking-[0.2em] font-semibold mb-3 uppercase">
-              Relatórios Finalizados
-            </p>
-            <p className="text-5xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-purple-400 to-indigo-200 drop-shadow-sm font-mono mt-3">
-              {relatoriosFinalizados.length}
-            </p>
-            <p className="text-muted-foreground/70 text-xs mt-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
-              Total de relatórios finalizados
-            </p>
-          </div>
+      <div className="relative overflow-hidden rounded-2xl p-6 border border-white/8"
+        style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)" }}
+      >
+        <div className="absolute top-0 left-0 w-full h-[1px]"
+          style={{ background: "linear-gradient(to right, transparent, rgba(212,160,23,0.5), transparent)" }}
+        />
+        <div className="relative z-10">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">
+            Relatórios Finalizados
+          </p>
+          <p className="text-5xl font-black tracking-tighter font-mono"
+            style={{ color: "#d4a017" }}
+          >
+            {relatoriosFinalizados.length}
+          </p>
+          <p className="text-white/30 text-xs mt-2 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#d4a017] animate-pulse"></span>
+            Total de relatórios finalizados
+          </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Lista de Relatórios */}
         <div className="lg:col-span-1">
-          <div className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-lg">
+          <div className="rounded-2xl p-5 border border-white/8" style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}>
             <h3 className="text-lg font-bold text-foreground dark:text-white mb-4">
               Filtrar por Nomenclatura
             </h3>
@@ -158,14 +162,17 @@ export default function RelatoriosFinalizados() {
                       setSelectedRelatorioId(rel.id);
                       setIsEditing(false);
                     }}
-                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                      selectedRelatorioId === rel.id
-                        ? "bg-primary text-white border-primary dark:bg-primary dark:border-primary"
-                        : "bg-secondary dark:bg-slate-700 border-border dark:border-slate-600 hover:bg-secondary/80 dark:hover:bg-slate-600"
-                    }`}
+                    className="w-full text-left p-3 rounded-xl border transition-all text-sm"
+                  style={selectedRelatorioId === rel.id ? {
+                    background: "linear-gradient(135deg, rgba(212,160,23,0.15), rgba(212,160,23,0.08))",
+                    borderColor: "rgba(212,160,23,0.35)",
+                  } : {
+                    background: "rgba(255,255,255,0.03)",
+                    borderColor: "rgba(255,255,255,0.08)",
+                  }}
                   >
-                    <p className="font-semibold dark:text-white">{getCasaNome(rel.casaId)}</p>
-                    <p className="text-xs opacity-75 dark:text-slate-400">
+                    <p className="font-bold text-white/80 text-sm">{getCasaNome(rel.casaId)}{rel.agente ? `-${rel.agente}` : ""}</p>
+                    <p className="text-xs opacity-60 text-white/40">
                       {rel.agente} • {new Date(rel.criadoEm).toLocaleDateString("pt-BR")}
                     </p>
                   </button>
@@ -180,7 +187,7 @@ export default function RelatoriosFinalizados() {
           {selectedRelatorio ? (
             <div className="space-y-4">
               {/* Header */}
-              <div className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-lg">
+              <div className="rounded-2xl p-5 border border-white/8" style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}>
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-2xl font-bold text-foreground dark:text-white">
@@ -226,7 +233,7 @@ export default function RelatoriosFinalizados() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div className="bg-blue-50 dark:bg-slate-700 p-3 rounded-lg">
+                  <div className="rounded-xl p-3 border border-blue-500/15" style={{ background: "rgba(96,165,250,0.05)" }}>
                     <p className="text-xs text-muted-foreground dark:text-slate-400">Cooperação</p>
                     {isEditing ? (
                       <input
@@ -242,7 +249,7 @@ export default function RelatoriosFinalizados() {
                       </p>
                     )}
                   </div>
-                  <div className="bg-green-50 dark:bg-slate-700 p-3 rounded-lg">
+                  <div className="rounded-xl p-3 border border-emerald-500/15" style={{ background: "rgba(74,222,128,0.05)" }}>
                     <p className="text-xs text-muted-foreground dark:text-slate-400">Resultado Total</p>
                     <p className="text-lg font-bold text-green-600 dark:text-green-400">
                       R$ {(calculateTotalResultado(isEditing ? editingData?.rows || [] : selectedRelatorio.rows) + (isEditing ? editingData?.cooperacao || 0 : selectedRelatorio.cooperacao || 0)).toFixed(2)}
@@ -327,58 +334,47 @@ export default function RelatoriosFinalizados() {
               </div>
 
               {/* Ações */}
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 {!isEditing ? (
                   <>
-                    <button
-                      onClick={handleEditClick}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium"
+                    <button onClick={handleEditClick}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.01]"
+                      style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
                     >
-                      <Edit2 size={20} />
-                      Editar
+                      <Edit2 size={16} /> Editar
                     </button>
-                    <button
-                      onClick={() => handleReutilizar(selectedRelatorio.id)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    <button onClick={() => handleReutilizar(selectedRelatorio.id)}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm text-white/60 border border-white/12 hover:bg-white/5 transition-colors"
                     >
-                      <Copy size={20} />
-                      Reutilizar
+                      <Copy size={16} /> Reutilizar
                     </button>
-                    <button
-                      onClick={() => {
-                        deleteRelatorio(selectedRelatorio.id);
-                        setSelectedRelatorioId(null);
-                      }}
-                      className="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    <button onClick={() => { deleteRelatorio(selectedRelatorio.id); setSelectedRelatorioId(null); }}
+                      className="px-4 py-2.5 rounded-xl text-red-400 border border-red-500/20 hover:bg-red-500/10 transition-colors"
+                      style={{ background: "rgba(239,68,68,0.05)" }}
                     >
-                      <Trash2 size={20} />
+                      <Trash2 size={16} />
                     </button>
                   </>
                 ) : (
                   <>
-                    <button
-                      onClick={handleSaveEdit}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                    <button onClick={handleSaveEdit}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.01]"
+                      style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
                     >
-                      <Check size={20} />
-                      Salvar
+                      <Check size={16} /> Salvar
                     </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                    <button onClick={handleCancelEdit}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm text-white/50 border border-white/12 hover:bg-white/5 transition-colors"
                     >
-                      <X size={20} />
-                      Cancelar
+                      <X size={16} /> Cancelar
                     </button>
                   </>
                 )}
               </div>
             </div>
           ) : (
-            <div className="bg-card backdrop-blur-sm border border-border/50 shadow-lg rounded-xl p-8 text-center">
-              <p className="text-muted-foreground text-lg">
-                Selecione um relatório para visualizar os detalhes
-              </p>
+            <div className="rounded-2xl p-12 text-center border border-white/8" style={{ background: "rgba(255,255,255,0.02)" }}>
+              <p className="text-white/25 text-sm">Selecione um relatório para visualizar os detalhes</p>
             </div>
           )}
         </div>

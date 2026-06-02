@@ -170,27 +170,23 @@ export default function CasasFinalizadas() {
   return (
     <div className="space-y-8">
       {/* Abas */}
-      <div className="flex gap-4 border-b border-border">
-        <button
-          onClick={() => setActiveTab("finalizadas")}
-          className={`px-6 py-3 font-semibold transition-colors ${
-            activeTab === "finalizadas"
-              ? "text-primary border-b-2 border-primary"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Casas Finalizadas ({casasFinalizadas.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("lixeira")}
-          className={`px-6 py-3 font-semibold transition-colors ${
-            activeTab === "lixeira"
-              ? "text-primary border-b-2 border-primary"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          🗑️ Lixeira ({casasLixeira.length})
-        </button>
+      <div className="flex gap-1 p-1 rounded-xl border border-white/10 w-fit"
+        style={{ background: "rgba(255,255,255,0.03)" }}
+      >
+        {[
+          { id: "finalizadas", label: `Casas Finalizadas (${casasFinalizadas.length})` },
+          { id: "lixeira", label: `Lixeira (${casasLixeira.length})` },
+        ].map((tab) => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
+            className="px-5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
+            style={activeTab === tab.id ? {
+              background: "linear-gradient(135deg, #d4a017, #f59e0b)",
+              color: "#050b18",
+            } : { color: "rgba(255,255,255,0.4)" }}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {activeTab === "finalizadas" && (
@@ -239,7 +235,7 @@ export default function CasasFinalizadas() {
           <div className="flex gap-2 mb-4">
             <button
               onClick={handleExportarCasas}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
+              className="px-4 py-2 rounded-xl font-bold text-sm text-white/60 border border-white/15 hover:bg-white/5 transition-colors flex items-center gap-2"
             >
               📥 Exportar CSV
             </button>

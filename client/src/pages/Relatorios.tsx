@@ -211,25 +211,24 @@ export default function Relatorios() {
   return (
     <div className="space-y-4 md:space-y-8">
       {/* Abas de Navegação */}
-      <div className="flex gap-2 md:gap-4 border-b border-border overflow-x-auto">
-        <button
-          onClick={() => setActiveTab("relatorio")}
-          className={`px-4 md:px-6 py-3 font-semibold transition-colors whitespace-nowrap text-sm md:text-base ${activeTab === "relatorio" ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"}`}
-        >
-          Relatório
-        </button>
-        <button
-          onClick={() => setActiveTab("progresso")}
-          className={`px-4 md:px-6 py-3 font-semibold transition-colors whitespace-nowrap text-sm md:text-base ${activeTab === "progresso" ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"}`}
-        >
-          Progresso
-        </button>
-        <button
-          onClick={() => setActiveTab("lixeira")}
-          className={`px-4 md:px-6 py-3 font-semibold transition-colors whitespace-nowrap text-sm md:text-base ${activeTab === "lixeira" ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"}`}
-        >
-          🗑️ Lixeira ({relatoriosLixeira.length})
-        </button>
+      <div className="flex gap-1 p-1 rounded-xl border border-white/10 w-fit"
+        style={{ background: "rgba(255,255,255,0.03)" }}
+      >
+        {[
+          { id: "relatorio", label: "Relatório" },
+          { id: "progresso", label: "Progresso" },
+          { id: "lixeira", label: `Lixeira (${relatoriosLixeira.length})` },
+        ].map((tab) => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
+            className="px-5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
+            style={activeTab === tab.id ? {
+              background: "linear-gradient(135deg, #d4a017, #f59e0b)",
+              color: "#050b18",
+            } : { color: "rgba(255,255,255,0.4)" }}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {activeTab === "relatorio" && (
@@ -237,7 +236,8 @@ export default function Relatorios() {
           {/* Botão Criar Novo Relatório */}
           <button
             onClick={() => setShowNewForm(!showNewForm)}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium min-h-[44px] w-full md:w-auto"
+            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold min-h-[44px] w-full md:w-auto text-[#050b18] transition-all hover:scale-[1.02]"
+            style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
           >
             <Plus size={20} />
             Criar Novo Relatório

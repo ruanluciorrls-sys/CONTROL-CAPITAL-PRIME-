@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Edit2, Plus } from "lucide-react";
+import { Trash2, Edit2, Plus, X, Zap } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -17,47 +14,24 @@ export default function GastoProxy() {
   const { data: totalGastos = 0 } = trpc.gastosProxy.total.useQuery();
 
   const createMutation = trpc.gastosProxy.create.useMutation({
-    onSuccess: () => {
-      refetch();
-      setValor("");
-      setDescricao("");
-      setData(format(new Date(), "yyyy-MM-dd"));
-    },
+    onSuccess: () => { refetch(); setValor(""); setDescricao(""); setData(format(new Date(), "yyyy-MM-dd")); },
   });
 
   const updateMutation = trpc.gastosProxy.update.useMutation({
-    onSuccess: () => {
-      refetch();
-      setValor("");
-      setDescricao("");
-      setData(format(new Date(), "yyyy-MM-dd"));
-      setEditingId(null);
-    },
+    onSuccess: () => { refetch(); setValor(""); setDescricao(""); setData(format(new Date(), "yyyy-MM-dd")); setEditingId(null); },
   });
 
   const deleteMutation = trpc.gastosProxy.delete.useMutation({
-    onSuccess: () => {
-      refetch();
-    },
+    onSuccess: () => refetch(),
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!valor || !data) return;
-
     if (editingId) {
-      await updateMutation.mutateAsync({
-        id: editingId,
-        valor,
-        descricao: descricao || undefined,
-        data,
-      });
+      await updateMutation.mutateAsync({ id: editingId, valor, descricao: descricao || undefined, data });
     } else {
-      await createMutation.mutateAsync({
-        valor,
-        descricao: descricao || undefined,
-        data,
-      });
+      await createMutation.mutateAsync({ valor, descricao: descricao || undefined, data });
     }
   };
 
@@ -77,126 +51,161 @@ export default function GastoProxy() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Gasto com Proxy</h1>
-        <p className="text-muted-foreground mt-2">Registre e acompanhe seus gastos com proxy</p>
+        <h1 className="text-2xl md:text-3xl font-black"
+          style={{
+            background: "linear-gradient(135deg, #ffffff 10%, #f3d078 50%, #ffffff 90%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}
+        >
+          Gasto com Proxy
+        </h1>
+        <p className="text-xs text-white/30 mt-0.5 uppercase tracking-widest">Registre e acompanhe seus gastos</p>
       </div>
 
-      {/* Card de Total */}
-      <Card className="relative overflow-hidden bg-card border border-border/50 rounded-2xl shadow-2xl group transition-all duration-500 hover:border-purple-500/30 hover:shadow-purple-900/20">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-900/20 opacity-60"></div>
-        <CardHeader className="relative z-10">
-          <CardTitle className="text-muted-foreground text-xs md:text-sm tracking-[0.2em] font-semibold uppercase">Total de Gastos com Proxy</CardTitle>
-        </CardHeader>
-        <CardContent className="relative z-10">
-          <p className="text-5xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-purple-400 to-pink-200 drop-shadow-sm font-mono mt-2">
-            R$ {totalGastos.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </p>
-        </CardContent>
-      </Card>
+      {/* Card Total */}
+      <div className="relative overflow-hidden rounded-2xl p-6 border border-white/8"
+        style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)" }}
+      >
+        <div className="absolute top-0 left-0 w-full h-[1px]"
+          style={{ background: "linear-gradient(to right, transparent, rgba(212,160,23,0.5), transparent)" }}
+        />
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center border border-[#d4a017]/20"
+            style={{ background: "rgba(212,160,23,0.08)" }}
+          >
+            <Zap size={14} className="text-[#d4a017]" />
+          </div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Total de Gastos com Proxy</p>
+        </div>
+        <p className="text-4xl md:text-5xl font-black tracking-tighter font-mono"
+          style={{ color: "#f87171" }}
+        >
+          R$ {Number(totalGastos).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </p>
+      </div>
 
       {/* Formulário */}
-      <Card className="bg-card backdrop-blur-sm border-border/50 shadow-lg">
-        <CardHeader>
-          <CardTitle>{editingId ? "Editar Gasto" : "Adicionar Novo Gasto"}</CardTitle>
-          <CardDescription>Preencha os dados do gasto com proxy</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm font-medium">Valor (R$)*</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={valor}
-                  onChange={(e) => setValor(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Data*</label>
-                <Input
-                  type="date"
-                  value={data}
-                  onChange={(e) => setData(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Descrição</label>
-                <Input
-                  type="text"
-                  placeholder="Ex: Proxy servidor X"
-                  value={descricao}
-                  onChange={(e) => setDescricao(e.target.value)}
-                />
-              </div>
+      <div className="rounded-2xl p-5 border border-white/8"
+        style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-1 h-4 rounded-full" style={{ background: "#d4a017" }} />
+          <h3 className="text-sm font-black text-white/90">
+            {editingId ? "Editar Gasto" : "Adicionar Novo Gasto"}
+          </h3>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Valor (R$) *</label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={valor}
+                onChange={(e) => setValor(e.target.value)}
+                required
+                className="w-full px-4 py-2.5 rounded-xl bg-transparent border border-white/15 text-white focus:outline-none focus:ring-1 focus:ring-[#d4a017] text-sm"
+              />
             </div>
-            <div className="flex gap-2">
-              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                <Plus className="w-4 h-4 mr-2" />
-                {editingId ? "Atualizar" : "Adicionar"}
-              </Button>
-              {editingId && (
-                <Button type="button" variant="outline" onClick={handleCancel}>
-                  Cancelar
-                </Button>
-              )}
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Data *</label>
+              <input
+                type="date"
+                value={data}
+                onChange={(e) => setData(e.target.value)}
+                required
+                className="w-full px-4 py-2.5 rounded-xl bg-transparent border border-white/15 text-white focus:outline-none focus:ring-1 focus:ring-[#d4a017] text-sm"
+              />
             </div>
-          </form>
-        </CardContent>
-      </Card>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Descrição</label>
+              <input
+                type="text"
+                placeholder="Ex: Proxy servidor X"
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl bg-transparent border border-white/15 text-white focus:outline-none focus:ring-1 focus:ring-[#d4a017] text-sm placeholder:text-white/20"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.02] disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+            >
+              <Plus size={16} />
+              {editingId ? "Atualizar" : "Adicionar"}
+            </button>
+            {editingId && (
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white/50 border border-white/12 hover:bg-white/5 transition-colors"
+              >
+                <X size={14} /> Cancelar
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
 
       {/* Lista de Gastos */}
-      <Card className="bg-card backdrop-blur-sm border-border/50 shadow-lg mt-6">
-        <CardHeader>
-          <CardTitle>Histórico de Gastos</CardTitle>
-          <CardDescription>{gastos.length} gasto(s) registrado(s)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {gastos.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Nenhum gasto registrado ainda</p>
-          ) : (
-            <div className="space-y-2">
-              {gastos.map((gasto: any) => (
-                <div
-                  key={gasto.id}
-                  className="flex items-center justify-between p-4 border border-border/60 rounded-xl hover:bg-muted/30 transition shadow-sm"
-                >
-                  <div className="flex-1">
-                    <div className="font-medium">
-                      R$ {gasto.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {format(new Date(gasto.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                      {gasto.descricao && ` - ${gasto.descricao}`}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(gasto)}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteMutation.mutateAsync({ id: gasto.id })}
-                      disabled={deleteMutation.isPending}
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </Button>
-                  </div>
+      <div className="rounded-2xl border border-white/8 overflow-hidden"
+        style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+      >
+        <div className="px-5 py-4 border-b border-white/6 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-4 rounded-full" style={{ background: "#d4a017" }} />
+            <h3 className="text-sm font-black text-white/90">Histórico de Gastos</h3>
+          </div>
+          <span className="text-[10px] font-bold text-white/25 uppercase tracking-widest">{gastos.length} registro(s)</span>
+        </div>
+
+        {gastos.length === 0 ? (
+          <div className="p-12 text-center text-white/25 text-sm">Nenhum gasto registrado ainda</div>
+        ) : (
+          <div className="divide-y divide-white/5">
+            {gastos.map((gasto: any) => (
+              <div key={gasto.id}
+                className="flex items-center justify-between px-5 py-4 hover:bg-white/2 transition-colors"
+              >
+                <div className="flex-1">
+                  <p className="font-black text-[#f87171]">
+                    R$ {Number(gasto.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-white/35 mt-0.5">
+                    {format(new Date(gasto.data + "T12:00:00"), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    {gasto.descricao && ` — ${gasto.descricao}`}
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEdit(gasto)}
+                    className="w-8 h-8 rounded-xl flex items-center justify-center border border-white/8 text-white/40 hover:text-[#d4a017] hover:border-[#d4a017]/30 transition-colors"
+                    style={{ background: "rgba(255,255,255,0.03)" }}
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button
+                    onClick={() => deleteMutation.mutateAsync({ id: gasto.id })}
+                    disabled={deleteMutation.isPending}
+                    className="w-8 h-8 rounded-xl flex items-center justify-center border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/30 transition-colors disabled:opacity-40"
+                    style={{ background: "rgba(239,68,68,0.04)" }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

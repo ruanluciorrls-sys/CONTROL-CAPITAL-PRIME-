@@ -160,18 +160,17 @@ export default function Dashboard() {
                 <Link
                   key={index}
                   href={card.href}
-                  className="bg-card border border-border/60 rounded-xl p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-border cursor-pointer text-left block relative overflow-hidden group"
+                  className="rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer text-left block relative overflow-hidden group border border-white/8"
+                  style={{ background: "rgba(255,255,255,0.03)" }}
                 >
-                  {/* Linha brilhante no topo */}
-                  <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r ${card.color.split(' ')[0]} ${card.color.split(' ')[1]} opacity-40 group-hover:opacity-100 transition-opacity`}></div>
-                  
+                  <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r ${card.color.split(' ')[0]} ${card.color.split(' ')[1]} opacity-50 group-hover:opacity-100 transition-opacity`}></div>
                   <div className="flex items-start justify-between mb-4">
-                    <p className="text-muted-foreground font-medium text-sm">{card.title}</p>
-                    <div className="p-2 rounded-lg bg-background/50 border border-border/30 group-hover:bg-background transition-colors">
-                       <Icon size={18} className={accentColor} />
+                    <p className="text-white/40 font-medium text-xs uppercase tracking-widest">{card.title}</p>
+                    <div className="p-2 rounded-lg border border-white/8" style={{ background: "rgba(255,255,255,0.05)" }}>
+                       <Icon size={16} className={accentColor} />
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-foreground tracking-tight">{card.value}</p>
+                  <p className="text-3xl font-black text-white tracking-tight">{card.value}</p>
                 </Link>
               );
             })}
@@ -179,18 +178,16 @@ export default function Dashboard() {
         </div>
 
         {/* Seção de Lançamentos de Hoje */}
-        <div className="bg-card border border-border/60 rounded-2xl shadow-sm p-6 relative overflow-hidden">
+        <div className="rounded-2xl p-6 relative overflow-hidden border border-white/8" style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}>
           {/* Fundo sutil decorativo */}
-          <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
-
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-primary/10 rounded-xl">
-                <Calendar size={22} className="text-primary" />
+              <div className="p-2.5 rounded-xl border border-[#d4a017]/20" style={{ background: "rgba(212,160,23,0.08)" }}>
+                <Calendar size={20} className="text-[#d4a017]" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-foreground">Lançamentos de Hoje</h2>
-                <p className="text-sm text-muted-foreground">{dataFormatada}</p>
+                <h2 className="text-lg font-black text-white/90">Lançamentos de Hoje</h2>
+                <p className="text-xs text-white/30">{dataFormatada}</p>
               </div>
             </div>
           </div>

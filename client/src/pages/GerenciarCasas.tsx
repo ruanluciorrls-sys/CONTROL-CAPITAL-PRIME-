@@ -248,27 +248,23 @@ export default function GerenciarCasas() {
   return (
     <div className="space-y-6">
       {/* Abas de Navegação */}
-      <div className="flex gap-2 md:gap-4 border-b border-border overflow-x-auto">
-        <button
-          onClick={() => setActiveTab("ativa")}
-          className={`px-4 md:px-6 py-3 font-semibold transition-colors whitespace-nowrap text-sm md:text-base ${
-            activeTab === "ativa"
-              ? "text-primary border-b-2 border-primary"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Casas Ativas ({casasAtivas.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("lixeira")}
-          className={`px-4 md:px-6 py-3 font-semibold transition-colors whitespace-nowrap text-sm md:text-base ${
-            activeTab === "lixeira"
-              ? "text-primary border-b-2 border-primary"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          🗑️ Lixeira ({casasLixeira.length})
-        </button>
+      <div className="flex gap-1 p-1 rounded-xl border border-white/10 w-fit"
+        style={{ background: "rgba(255,255,255,0.03)" }}
+      >
+        {[
+          { id: "ativa", label: `Casas Ativas (${casasAtivas.length})` },
+          { id: "lixeira", label: `Lixeira (${casasLixeira.length})` },
+        ].map((tab) => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
+            className="px-5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
+            style={activeTab === tab.id ? {
+              background: "linear-gradient(135deg, #d4a017, #f59e0b)",
+              color: "#050b18",
+            } : { color: "rgba(255,255,255,0.4)" }}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {activeTab === "ativa" && (
@@ -302,7 +298,8 @@ export default function GerenciarCasas() {
                 }]);
                 setShowModal(true);
               }}
-              className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium w-full sm:w-auto justify-center"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold w-full sm:w-auto justify-center text-[#050b18] transition-all hover:scale-[1.02]"
+              style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
             >
               <Plus size={20} />
               Adicionar Nova Casa
