@@ -719,18 +719,7 @@ export default function GerenciarCasas() {
                         />
                       </div>
 
-                      {/* 5. Link da Casa */}
-                      <div>
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Link da Casa</label>
-                        <input type="url" placeholder="https://..." value={form.linkCasa}
-                          onChange={(e) => handleFormChange(form.id, "linkCasa", e.target.value)}
-                          className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] ${
-                            errorsMultiple[form.id]?.linkCasa ? "border-red-500" : "border-white/15"
-                          }`}
-                        />
-                      </div>
-
-                      {/* 6. Link da Conta-Filha */}
+                      {/* 5. Link da Conta-Filha */}
                       <div>
                         <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Link da Conta-Filha</label>
                         <input type="url" placeholder="https://..." value={form.linkContaFilha}
