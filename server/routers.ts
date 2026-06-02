@@ -166,6 +166,7 @@ export const appRouter = router({
       .input(z.object({
         casaId: z.string(),
         agente: z.string(),
+        prazo: z.string().optional(),
         rows: z.array(z.record(z.string(), z.any())),
         cooperacao: z.string().optional(),
       }))
@@ -175,16 +176,18 @@ export const appRouter = router({
           userId: ctx.user.id,
           casaId: input.casaId,
           agente: input.agente,
+          prazo: input.prazo || null,
           rows: input.rows,
           status: "ativo",
           cooperacao: input.cooperacao || "0",
-        });
+        } as any);
         return relatorio || { success: false };
       }),
     update: protectedProcedure
       .input(z.object({
         id: z.string(),
         agente: z.string().optional(),
+        prazo: z.string().optional(),
         rows: z.array(z.record(z.string(), z.any())).optional(),
         cooperacao: z.string().optional(),
         status: z.enum(["ativo", "finalizado", "lixeira"]).optional(),
@@ -192,6 +195,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const updateData: Partial<InsertRelatorio> = {};
         if (input.agente !== undefined) updateData.agente = input.agente;
+        if (input.prazo !== undefined) (updateData as any).prazo = input.prazo;
         if (input.rows !== undefined) updateData.rows = input.rows;
         if (input.cooperacao !== undefined) updateData.cooperacao = input.cooperacao;
         if (input.status !== undefined) updateData.status = input.status;

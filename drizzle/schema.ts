@@ -64,6 +64,7 @@ export const relatorios = pgTable("relatorios", {
   casaId: varchar("casaId", { length: 64 }).notNull(),
   agente: text("agente").notNull(),
   status: relatorioStatusEnum("status").default("ativo").notNull(),
+  prazo: text("prazo"),
   rows: jsonb("rows").$type<Array<Record<string, unknown>>>().notNull(),
   cooperacao: decimal("cooperacao", { precision: 10, scale: 2 }).default("0").notNull(),
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),

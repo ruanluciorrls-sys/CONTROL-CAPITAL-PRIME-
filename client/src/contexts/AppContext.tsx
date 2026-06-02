@@ -84,10 +84,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       criadoEm: casa.criadoEm instanceof Date ? casa.criadoEm.toISOString() : casa.criadoEm,
     })) as CasaData[];
     
+    // Carregar prazos locais (salvo em localStorage por ID do relatório)
+    const prazosLocais: Record<string, string> = (() => {
+      try { return JSON.parse(localStorage.getItem("relatorio-prazos-v1") || "{}"); } catch { return {}; }
+    })();
+
     const relatorios = (relatoriosQuery.data || []).map((rel: any) => ({
       ...rel,
       cooperacao: rel.cooperacao ? Number(rel.cooperacao) : 0,
-      prazo: rel.prazo || "",
+      // Usa prazo do DB se existir, senão usa o salvo localmente
+      prazo: rel.prazo || prazosLocais[rel.id] || "",
       rows: rel.rows || [],
       criadoEm: rel.criadoEm instanceof Date ? rel.criadoEm.toISOString() : rel.criadoEm,
     })) as RelatorioData[];
@@ -209,12 +215,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       // Deep copy dos rows para evitar compartilhamento
       const rowsCopy = JSON.parse(JSON.stringify(relatorio.rows));
-      await createRelatorioMutation.mutateAsync({
+      const result = await createRelatorioMutation.mutateAsync({
         casaId: relatorio.casaId,
         agente: relatorio.agente,
+        prazo: relatorio.prazo || undefined,
         cooperacao: relatorio.cooperacao.toString(),
         rows: rowsCopy as any,
       });
+
+      // Salvar prazo em localStorage mapeado pelo ID do relatório criado
+      if (relatorio.prazo && result && (result as any).id) {
+        try {
+          const prazos = JSON.parse(localStorage.getItem("relatorio-prazos-v1") || "{}");
+          prazos[(result as any).id] = relatorio.prazo;
+          localStorage.setItem("relatorio-prazos-v1", JSON.stringify(prazos));
+        } catch {}
+      }
+
       // Recarregar relatórios
       await relatoriosQuery.refetch();
     } catch (error) {
@@ -224,11 +241,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const updateRelatorio = async (id: string, relatorio: Partial<RelatorioData>) => {
     try {
+      // Salvar prazo em localStorage se fornecido
+      if (relatorio.prazo !== undefined) {
+        try {
+          const prazos = JSON.parse(localStorage.getItem("relatorio-prazos-v1") || "{}");
+          prazos[id] = relatorio.prazo;
+          localStorage.setItem("relatorio-prazos-v1", JSON.stringify(prazos));
+        } catch {}
+      }
+
       // Deep copy dos rows para evitar compartilhamento
       const rowsCopy = relatorio.rows ? JSON.parse(JSON.stringify(relatorio.rows)) : undefined;
       await updateRelatorioMutation.mutateAsync({
         id,
         agente: relatorio.agente,
+        prazo: relatorio.prazo,
         cooperacao: relatorio.cooperacao?.toString(),
         rows: rowsCopy as any,
         status: relatorio.status,
