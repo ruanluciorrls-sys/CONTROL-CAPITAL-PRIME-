@@ -208,6 +208,14 @@ export default function Relatorios() {
 
   const currentRelatorio = selectedRelatorioId ? relatoriosAtivos.find((r) => r.id === selectedRelatorioId) : null;
 
+  // Plataformas do calendário salvas no localStorage
+  const plataformasCalendario = (() => {
+    try {
+      const saved = localStorage.getItem("plataformas-calendario-v2");
+      return saved ? JSON.parse(saved) : PLATAFORMAS_CALENDARIO;
+    } catch { return PLATAFORMAS_CALENDARIO; }
+  })();
+
   return (
     <div className="space-y-4 md:space-y-8">
       {/* Abas de Navegação */}
@@ -245,106 +253,46 @@ export default function Relatorios() {
 
           {/* Formulário de Novo Relatório */}
           {showNewForm && (
-            <div className="rounded-2xl p-5 border border-white/8 space-y-5"
+            <div className="rounded-2xl p-5 border border-white/8 space-y-4"
               style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(8px)" }}
             >
               <h3 className="text-base font-black text-foreground">Novo Relatório</h3>
 
-              {/* Seletor de Plataforma do Calendário */}
+              {/* 1. Meta — Selecionar Casa de Criação Meta */}
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
-                  Plataforma do Calendário
+                  Meta
                 </label>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 max-h-44 overflow-y-auto pr-1">
-                  {/* Opção manual */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNewRelatorioData({ casaId: "", agente: "", prazo: "" });
-                    }}
-                    className="px-3 py-2 rounded-xl text-xs font-bold transition-all border text-center"
-                    style={!newRelatorioData.casaId && !newRelatorioData.prazo ? {
-                      background: "linear-gradient(135deg, #d4a017, #f59e0b)",
-                      color: "#050b18", border: "none",
-                    } : {
-                      background: "rgba(255,255,255,0.04)",
-                      color: "rgba(255,255,255,0.5)",
-                      borderColor: "rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    Manual
-                  </button>
-                  {PLATAFORMAS_CALENDARIO.map((plat) => {
-                    const casaMatch = casasAtivas.find((c) =>
-                      c.nome.toUpperCase().startsWith(plat.nome.toUpperCase())
-                    );
-                    const prazoCalc = calcularPrazo(plat.dia, plat.diasPrazo);
-                    const isSelected = newRelatorioData.casaId === (casaMatch?.id || plat.id) &&
-                      newRelatorioData.prazo === prazoCalc;
-                    return (
-                      <button
-                        key={plat.id}
-                        type="button"
-                        onClick={() => {
-                          setNewRelatorioData({
-                            casaId: casaMatch?.id || "",
-                            agente: "",
-                            prazo: prazoCalc,
-                          });
-                        }}
-                        className="px-3 py-2 rounded-xl text-xs font-bold transition-all border text-center"
-                        style={isSelected ? {
-                          background: "linear-gradient(135deg, #d4a017, #f59e0b)",
-                          color: "#050b18", border: "none",
-                          boxShadow: "0 4px 12px rgba(212,160,23,0.3)",
-                        } : {
-                          background: "rgba(255,255,255,0.04)",
-                          color: casaMatch ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)",
-                          borderColor: casaMatch ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)",
-                        }}
-                        title={`${plat.dia} — prazo: ${plat.diasPrazo}d${casaMatch ? " ✓ Casa vinculada" : " (sem casa ativa)"}`}
-                      >
-                        {plat.nome}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-[10px] text-white/25 mt-1.5">
-                  Botões em destaque = casa ativa vinculada encontrada. Plataformas pálidas = sem casa ativa correspondente.
-                </p>
+                <select
+                  value={newRelatorioData.casaId}
+                  onChange={(e) => {
+                    const casaSelecionada = casasAtivas.find((c) => c.id === e.target.value);
+                    setNewRelatorioData({
+                      ...newRelatorioData,
+                      casaId: e.target.value,
+                      prazo: casaSelecionada?.prazo || newRelatorioData.prazo,
+                    });
+                  }}
+                  className="w-full px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-background text-foreground text-sm"
+                >
+                  <option value="">Selecionar Meta</option>
+                  {casasAtivas.map((casa) => (
+                    <option key={casa.id} value={casa.id}>
+                      {casa.nome}{casa.meta ? ` — Meta: R$ ${Number(casa.meta).toFixed(2)}` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {/* Casa + Sufixo */}
+              {/* 2. Nome do Agente | Redes */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
-                    Casa Ativa (ou selecione acima)
-                  </label>
-                  <select
-                    value={newRelatorioData.casaId}
-                    onChange={(e) => {
-                      const casaSelecionada = casasAtivas.find((c) => c.id === e.target.value);
-                      setNewRelatorioData({
-                        ...newRelatorioData,
-                        casaId: e.target.value,
-                        prazo: casaSelecionada?.prazo || newRelatorioData.prazo,
-                      });
-                    }}
-                    className="w-full px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-background text-foreground text-sm"
-                  >
-                    <option value="">Selecionar Casa</option>
-                    {casasAtivas.map((casa) => (
-                      <option key={casa.id} value={casa.id}>{casa.nome}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
-                    Sufixo após o nome (ex: VOY-<span className="text-[#d4a017]">Ruan</span>)
+                    Nome do Agente
                   </label>
                   <input
                     type="text"
-                    placeholder="Identificador, agente..."
+                    placeholder="Nome do agente..."
                     value={newRelatorioData.agente}
                     onChange={(e) => setNewRelatorioData({ ...newRelatorioData, agente: e.target.value })}
                     className="w-full px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-background text-foreground text-sm"
@@ -357,9 +305,44 @@ export default function Relatorios() {
                     </p>
                   )}
                 </div>
+
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
+                    Redes
+                  </label>
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val) return;
+                      const [dia, dias] = val.split("|");
+                      const prazoCalc = calcularPrazo(dia, parseInt(dias));
+                      setNewRelatorioData((prev) => ({ ...prev, prazo: prazoCalc }));
+                    }}
+                    className="w-full px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-background text-foreground text-sm"
+                  >
+                    <option value="">Selecionar rede / plataforma...</option>
+                    {["SEGUNDA-FEIRA","TERÇA-FEIRA","QUARTA-FEIRA","QUINTA-FEIRA","SEXTA-FEIRA","SÁBADO","DOMINGO"].map((dia) => {
+                      const platsNoDia = plataformasCalendario.filter((p: any) => p.dia === dia);
+                      if (!platsNoDia.length) return null;
+                      return (
+                        <optgroup key={dia} label={dia}>
+                          {platsNoDia.map((p: any) => (
+                            <option key={p.id} value={`${p.dia}|${p.diasPrazo}`}>
+                              {p.nome} — {p.diasPrazo === 0 ? "Sem prazo" : `+${p.diasPrazo} dias`}
+                            </option>
+                          ))}
+                        </optgroup>
+                      );
+                    })}
+                  </select>
+                  <p className="text-[10px] text-white/25 mt-1">
+                    Selecionar preenche o prazo automaticamente
+                  </p>
+                </div>
               </div>
 
-              {/* Prazo + Countdown */}
+              {/* 3. Prazo + Countdown */}
               {newRelatorioData.prazo ? (
                 <div className="rounded-xl p-4 border border-[#d4a017]/20 flex items-center gap-4"
                   style={{ background: "rgba(212,160,23,0.06)" }}
@@ -376,8 +359,8 @@ export default function Relatorios() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-xl p-4 border border-white/8 text-center text-xs text-white/25">
-                  Selecione uma plataforma do calendário para ver o prazo automaticamente
+                <div className="rounded-xl p-3 border border-white/8 text-center text-xs text-white/20">
+                  Selecione uma rede para preencher o prazo automaticamente
                 </div>
               )}
 
