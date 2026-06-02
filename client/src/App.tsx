@@ -15,7 +15,8 @@ import Calendario from "@/pages/Calendario";
 import GastoProxy from "@/pages/GastoProxy";
 import AdminPanel from "@/pages/AdminPanel";
 import Login from "@/pages/Login";
-import { CheckCircle, Edit3, Home, Settings, FileText, Moon, Sun, LogOut, Calendar, Zap, Shield, Crown, Wallet } from "lucide-react";
+import ChavesPix from "@/pages/ChavesPix";
+import { CheckCircle, Edit3, Home, Settings, FileText, Moon, Sun, LogOut, Calendar, Zap, Shield, Crown, Wallet, Key } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { usePageTransition } from "@/hooks/usePageTransition";
@@ -29,6 +30,7 @@ const publicTabs = [
   { id: "gerenciar-casas", label: "Gerenciar Casas", icon: <Home size={20} /> },
   { id: "relatorios", label: "Operação CPA", icon: <FileText size={20} /> },
   { id: "contas", label: "Contas Não Sacadas", icon: <Wallet size={20} /> },
+  { id: "chaves-pix", label: "Chaves PIX", icon: <Key size={20} /> },
   { id: "relatorios-finalizados", label: "Relatórios Finalizados", icon: <CheckCircle size={20} /> },
   { id: "calendario", label: "Calendário", icon: <Calendar size={20} /> },
   { id: "editar-dados", label: "Configurações", icon: <Settings size={20} /> },
@@ -65,6 +67,7 @@ function AppContent() {
       case "gerenciar-casas": return <GerenciarCasas />;
       case "relatorios": return <Relatorios />;
       case "contas": return <Contas />;
+      case "chaves-pix": return <ChavesPix />;
       case "relatorios-finalizados": return <RelatoriosFinalizados />;
       case "calendario": return <Calendario />;
       case "editar-dados": return <EditarDados />;
