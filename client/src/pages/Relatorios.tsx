@@ -495,82 +495,81 @@ export default function Relatorios() {
               <h3 className="text-lg font-bold mb-6">Relatórios Criados</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(() => {
-                  const colors = [
-                    "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:border-blue-500/50",
-                    "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:border-emerald-500/50",
-                    "bg-purple-500/10 border-purple-500/20 text-purple-400 hover:border-purple-500/50",
-                    "bg-pink-500/10 border-pink-500/20 text-pink-400 hover:border-pink-500/50",
-                    "bg-amber-500/10 border-amber-500/20 text-amber-400 hover:border-amber-500/50",
-                    "bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:border-indigo-500/50",
-                    "bg-rose-500/10 border-rose-500/20 text-rose-400 hover:border-rose-500/50",
-                    "bg-cyan-500/10 border-cyan-500/20 text-cyan-400 hover:border-cyan-500/50",
-                    "bg-orange-500/10 border-orange-500/20 text-orange-400 hover:border-orange-500/50",
+                  const accentColors = [
+                    "#60a5fa", "#34d399", "#a78bfa", "#f472b6",
+                    "#d4a017", "#818cf8", "#fb923c", "#22d3ee", "#f87171",
                   ];
                   return relatoriosAtivos.map((rel, index) => {
-                    const bgColor = colors[index % colors.length];
+                    const accent = accentColors[index % accentColors.length];
+                    const lucroTotal = calculateTotalResultado(rel.rows, rel.cooperacao);
+                    const isSelected = selectedRelatorioId === rel.id;
+                    const nome = `${getCasaNome(rel.casaId)}${rel.agente ? `-${rel.agente}` : ""}`;
+
                     return (
                       <div
                         key={rel.id}
-                        className={`p-4 ${bgColor} rounded-lg border-2 cursor-pointer transition-all hover:shadow-lg ${
-                          selectedRelatorioId === rel.id ? "ring-2 ring-primary" : ""
-                        }`}
                         onClick={() => setSelectedRelatorioId(rel.id)}
+                        className="group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
+                        style={{
+                          background: isSelected
+                            ? `linear-gradient(145deg, ${accent}18, ${accent}08)`
+                            : "rgba(255,255,255,0.03)",
+                          border: `1px solid ${isSelected ? accent + "50" : "rgba(255,255,255,0.08)"}`,
+                          boxShadow: isSelected ? `0 0 20px ${accent}20` : "none",
+                        }}
                       >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h4 className="font-bold text-foreground text-lg truncate">
-                              {getCasaNome(rel.casaId)}{rel.agente ? `-${rel.agente}` : ""}
-                            </h4>
-                          </div>
-                        </div>
-                        <div className="mt-3 mb-3 pb-3 border-b border-current border-opacity-20">
-                          <p className="text-xs font-semibold text-foreground opacity-70">LINHAS</p>
-                          <p className="font-bold text-foreground text-lg">{rel.rows.length}</p>
-                        </div>
-                        <div className="mb-4">
-                          <p className="text-xs font-semibold text-foreground opacity-70">PRAZO</p>
-                          <p className="text-sm font-mono text-foreground">
-                            {rel.prazo ? new Date(rel.prazo + "T00:00:00").toLocaleDateString('pt-BR') : 'Sem prazo'}
+                        {/* Barra de cor no topo */}
+                        <div className="h-[2px] w-full" style={{ background: accent }} />
+
+                        <div className="p-4">
+                          {/* Nome */}
+                          <p className="font-black text-sm text-white/90 truncate mb-3" title={nome}>
+                            {nome}
                           </p>
-                        </div>
-                        <div className="mb-4 pb-4 border-b border-current border-opacity-20">
-                          <p className="text-xs font-semibold text-foreground opacity-70">LUCRO</p>
-                          {(() => {
-                            const lucroTotal = calculateTotalResultado(rel.rows, rel.cooperacao);
-                            return (
-                              <p className={`font-bold text-lg ${
-                                lucroTotal >= 0
-                                  ? 'text-green-700 dark:text-green-400'
-                                  : 'text-red-700 dark:text-red-400'
-                              }`}>
-                                R$ {lucroTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+
+                          {/* Stats em linha */}
+                          <div className="grid grid-cols-3 gap-2 mb-3">
+                            <div className="rounded-xl px-2 py-1.5 text-center" style={{ background: "rgba(0,0,0,0.25)" }}>
+                              <p className="text-[8px] font-bold uppercase tracking-widest text-white/30 mb-0.5">Linhas</p>
+                              <p className="font-black text-sm" style={{ color: accent }}>{rel.rows.length}</p>
+                            </div>
+                            <div className="rounded-xl px-2 py-1.5 text-center" style={{ background: "rgba(0,0,0,0.25)" }}>
+                              <p className="text-[8px] font-bold uppercase tracking-widest text-white/30 mb-0.5">Prazo</p>
+                              <p className="font-bold text-xs text-white/60 truncate">
+                                {rel.prazo
+                                  ? new Date(rel.prazo + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
+                                  : "—"}
                               </p>
-                            );
-                          })()}
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              duplicarRelatorio(rel.id);
-                            }}
-                            className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-800 rounded transition-colors"
-                            title="Duplicar relatório"
-                            aria-label="Duplicar relatório"
-                          >
-                            <Copy size={18} />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteRelatorio(rel.id);
-                            }}
-                            className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-800 rounded transition-colors"
-                            title="Mover para lixeira"
-                            aria-label="Mover relatório para lixeira"
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                            </div>
+                            <div className="rounded-xl px-2 py-1.5 text-center" style={{ background: "rgba(0,0,0,0.25)" }}>
+                              <p className="text-[8px] font-bold uppercase tracking-widest text-white/30 mb-0.5">Lucro</p>
+                              <p className="font-black text-xs truncate"
+                                style={{ color: lucroTotal >= 0 ? "#4ade80" : "#f87171" }}
+                              >
+                                {lucroTotal >= 0 ? "+" : ""}R${lucroTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Ações */}
+                          <div className="flex gap-1.5 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); duplicarRelatorio(rel.id); }}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors border border-white/8 text-white/30 hover:text-[#60a5fa] hover:border-[#60a5fa]/30"
+                              style={{ background: "rgba(255,255,255,0.04)" }}
+                              title="Duplicar"
+                            >
+                              <Copy size={12} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDeleteRelatorio(rel.id); }}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors border border-red-500/12 text-red-400/40 hover:text-red-400 hover:border-red-500/30"
+                              style={{ background: "rgba(239,68,68,0.04)" }}
+                              title="Lixeira"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
