@@ -1,6 +1,6 @@
 import { useApp } from "@/contexts/AppContext";
-import { Plus, Trash2, Copy, Clock } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Plus, Trash2, Copy, Clock, ChevronDown, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import RelatorioSpreadsheet from "@/components/RelatorioSpreadsheet";
 import AbaProgresso from "@/components/AbaProgresso";
 
@@ -64,6 +64,129 @@ function calcCountdown(prazoStr: string): string {
   const min = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
   if (dias > 0) return `${dias}d ${horas}h ${min}m restantes`;
   return `${horas}h ${min}m restantes`;
+}
+
+const COR_DIA: Record<string, string> = {
+  "SEGUNDA-FEIRA": "#60a5fa",
+  "TERÇA-FEIRA": "#34d399",
+  "QUARTA-FEIRA": "#a78bfa",
+  "QUINTA-FEIRA": "#f59e0b",
+  "SEXTA-FEIRA": "#f87171",
+  "SÁBADO": "#fb923c",
+  "DOMINGO": "#e879f9",
+};
+
+const DIAS_ORDER = ["SEGUNDA-FEIRA","TERÇA-FEIRA","QUARTA-FEIRA","QUINTA-FEIRA","SEXTA-FEIRA","SÁBADO","DOMINGO"];
+
+interface RedesDropdownProps {
+  plataformas: any[];
+  onSelect: (dia: string, diasPrazo: number, nome: string) => void;
+}
+
+function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<{ id?: string; nome: string; diasPrazo: number; dia: string } | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleSelect = (p: any) => {
+    setSelected(p);
+    onSelect(p.dia, p.diasPrazo, p.nome);
+    setOpen(false);
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-border text-sm transition-all focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-background text-foreground"
+        style={open ? { borderColor: "rgba(212,160,23,0.5)" } : {}}
+      >
+        {selected ? (
+          <span className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: COR_DIA[selected.dia] }} />
+            <span className="font-bold text-white/90">{selected.nome}</span>
+            <span className="text-white/40 text-xs">
+              {selected.diasPrazo === 0 ? "Sem prazo" : `+${selected.diasPrazo} dias`}
+            </span>
+          </span>
+        ) : (
+          <span className="text-white/30">Selecionar rede / plataforma...</span>
+        )}
+        <ChevronDown size={14} className={`text-white/40 transition-transform shrink-0 ml-2 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {/* Dropdown Panel */}
+      {open && (
+        <div
+          className="absolute z-50 top-full mt-1 left-0 w-full rounded-2xl overflow-hidden shadow-2xl border border-white/12"
+          style={{
+            background: "linear-gradient(145deg, #070e20, #0f1e45)",
+            maxHeight: 320,
+            overflowY: "auto",
+          }}
+        >
+          <div className="absolute top-0 left-0 w-full h-[1px]"
+            style={{ background: "linear-gradient(to right, transparent, rgba(212,160,23,0.4), transparent)" }}
+          />
+          {DIAS_ORDER.map((dia) => {
+            const plats = plataformas.filter((p: any) => p.dia === dia);
+            if (!plats.length) return null;
+            const cor = COR_DIA[dia];
+            return (
+              <div key={dia}>
+                {/* Cabeçalho do dia */}
+                <div className="px-4 py-2 flex items-center gap-2 border-b border-white/5 sticky top-0"
+                  style={{ background: `${cor}12`, backdropFilter: "blur(8px)" }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: cor }} />
+                  <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: cor }}>
+                    {dia}
+                  </span>
+                </div>
+                {/* Opções */}
+                {plats.map((p: any) => {
+                  const isSelected = selected?.id === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => handleSelect(p)}
+                      className="w-full flex items-center justify-between px-5 py-2.5 text-left transition-all"
+                      style={{
+                        background: isSelected ? `${cor}18` : "transparent",
+                      }}
+                      onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
+                    >
+                      <span className="font-black text-sm text-white/85">{p.nome}</span>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-lg"
+                        style={{
+                          background: p.diasPrazo === 0 ? "rgba(255,255,255,0.05)" : `${cor}20`,
+                          color: p.diasPrazo === 0 ? "rgba(255,255,255,0.25)" : cor,
+                        }}
+                      >
+                        {p.diasPrazo === 0 ? "Sem prazo" : `+${p.diasPrazo} dias`}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function Relatorios() {
@@ -310,32 +433,13 @@ export default function Relatorios() {
                   <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
                     Redes
                   </label>
-                  <select
-                    value=""
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (!val) return;
-                      const [dia, dias] = val.split("|");
-                      const prazoCalc = calcularPrazo(dia, parseInt(dias));
+                  <RedesDropdown
+                    plataformas={plataformasCalendario}
+                    onSelect={(dia, diasPrazo) => {
+                      const prazoCalc = calcularPrazo(dia, diasPrazo);
                       setNewRelatorioData((prev) => ({ ...prev, prazo: prazoCalc }));
                     }}
-                    className="w-full px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-background text-foreground text-sm"
-                  >
-                    <option value="">Selecionar rede / plataforma...</option>
-                    {["SEGUNDA-FEIRA","TERÇA-FEIRA","QUARTA-FEIRA","QUINTA-FEIRA","SEXTA-FEIRA","SÁBADO","DOMINGO"].map((dia) => {
-                      const platsNoDia = plataformasCalendario.filter((p: any) => p.dia === dia);
-                      if (!platsNoDia.length) return null;
-                      return (
-                        <optgroup key={dia} label={dia}>
-                          {platsNoDia.map((p: any) => (
-                            <option key={p.id} value={`${p.dia}|${p.diasPrazo}`}>
-                              {p.nome} — {p.diasPrazo === 0 ? "Sem prazo" : `+${p.diasPrazo} dias`}
-                            </option>
-                          ))}
-                        </optgroup>
-                      );
-                    })}
-                  </select>
+                  />
                   <p className="text-[10px] text-white/25 mt-1">
                     Selecionar preenche o prazo automaticamente
                   </p>
