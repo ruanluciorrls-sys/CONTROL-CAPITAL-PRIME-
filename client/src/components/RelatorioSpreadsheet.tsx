@@ -210,10 +210,10 @@ export default function RelatorioSpreadsheet({
           <div className="flex gap-2 items-center mb-2">
             <input
               type="number"
-              value={cooperacaoInput}
+              value={cooperacaoInput === "0" ? "" : cooperacaoInput}
               onChange={(e) => setCooperacaoInput(e.target.value || "0")}
               className="flex-1 px-3 py-1.5 rounded-xl text-sm text-white font-mono bg-transparent border border-white/15 focus:outline-none focus:border-[#a78bfa]"
-              placeholder="0"
+              placeholder=""
             />
             <button onClick={() => onCooperacaoChange(parseFloat(cooperacaoInput) || 0)}
               className="px-3 py-1.5 rounded-xl text-xs font-black text-[#050b18]"
