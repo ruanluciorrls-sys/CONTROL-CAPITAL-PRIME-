@@ -173,7 +173,7 @@ export default function RelatoriosFinalizados() {
                     borderColor: "rgba(255,255,255,0.08)",
                   }}
                   >
-                    <p className="font-bold text-white/80 text-sm">{getCasaNome(rel.casaId)}{rel.agente ? `-${rel.agente}` : ""}</p>
+                    <p className="font-bold text-white/80 text-sm">{getCasaNome(rel.casaId).replace(/[\s-]+$/, "").trim()}{rel.agente ? `-${rel.agente}` : ""}</p>
                     <p className="text-xs opacity-60 text-white/40">
                       {rel.agente} • {new Date(rel.criadoEm).toLocaleDateString("pt-BR")}
                     </p>
@@ -201,7 +201,7 @@ export default function RelatoriosFinalizados() {
                           className="w-full px-2 py-1 border border-border rounded-lg bg-white dark:bg-slate-700 text-foreground dark:text-white"
                         />
                       ) : (
-                        getCasaNome(selectedRelatorio.casaId)
+                        getCasaNome(selectedRelatorio.casaId).replace(/[\s-]+$/, "").trim()
                       )}
                     </h3>
                     <p className="text-muted-foreground dark:text-slate-400 mt-1">

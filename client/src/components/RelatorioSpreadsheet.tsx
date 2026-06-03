@@ -100,6 +100,9 @@ export default function RelatorioSpreadsheet({
   const resultadoFinal = totals.resultado + cooperacao;
   const prazoFmt = prazo ? new Date(prazo + "T00:00:00").toLocaleDateString("pt-BR") : null;
 
+  // Remove traço/espaços finais do nome (ex: "VOY 01 -" -> "VOY 01")
+  const casaNomeLimpo = casaNome.replace(/[\s-]+$/, "").trim();
+
   const copyLink = () => {
     if (!linkContaFilha) return;
     navigator.clipboard.writeText(linkContaFilha);
@@ -144,24 +147,34 @@ export default function RelatorioSpreadsheet({
         >
           <div>
             <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400/50 mb-1 text-center">Meta</p>
-            <p className="font-black text-2xl text-emerald-300 text-center">{casaNome}</p>
+            <p className="font-black text-2xl text-emerald-300 text-center">{casaNomeLimpo}</p>
           </div>
         </div>
 
         {/* Link da Conta-Filha */}
         {linkContaFilha ? (
-          <div className="rounded-2xl p-5 border border-[#a78bfa]/20"
+          <div className="rounded-2xl p-5 border border-[#a78bfa]/20 flex flex-col"
             style={{ background: "linear-gradient(145deg, #0d0720, #150b2e)" }}
           >
-            <p className="text-[9px] font-black uppercase tracking-widest text-[#a78bfa]/50 mb-3">Link da Conta-Filha</p>
-            <div className="flex gap-2">
+            <p className="text-[9px] font-black uppercase tracking-widest text-[#a78bfa]/50 mb-2">Link da Conta-Filha</p>
+
+            {/* Link real exibido */}
+            <a href={linkContaFilha} target="_blank" rel="noopener noreferrer"
+              className="block text-[11px] font-mono text-[#c4b5fd]/80 hover:text-[#c4b5fd] transition-colors truncate mb-3 underline decoration-[#a78bfa]/30 underline-offset-2"
+              title={linkContaFilha}
+            >
+              {linkContaFilha.replace(/^https?:\/\//, "")}
+            </a>
+
+            <div className="flex gap-2 mt-auto">
               <a href={linkContaFilha} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs text-[#a78bfa] hover:text-[#c4b5fd] transition-colors font-bold"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all"
+                style={{ background: "rgba(167,139,250,0.1)", color: "#a78bfa" }}
               >
-                <ExternalLink size={12} /> Acessar
+                <ExternalLink size={11} /> Acessar
               </a>
               <button onClick={copyLink}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ml-auto"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ml-auto"
                 style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa" }}
               >
                 {linkCopiado ? <><Check size={11} /> Copiado</> : <><Copy size={11} /> Copiar</>}

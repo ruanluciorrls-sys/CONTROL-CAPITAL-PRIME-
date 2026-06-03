@@ -513,7 +513,8 @@ export default function Relatorios() {
                     const accent = accentColors[index % accentColors.length];
                     const lucroTotal = calculateTotalResultado(rel.rows, rel.cooperacao);
                     const isSelected = selectedRelatorioId === rel.id;
-                    const nome = `${getCasaNome(rel.casaId)}${rel.agente ? `-${rel.agente}` : ""}`;
+                    const nomeBase = getCasaNome(rel.casaId).replace(/[\s-]+$/, "").trim();
+                    const nome = `${nomeBase}${rel.agente ? `-${rel.agente}` : ""}`;
                     const countdown = rel.prazo ? calcCountdown(rel.prazo) : "";
                     const prazoDate = rel.prazo
                       ? new Date(rel.prazo + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })

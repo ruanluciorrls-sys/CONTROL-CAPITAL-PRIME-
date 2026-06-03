@@ -226,38 +226,47 @@ function AppContent() {
         </nav>
 
         {/* Sidebar Footer with user info & quick actions */}
-        <div className="p-4 border-t border-white/5 flex flex-col gap-3 bg-[#050b18]/60 backdrop-blur-md">
+        <div className="p-3 border-t border-white/5 flex flex-col gap-2.5"
+          style={{ background: "linear-gradient(180deg, transparent, rgba(5,11,24,0.8))", backdropFilter: "blur(12px)" }}
+        >
+          {/* User card */}
           {user && (
-            <div className="flex flex-col px-2">
-              <span className="text-[9px] text-white/30 uppercase tracking-widest font-bold">Logado como</span>
-              <span className="text-xs font-semibold text-white/70 truncate">{user.email || user.name}</span>
+            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-white/8"
+              style={{ background: "rgba(255,255,255,0.03)" }}
+            >
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm text-[#050b18] shrink-0"
+                style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+              >
+                {(user.email || user.name || "?")[0].toUpperCase()}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[8px] text-white/25 uppercase tracking-widest font-black leading-tight">Logado como</span>
+                <span className="text-[11px] font-bold text-white/70 truncate leading-tight">{user.email || user.name}</span>
+              </div>
             </div>
           )}
-          
-          <button
-            onClick={handleRefreshSite}
-            disabled={isRefreshing}
-            className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl transition-all duration-300 hover:bg-white/10 hover:scale-[1.02] border border-white/10"
-            style={{
-              background: "rgba(212,160,23,0.08)",
-              borderColor: "rgba(212,160,23,0.2)",
-              color: "#d4a017",
-              boxShadow: "0 4px 12px rgba(212,160,23,0.05)",
-            }}
-            title="Atualizar dados"
-          >
-            <RefreshCw size={15} className={isRefreshing ? "animate-spin" : ""} />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Atualizar</span>
-          </button>
 
-          <button
-            onClick={logout}
-            className="w-full p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center hover:bg-red-500/25 hover:scale-102 bg-red-500/10 border border-red-500/20"
-            style={{ color: "#ff6b6b" }}
-            title="Fazer logout"
-          >
-            <LogOut size={16} />
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleRefreshSite}
+              disabled={isRefreshing}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider text-[#050b18] transition-all duration-300 hover:scale-[1.02] disabled:opacity-60"
+              style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)", boxShadow: "0 4px 14px rgba(212,160,23,0.25)" }}
+              title="Atualizar dados"
+            >
+              <RefreshCw size={13} className={isRefreshing ? "animate-spin" : ""} />
+              Atualizar
+            </button>
+
+            <button
+              onClick={logout}
+              className="w-11 shrink-0 flex items-center justify-center rounded-xl transition-all duration-300 hover:scale-[1.05] border border-red-500/20 text-red-400 hover:text-red-300 hover:border-red-500/40"
+              style={{ background: "rgba(239,68,68,0.08)" }}
+              title="Fazer logout"
+            >
+              <LogOut size={15} />
+            </button>
+          </div>
         </div>
       </aside>
 

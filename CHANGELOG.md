@@ -5,6 +5,32 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato baseia-se em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.3.0] - 2026-06-03
+
+### Adicionado
+- **Padronização visual completa (navy + gold)**: Todas as páginas e botões foram unificados na paleta do painel (`#070e20` / `#0f1e45` / `#d4a017`). Abas em estilo "pill" dourado, cards com fundo translúcido e bordas suaves.
+- **Notificações Toast**: Todas as ações (restaurar, excluir, editar, finalizar, recuperar, exportar, esvaziar lixeira) agora exibem uma notificação elegante no **canto inferior direito**, em vez de `alert()` do navegador. Estilo navy+gold, com botão de fechar.
+- **Dashboard — métricas clicáveis**: Cada card de métrica navega diretamente para a aba correspondente. "Casas Ativas" renomeado para "Operação CPA".
+- **Dashboard / Faturamento — Gastos + Lucro Real**: Linha discreta exibindo gasto de proxy do período e lucro real (lucro − despesas).
+- **Operação CPA — seletor de Meta e Redes**: Formulário de novo relatório com dropdown de Metas (casas) e dropdown elegante de Redes agrupado por dia da semana (carregado do Gerenciamento de Plataformas), preenchendo o prazo automaticamente com contagem regressiva.
+- **Gerenciamento de Plataformas**: Página em Configurações com colunas por dia da semana, cores por dia, lixeira, edição e persistência. Sincroniza com o Dashboard em tempo real.
+- **Gastos / Despesas** (antigo "Gasto com Proxy"): Redesenhada com categorias (Proxy, SMS, Postagem Instagram, Bot, VPS, Outros), cards de Custo do Dia / Mês e histórico colorido.
+- **Chaves PIX — seleção múltipla**: Selecionar várias chaves para copiar ou apagar em lote.
+
+### Alterado
+- **Logo premium**: Coroa redesenhada com anel dourado, glow pulsante e brilho interno (sidebar, header mobile e modal de Apresentação).
+- **Cards de relatório**: Maiores, com lucro centralizado e destaque, prazo com data + contagem regressiva.
+- **Relatório (planilha)**: Redesign completo navy+gold — cards de Agente/Prazo, Meta, Link da Conta-Filha (agora exibindo o link real), tabela e painel lateral elegantes.
+- **Footer da sidebar**: Card de usuário com avatar, botões Atualizar e Logout reorganizados de forma elegante.
+- **Título da aba do navegador**: "Capital Prime Control".
+- Removidos: botão de Tema, header "Dashboard CPA", traço final automático que aparecia em nomes de Meta (ex: "VOY 01 -").
+
+### Corrigido
+- **Erro 500 ao criar relatório**: A coluna `prazo` não existia no banco; removida do schema Drizzle e persistida via localStorage.
+- **Erro 500 ao adicionar gasto**: Data enviada como objeto `Date` em vez de string `yyyy-MM-dd`.
+- **Criar relatório**: Não exige mais o campo Agente, apenas a Meta.
+- Campos numéricos da tabela e cooperação não mostram mais "0" — ficam vazios prontos para preenchimento.
+
 ## [1.2.0] - 2026-06-02
 
 ### Adicionado
