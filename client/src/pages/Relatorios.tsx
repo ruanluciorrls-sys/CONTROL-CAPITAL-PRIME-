@@ -275,27 +275,20 @@ export default function Relatorios() {
     if (selectedRelatorioId === relatorioId) {
       setSelectedRelatorioId("");
     }
-    // Feedback visual
-    const relatorio = relatoriosAtivos.find((r) => r.id === relatorioId);
-    if (relatorio) {
-      console.log(`Relatório "${getCasaNome(relatorio.casaId)}" movido para lixeira`);
-    }
+    toast.success("Relatório movido para a lixeira");
   };
 
   const handleRestoreRelatorio = (relatorioId: string) => {
     // Restaurar relatório da lixeira
     updateRelatorio(relatorioId, { status: "ativo" });
-    const relatorio = relatoriosLixeira.find((r) => r.id === relatorioId);
-    if (relatorio) {
-      console.log(`Relatório "${getCasaNome(relatorio.casaId)}" restaurado da lixeira`);
-    }
+    toast.success("Relatório restaurado!");
   };
 
   const handlePermanentlyDeleteRelatorio = (relatorioId: string) => {
     // Deletar permanentemente
     if (confirm("Tem certeza que deseja deletar permanentemente este relatório?")) {
       deleteRelatorio(relatorioId);
-      console.log(`Relatório deletado permanentemente`);
+      toast.success("Relatório deletado permanentemente");
     }
   };
 
@@ -656,7 +649,7 @@ export default function Relatorios() {
                   if (selectedRelatorioId) {
                     finalizarRelatorio(selectedRelatorioId);
                     setSelectedRelatorioId("");
-                    alert("Relatório finalizado! Movido para Relatórios Finalizados.");
+                    toast.success("Relatório finalizado! Movido para Relatórios Finalizados.");
                   }
                 }}
                 className="mt-6 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
@@ -698,6 +691,7 @@ export default function Relatorios() {
                 onClick={() => {
                   if (confirm("Tem certeza que deseja esvaziar a lixeira completamente?")) {
                     esvaziarLixeira();
+                    toast.success("Lixeira esvaziada!");
                   }
                 }}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"

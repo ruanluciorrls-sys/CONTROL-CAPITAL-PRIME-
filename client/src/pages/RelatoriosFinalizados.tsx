@@ -1,6 +1,7 @@
 import { useApp } from "@/contexts/AppContext";
 import { Copy, Trash2, Edit2, X, Check } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function RelatoriosFinalizados() {
   const { state, deleteRelatorio, reutilizarRelatorio, updateRelatorio } = useApp();
@@ -52,7 +53,7 @@ export default function RelatoriosFinalizados() {
 
   const handleReutilizar = (relatorioId: string) => {
     reutilizarRelatorio(relatorioId);
-    alert("Relatório reutilizado! Verifique em Relatórios Ativos.");
+    toast.success("Relatório reutilizado! Verifique em Operação CPA.");
   };
 
   const handleEditClick = () => {
@@ -67,6 +68,7 @@ export default function RelatoriosFinalizados() {
       updateRelatorio(selectedRelatorio.id, editingData);
       setIsEditing(false);
       setEditingData(null);
+      toast.success("Relatório atualizado com sucesso!");
     }
   };
 
@@ -348,7 +350,7 @@ export default function RelatoriosFinalizados() {
                     >
                       <Copy size={16} /> Reutilizar
                     </button>
-                    <button onClick={() => { deleteRelatorio(selectedRelatorio.id); setSelectedRelatorioId(null); }}
+                    <button onClick={() => { deleteRelatorio(selectedRelatorio.id); setSelectedRelatorioId(null); toast.success("Relatório excluído"); }}
                       className="px-4 py-2.5 rounded-xl text-red-400 border border-red-500/20 hover:bg-red-500/10 transition-colors"
                       style={{ background: "rgba(239,68,68,0.05)" }}
                     >

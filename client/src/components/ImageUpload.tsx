@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Upload, X } from "lucide-react";
+import { toast } from "sonner";
 
 interface ImageUploadProps {
   label: string;
@@ -20,7 +21,7 @@ export default function ImageUpload({
 
   const handleFileSelect = (file: File) => {
     if (!file.type.startsWith("image/")) {
-      alert("Por favor, selecione um arquivo de imagem");
+      toast.error("Por favor, selecione um arquivo de imagem");
       return;
     }
 

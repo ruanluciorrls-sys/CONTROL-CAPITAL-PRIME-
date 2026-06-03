@@ -2,6 +2,7 @@ import { useApp } from "@/contexts/AppContext";
 import { Trash2, Edit2, RotateCcw, Eye, EyeOff, CheckSquare2, Square } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 export default function CasasFinalizadas() {
   const { state, deleteCasa, updateCasa, deletePermanentementeCasa, esvaziarLixeiraCasas } = useApp();
@@ -78,11 +79,13 @@ export default function CasasFinalizadas() {
       updateCasa(editData.id, editData);
       setEditingCasa(null);
       setEditData(null);
+      toast.success("Casa atualizada com sucesso!");
     }
   };
 
   const handleReactivate = (casaId: string) => {
     updateCasa(casaId, { status: "ativa" });
+    toast.success("Casa reativada com sucesso!");
   };
 
   const toggleSelectAll = () => {
@@ -105,24 +108,29 @@ export default function CasasFinalizadas() {
 
   const handleDeleteMultiple = () => {
     if (confirm(`Deletar permanentemente ${selectedLixeira.size} casa(s)?`)) {
+      const qtd = selectedLixeira.size;
       selectedLixeira.forEach((id) => deletePermanentementeCasa(id));
       setSelectedLixeira(new Set());
+      toast.success(`${qtd} casa(s) deletada(s) permanentemente`);
     }
   };
 
   const handleEsvaziarLixeira = () => {
     if (confirm(`Esvaziar lixeira? ${casasLixeira.length} casa(s) serão deletada(s) permanentemente.`)) {
       esvaziarLixeiraCasas();
+      toast.success("Lixeira esvaziada com sucesso!");
     }
   };
 
   const handleRecoverMultiple = () => {
     if (selectedLixeira.size === 0) return;
     if (confirm(`Recuperar ${selectedLixeira.size} casa(s)? Serão movidas para 'Casas Ativas'.`)) {
+      const qtd = selectedLixeira.size;
       selectedLixeira.forEach((id) => {
         updateCasa(id, { status: "ativa" });
       });
       setSelectedLixeira(new Set());
+      toast.success(`${qtd} casa(s) recuperada(s)!`);
     }
   };
 
@@ -142,7 +150,7 @@ export default function CasasFinalizadas() {
   const handleExportarCasas = () => {
     const casasParaExportar = activeTab === "finalizadas" ? casasFiltradas : Array.from(selectedLixeira).map((id) => casasLixeira.find((c) => c.id === id)).filter(Boolean);
     if (casasParaExportar.length === 0) {
-      alert("Nenhuma casa para exportar!");
+      toast.error("Nenhuma casa para exportar!");
       return;
     }
     const csv = [
@@ -165,6 +173,7 @@ export default function CasasFinalizadas() {
     a.download = `casas-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.success("CSV exportado com sucesso!");
   };
 
   return (
@@ -191,45 +200,44 @@ export default function CasasFinalizadas() {
 
       {activeTab === "finalizadas" && (
         <>
-          {/* Total de Casas Finalizadas */}
-          <div className="relative overflow-hidden bg-card border border-border/50 rounded-2xl p-8 shadow-2xl group transition-all duration-500 hover:border-emerald-500/30 hover:shadow-emerald-900/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-900/20 opacity-60"></div>
-            <div className="relative z-10 flex items-start justify-between">
-              <div>
-                <p className="text-muted-foreground text-xs md:text-sm tracking-[0.2em] font-semibold mb-3 uppercase">
-                  Lucro Total - Casas Finalizadas
-                </p>
-                <p className="text-5xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-emerald-400 to-teal-200 drop-shadow-sm mt-3 font-mono">
-                  R$ {(totalLucrosTodosFiltrados || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-                <p className="text-muted-foreground/70 text-xs mt-3 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  {casasFiltradas.length} casas {filtroNomeInicial ? "filtradas" : "finalizadas"}
-                </p>
-              </div>
+          {/* Cards de totais */}
+          <div className={`grid grid-cols-1 ${totalGastosProxy > 0 ? "md:grid-cols-2" : ""} gap-4`}>
+            {/* Lucro Total */}
+            <div className="relative overflow-hidden rounded-2xl p-6 border border-emerald-500/15"
+              style={{ background: "linear-gradient(145deg, #071a12, #0c2a1e)" }}
+            >
+              <div className="absolute top-0 left-0 w-full h-[1px]"
+                style={{ background: "linear-gradient(to right, transparent, rgba(74,222,128,0.4), transparent)" }}
+              />
+              <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400/50 mb-3">Lucro Total — Casas Finalizadas</p>
+              <p className="text-5xl font-black tracking-tighter text-emerald-300 font-mono">
+                R$ {(totalLucrosTodosFiltrados || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
+              <p className="text-emerald-400/40 text-xs mt-3 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                {casasFiltradas.length} casas {filtroNomeInicial ? "filtradas" : "finalizadas"}
+              </p>
             </div>
-          </div>
 
-          {/* Lucro com Desconto de Proxy */}
-          {totalGastosProxy > 0 && (
-            <div className="relative overflow-hidden bg-card border border-border/50 rounded-2xl p-8 shadow-2xl group transition-all duration-500 hover:border-orange-500/30 hover:shadow-orange-900/20 mt-6">
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-red-900/20 opacity-60"></div>
-              <div className="relative z-10 flex items-start justify-between">
-                <div>
-                  <p className="text-muted-foreground text-xs md:text-sm tracking-[0.2em] font-semibold mb-3 uppercase">
-                    Lucro (Com Desconto de Proxy)
-                  </p>
-                  <p className="text-5xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-orange-400 to-red-200 drop-shadow-sm mt-3 font-mono">
-                    R$ {((totalLucrosTodosFiltrados || 0) - totalGastosProxy).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                  <p className="text-muted-foreground/70 text-xs mt-3 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
-                    Desconto de Proxy: R$ {totalGastosProxy.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                </div>
+            {/* Lucro com Desconto de Proxy */}
+            {totalGastosProxy > 0 && (
+              <div className="relative overflow-hidden rounded-2xl p-6 border border-orange-500/15"
+                style={{ background: "linear-gradient(145deg, #1a0d07, #2a150a)" }}
+              >
+                <div className="absolute top-0 left-0 w-full h-[1px]"
+                  style={{ background: "linear-gradient(to right, transparent, rgba(251,146,60,0.4), transparent)" }}
+                />
+                <p className="text-[9px] font-black uppercase tracking-widest text-orange-400/50 mb-3">Lucro Real (desconto proxy)</p>
+                <p className="text-5xl font-black tracking-tighter text-orange-300 font-mono">
+                  R$ {((totalLucrosTodosFiltrados || 0) - totalGastosProxy).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-orange-400/40 text-xs mt-3 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
+                  Proxy: – R$ {totalGastosProxy.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Botão de Exportação */}
           <div className="flex gap-2 mb-4">
@@ -301,11 +309,13 @@ export default function CasasFinalizadas() {
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setFiltroNomeInicial("")}
-                className={`px-4 py-2 rounded-lg transition-colors font-medium text-sm ${
-                  filtroNomeInicial === ""
-                    ? "bg-primary text-white"
-                    : "bg-gray-100 dark:bg-slate-700 text-foreground hover:bg-gray-200 dark:hover:bg-slate-600"
-                }`}
+                className="px-4 py-2 rounded-xl transition-all font-bold text-xs"
+                style={filtroNomeInicial === "" ? {
+                  background: "linear-gradient(135deg, #d4a017, #f59e0b)", color: "#050b18",
+                } : {
+                  background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
               >
                 Todas
               </button>
@@ -315,11 +325,13 @@ export default function CasasFinalizadas() {
                   <button
                     key={nomeInicial}
                     onClick={() => setFiltroNomeInicial(nomeInicial)}
-                    className={`px-4 py-2 rounded-lg transition-colors font-medium text-sm ${
-                      filtroNomeInicial === nomeInicial
-                        ? "bg-primary text-white"
-                        : "bg-gray-100 dark:bg-slate-700 text-foreground hover:bg-gray-200 dark:hover:bg-slate-600"
-                    }`}
+                    className="px-4 py-2 rounded-xl transition-all font-bold text-xs"
+                    style={filtroNomeInicial === nomeInicial ? {
+                      background: "linear-gradient(135deg, #d4a017, #f59e0b)", color: "#050b18",
+                    } : {
+                      background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
                   >
                     {nomeInicial} ({casasDoGrupo.length})
                   </button>
@@ -410,6 +422,7 @@ export default function CasasFinalizadas() {
                             onClick={() => {
                               if (confirm("Tem certeza que deseja mover esta casa para a lixeira?")) {
                                 updateCasa(casa.id, { status: "lixeira" });
+                                toast.success("Casa movida para a lixeira");
                               }
                             }}
                             className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-800 rounded transition-colors"
@@ -515,6 +528,7 @@ export default function CasasFinalizadas() {
                           <button
                             onClick={() => {
                               updateCasa(casa.id, { status: "ativa" });
+                              toast.success("Casa recuperada!");
                             }}
                             className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
                             title="Recuperar casa"
@@ -525,6 +539,7 @@ export default function CasasFinalizadas() {
                             onClick={() => {
                               if (confirm("Tem certeza que deseja deletar permanentemente esta casa?")) {
                                 deletePermanentementeCasa(casa.id);
+                                toast.success("Casa deletada permanentemente");
                               }
                             }}
                             className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
