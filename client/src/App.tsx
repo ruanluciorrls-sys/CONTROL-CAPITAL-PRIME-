@@ -167,6 +167,7 @@ function AppContent() {
           tabs={tabs}
           onRefresh={handleRefreshSite}
           isRefreshing={isRefreshing}
+          onChangePasswordClick={() => setIsChangePasswordOpen(true)}
         />
       </div>
 
@@ -360,6 +361,7 @@ function HeaderWithThemeToggle({
   tabs,
   onRefresh,
   isRefreshing,
+  onChangePasswordClick,
 }: {
   nomeApp: string;
   activeTab: string;
@@ -367,6 +369,7 @@ function HeaderWithThemeToggle({
   tabs: typeof publicTabs;
   onRefresh: () => void;
   isRefreshing: boolean;
+  onChangePasswordClick: () => void;
 }) {
   const { theme, toggleTheme } = useTheme();
   const { logout, user } = useAuth();
@@ -454,7 +457,7 @@ function HeaderWithThemeToggle({
 
           {user && (
             <button
-              onClick={() => setIsChangePasswordOpen(true)}
+              onClick={onChangePasswordClick}
               className="p-2 rounded-xl transition-all duration-300 min-h-[42px] min-w-[42px] flex items-center justify-center hover:scale-105 active:scale-95"
               style={{
                 color: "#d4a017",
