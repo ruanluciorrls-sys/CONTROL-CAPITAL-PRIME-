@@ -30,7 +30,7 @@ import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 const publicTabs = [
   { id: "dashboard", label: "Dashboard", icon: <Home size={20} /> },
   { id: "faturamento", label: "Faturamento", icon: <DollarSign size={20} /> },
-  { id: "gasto-proxy", label: "Gasto com Proxy", icon: <Zap size={20} /> },
+  { id: "gasto-proxy", label: "Gastos / Despesas", icon: <Zap size={20} /> },
   { id: "gerenciar-casas", label: "MINHAS OPERAÇÃO", icon: <Home size={20} /> },
   { id: "contas", label: "Contas Não Sacadas", icon: <Wallet size={20} /> },
   { id: "chaves-pix", label: "Chaves PIX", icon: <Key size={20} /> },

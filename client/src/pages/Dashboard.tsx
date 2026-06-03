@@ -123,7 +123,7 @@ export default function Dashboard() {
       desc: "pendentes",
     },
     {
-      title: "Gasto com Proxy",
+      title: "Gastos / Despesas",
       value: `R$ ${Number(totalGastosProxy).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       icon: Zap,
       color: "#f59e0b",
