@@ -3,288 +3,336 @@
     "provider": "PG",
     "performance": "BAIXA",
     "name": "Chicky Run",
-    "tag": "Comida"
+    "tag": "Comida",
+    "image": "https://nexcpa.com.br/slots/chicky-run.webp"
   },
   {
     "provider": "PG",
     "performance": "MEDIA",
     "name": "Gem Saviour",
-    "tag": "Aventura"
+    "tag": "Aventura",
+    "image": "https://nexcpa.com.br/slots/gem-saviour.webp"
   },
   {
     "provider": "PG",
     "performance": "MEDIA",
     "name": "Fortune Dragon",
-    "tag": "Ganho Certo 2.00"
+    "tag": "Ganho Certo 2.00",
+    "image": "https://nexcpa.com.br/slots/fortune-dragon.webp"
   },
   {
     "provider": "PG",
     "performance": "ALTA",
     "name": "Plushie Frenzy",
-    "tag": "Casual"
+    "tag": "Casual",
+    "image": "https://nexcpa.com.br/slots/plushie-frenzy.webp"
   },
   {
     "provider": "PG",
     "performance": "ALTA",
     "name": "Prosperity Lion",
-    "tag": "Favorito"
+    "tag": "Favorito",
+    "image": "https://nexcpa.com.br/slots/prosperity-lion.webp"
   },
   {
     "provider": "PG",
     "performance": "ALTA",
     "name": "Win Win Won",
-    "tag": "Popular"
+    "tag": "Popular",
+    "image": "https://nexcpa.com.br/slots/win-win-won.webp"
   },
   {
     "provider": "PG",
     "performance": "MEDIA",
     "name": "Piggy Gold",
-    "tag": "Favorito"
+    "tag": "Favorito",
+    "image": "https://nexcpa.com.br/slots/piggy-gold.webp"
   },
   {
     "provider": "PG",
     "performance": "ALTA",
     "name": "Mr Hallow Jackpot",
-    "tag": "Jackpot"
+    "tag": "Jackpot",
+    "image": "https://nexcpa.com.br/slots/mr-hallow-jackpot.webp"
   },
   {
     "provider": "PP",
     "performance": "MEDIA",
     "name": "888 Gold",
-    "tag": "Ouro"
+    "tag": "Ouro",
+    "image": "https://nexcpa.com.br/slots/888-gold.webp"
   },
   {
     "provider": "PP",
     "performance": "ALTA",
     "name": "Fire Strike",
-    "tag": "Fogo"
+    "tag": "Fogo",
+    "image": "https://nexcpa.com.br/slots/fire-strike.webp"
   },
   {
     "provider": "PP",
     "performance": "MEDIA",
     "name": "Diamond Strike",
-    "tag": "Diamante"
+    "tag": "Diamante",
+    "image": "https://nexcpa.com.br/slots/diamond-strike.webp"
   },
   {
     "provider": "PP",
     "performance": "MEDIA",
     "name": "Irish Charms",
-    "tag": "Trevo"
+    "tag": "Trevo",
+    "image": "https://nexcpa.com.br/slots/irish-charms.webp"
   },
   {
     "provider": "PP",
     "performance": "MEDIA",
     "name": "Plush WINS",
-    "tag": "Clássico"
+    "tag": "Clássico",
+    "image": "https://nexcpa.com.br/slots/plush-wins.webp"
   },
   {
     "provider": "PP",
     "performance": "MEDIA",
     "name": "Diamonds Are Forever",
-    "tag": "Diamante"
+    "tag": "Diamante",
+    "image": "https://nexcpa.com.br/slots/diamonds-are-forever.webp"
   },
   {
     "provider": "PP",
     "performance": "BAIXA",
     "name": "Jade Butterfly",
-    "tag": "Média/Montante"
+    "tag": "Média/Montante",
+    "image": "https://nexcpa.com.br/slots/jade-butterfly.webp"
   },
   {
     "provider": "WG",
     "performance": "ALTA",
     "name": "Dragon vs Tiger",
-    "tag": "Cartas"
+    "tag": "Cartas",
+    "image": "https://nexcpa.com.br/slots/dragon-vs-tiger.webp"
   },
   {
     "provider": "WG",
     "performance": "MEDIA",
     "name": "Lucky Dog",
-    "tag": "Animal"
+    "tag": "Animal",
+    "image": "https://nexcpa.com.br/slots/lucky-dog.webp"
   },
   {
     "provider": "WG",
     "performance": "ALTA",
     "name": "Dragon Treasure II",
-    "tag": "Dragão"
+    "tag": "Dragão",
+    "image": "https://nexcpa.com.br/slots/dragon-treasure-ii.webp"
   },
   {
     "provider": "WG",
     "performance": "MEDIA",
     "name": "Fishing Master",
-    "tag": "Pescaria"
+    "tag": "Pescaria",
+    "image": "https://nexcpa.com.br/slots/fishing-master.webp"
   },
   {
     "provider": "WG",
     "performance": "MEDIA",
     "name": "Treasure Bowl",
-    "tag": "Pote"
+    "tag": "Pote",
+    "image": "https://nexcpa.com.br/slots/treasure-bowl.webp"
   },
   {
     "provider": "MG",
     "performance": "ALTA",
     "name": "Lucky Twins",
-    "tag": "Asiático"
+    "tag": "Asiático",
+    "image": "https://nexcpa.com.br/slots/lucky-twins.webp"
   },
   {
     "provider": "MG",
     "performance": "MEDIA",
     "name": "777 Mega Deluxe",
-    "tag": "Clássico"
+    "tag": "Clássico",
+    "image": "https://nexcpa.com.br/slots/777-mega-deluxe.webp"
   },
   {
     "provider": "MG",
     "performance": "MEDIA",
     "name": "777 BIG",
-    "tag": "Jackpot"
+    "tag": "Jackpot",
+    "image": "https://nexcpa.com.br/slots/777-big.webp"
   },
   {
     "provider": "JILI",
     "performance": "BAIXA",
     "name": "FaFaFa",
-    "tag": "Simples"
+    "tag": "Simples",
+    "image": "https://nexcpa.com.br/slots/fafafa.webp"
   },
   {
     "provider": "JILI",
     "performance": "ALTA",
     "name": "XIYANGYANG",
-    "tag": "Cartas"
+    "tag": "Cartas",
+    "image": "https://nexcpa.com.br/slots/xiyangyang.webp"
   },
   {
     "provider": "JILI",
     "performance": "ALTA",
     "name": "Jungle King",
-    "tag": "Aventura"
+    "tag": "Aventura",
+    "image": "https://nexcpa.com.br/slots/jungle-king.webp"
   },
   {
     "provider": "JILI",
     "performance": "MEDIA",
     "name": "Crazy Hunter",
-    "tag": "Pulso"
+    "tag": "Pulso",
+    "image": "https://nexcpa.com.br/slots/crazy-hunter.webp"
   },
   {
     "provider": "JILI",
     "performance": "BAIXA",
     "name": "Golden Joker",
-    "tag": "Simples"
+    "tag": "Simples",
+    "image": "https://nexcpa.com.br/slots/golden-joker.webp"
   },
   {
     "provider": "JILI",
     "performance": "BAIXA",
     "name": "Crazy 777",
-    "tag": "Rápido"
+    "tag": "Rápido",
+    "image": "https://nexcpa.com.br/slots/crazy-777.webp"
   },
   {
     "provider": "JDB",
     "performance": "ALTA",
     "name": "Super Niubi",
-    "tag": "Popular"
+    "tag": "Popular",
+    "image": "https://nexcpa.com.br/slots/super-niubi.webp"
   },
   {
     "provider": "JDB",
     "performance": "ALTA",
     "name": "Crazy King Kong",
-    "tag": "Ação"
+    "tag": "Ação",
+    "image": "https://nexcpa.com.br/slots/crazy-king-kong.webp"
   },
   {
     "provider": "JDB",
     "performance": "MEDIA",
     "name": "Funky King Kong",
-    "tag": "Ação"
+    "tag": "Ação",
+    "image": "https://nexcpa.com.br/slots/funky-king-kong.webp"
   },
   {
     "provider": "JDB",
     "performance": "MEDIA",
     "name": "Fruity Bonanza",
-    "tag": "Frutas"
+    "tag": "Frutas",
+    "image": "https://nexcpa.com.br/slots/fruity-bonanza.webp"
   },
   {
     "provider": "JDB",
     "performance": "ALTA",
     "name": "Triple King Kong",
-    "tag": "Ação"
+    "tag": "Ação",
+    "image": "https://nexcpa.com.br/slots/triple-king-kong.webp"
   },
   {
     "provider": "JDB",
     "performance": "MEDIA",
     "name": "Lucky Color",
-    "tag": "Casual"
+    "tag": "Casual",
+    "image": "https://nexcpa.com.br/slots/lucky-color.webp"
   },
   {
     "provider": "JDB",
     "performance": "MEDIA",
     "name": "Treasure Bowl",
-    "tag": "Pote"
+    "tag": "Pote",
+    "image": "https://nexcpa.com.br/slots/treasure-bowl.webp"
   },
   {
     "provider": "JDB",
     "performance": "MEDIA",
     "name": "Bulls Treasure",
-    "tag": "Aventura"
+    "tag": "Aventura",
+    "image": "https://nexcpa.com.br/slots/bulls-treasure.webp"
   },
   {
     "provider": "FC",
     "performance": "ALTA",
     "name": "Gladiatriz de Roma",
-    "tag": "Batalha"
+    "tag": "Batalha",
+    "image": "https://nexcpa.com.br/slots/gladiatriz-de-roma.webp"
   },
   {
     "provider": "FC",
     "performance": "ALTA",
     "name": "Golden Panther",
-    "tag": "Pantera"
+    "tag": "Pantera",
+    "image": "https://nexcpa.com.br/slots/golden-panther.webp"
   },
   {
     "provider": "FC",
     "performance": "ALTA",
     "name": "Rich Man",
-    "tag": "Magnata"
+    "tag": "Magnata",
+    "image": "https://nexcpa.com.br/slots/rich-man.webp"
   },
   {
     "provider": "FC",
     "performance": "MEDIA",
     "name": "Treasure Raiders",
-    "tag": "Tumba"
+    "tag": "Tumba",
+    "image": "https://nexcpa.com.br/slots/treasure-raiders.webp"
   },
   {
     "provider": "FC",
     "performance": "BAIXA",
     "name": "Color Game",
-    "tag": "Dados"
+    "tag": "Dados",
+    "image": "https://nexcpa.com.br/slots/color-game.webp"
   },
   {
     "provider": "FC",
     "performance": "ALTA",
     "name": "Cowboys",
-    "tag": "Oeste"
+    "tag": "Oeste",
+    "image": "https://nexcpa.com.br/slots/cowboys.webp"
   },
   {
     "provider": "FC",
     "performance": "BAIXA",
     "name": "Fortune Sheep",
-    "tag": "Ovelha"
+    "tag": "Ovelha",
+    "image": "https://nexcpa.com.br/slots/fortune-sheep.webp"
   },
   {
     "provider": "PESCARIA",
     "performance": "ALTA",
     "name": "Boom Legend",
-    "tag": "Montante"
+    "tag": "Montante",
+    "image": "https://nexcpa.com.br/slots/boom-legend.webp"
   },
   {
     "provider": "PESCARIA",
     "performance": "ALTA",
     "name": "Mega Fishing",
-    "tag": "Média Alta"
+    "tag": "Média Alta",
+    "image": "https://nexcpa.com.br/slots/mega-fishing.webp"
   },
   {
     "provider": "PESCARIA",
     "performance": "ALTA",
     "name": "Dragon Fortune",
-    "tag": "Montante"
+    "tag": "Montante",
+    "image": "https://nexcpa.com.br/slots/dragon-fortune.webp"
   },
   {
     "provider": "PESCARIA",
     "performance": "ALTA",
     "name": "Happy Fishing",
-    "tag": "Montante"
+    "tag": "Montante",
+    "image": "https://nexcpa.com.br/slots/happy-fishing.webp"
   }
 ]

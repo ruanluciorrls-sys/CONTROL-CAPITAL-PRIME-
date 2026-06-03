@@ -8,6 +8,7 @@ interface SlotGame {
   performance: string; // "ALTA" | "MEDIA" | "BAIXA"
   name: string;
   tag: string;
+  image?: string;
 }
 
 export default function Slots() {
@@ -213,44 +214,70 @@ export default function Slots() {
               return (
                 <div
                   key={idx}
-                  className="rounded-2xl border border-white/8 p-4 flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:border-white/15 hover:-translate-y-1"
+                  className="group rounded-2xl border border-white/8 flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:border-[#d4a017]/30 hover:shadow-[0_0_20px_rgba(212,160,23,0.15)] hover:-translate-y-1"
                   style={{
                     background: "rgba(3, 7, 18, 0.45)",
                     backdropFilter: "blur(12px)"
                   }}
                 >
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="rounded-lg bg-white/5 border border-white/10 px-2 py-1 text-[10px] font-black text-[#d4a017]">
+                  {/* Image Container with 16:10 aspect ratio */}
+                  <div className="relative aspect-[16/10] w-full bg-white/[0.02] overflow-hidden border-b border-white/8">
+                    {game.image ? (
+                      <img 
+                        src={game.image} 
+                        alt={game.name} 
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-white/10">
+                        <Layers size={32} />
+                      </div>
+                    )}
+                    
+                    {/* Dark gradient overlay for visual hierarchy */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+
+                    {/* Badge Container */}
+                    <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
+                      <span className="rounded-lg bg-black/60 border border-white/10 px-2.5 py-1 text-[10px] font-black text-[#d4a017] backdrop-blur-md">
                         {game.provider}
                       </span>
-                      <span className={`rounded-lg border px-2 py-1 text-[9px] font-black flex items-center gap-1.5 ${perfStyles.bg}`}>
+                    </div>
+
+                    <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+                      <span className={`rounded-lg border px-2.5 py-1 text-[9px] font-black flex items-center gap-1.5 backdrop-blur-md bg-black/40 ${perfStyles.bg}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${perfStyles.dot}`} />
                         {game.performance}
                       </span>
                     </div>
 
                     <button
-                      onClick={() => toggleFavorito(game.name)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center border border-white/6 bg-white/[0.02] text-white/30 hover:text-red-400 hover:bg-white/5 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorito(game.name);
+                      }}
+                      className="absolute bottom-3 right-3 z-10 w-8 h-8 rounded-lg flex items-center justify-center border border-white/10 bg-black/60 text-white/50 hover:text-red-400 hover:bg-black/85 transition-colors backdrop-blur-md"
                       title={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                     >
-                      <Heart size={13} className={isFav ? "fill-red-400 text-red-400" : ""} />
+                      <Heart size={14} className={isFav ? "fill-red-400 text-red-400" : ""} />
                     </button>
                   </div>
 
-                  <div className="mb-4">
-                    <h3 className="font-extrabold text-white text-base leading-tight">{game.name}</h3>
-                    <p className="text-[10px] font-bold text-white/30 mt-1 uppercase tracking-wider">{game.tag}</p>
-                  </div>
+                  <div className="p-4 flex flex-col justify-between flex-1">
+                    <div className="mb-4">
+                      <h3 className="font-extrabold text-white text-base leading-tight group-hover:text-[#d4a017] transition-colors">{game.name}</h3>
+                      <p className="text-[10px] font-bold text-white/30 mt-1 uppercase tracking-wider">{game.tag}</p>
+                    </div>
 
-                  <button
-                    onClick={() => copyGameName(game.name)}
-                    className="w-full flex items-center justify-center gap-2 h-9 rounded-xl border border-[#d4a017]/20 bg-[#d4a017]/5 text-xs font-bold text-[#d4a017] hover:bg-[#d4a017] hover:text-[#050b18] transition-all"
-                  >
-                    <Copy size={12} />
-                    Copiar Nome
-                  </button>
+                    <button
+                      onClick={() => copyGameName(game.name)}
+                      className="w-full flex items-center justify-center gap-2 h-9 rounded-xl border border-[#d4a017]/20 bg-[#d4a017]/5 text-xs font-bold text-[#d4a017] hover:bg-[#d4a017] hover:text-[#050b18] transition-all"
+                    >
+                      <Copy size={12} />
+                      Copiar Nome
+                    </button>
+                  </div>
                 </div>
               );
             })}
