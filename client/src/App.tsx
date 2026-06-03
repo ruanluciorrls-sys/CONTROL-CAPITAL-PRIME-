@@ -326,6 +326,82 @@ function AppContent() {
         </main>
       </div>
 
+      {/* Change Password Modal */}
+      {isChangePasswordOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setMouseDownOnBackdrop(true);
+            }
+          }}
+          onMouseUp={(e) => {
+            if (e.target === e.currentTarget && mouseDownOnBackdrop) {
+              setIsChangePasswordOpen(false);
+            }
+            setMouseDownOnBackdrop(false);
+          }}
+        >
+          <div className="rounded-3xl p-6 max-w-md w-full space-y-5 relative overflow-hidden border border-white/10"
+            style={{
+              background: "linear-gradient(135deg, rgba(7,14,32,0.98) 0%, rgba(15,30,69,0.95) 100%)",
+              boxShadow: "0 25px 50px -12px rgba(212,160,23,0.25)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/40 to-transparent" />
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-[#d4a017]/10 text-[#d4a017] border border-[#d4a017]/30">
+                  <Key size={16} />
+                </div>
+                <h3 className="text-base font-black tracking-tight text-white">Alterar Minha Senha</h3>
+              </div>
+              <button 
+                onClick={() => setIsChangePasswordOpen(false)}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/5 transition-all"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleChangePasswordSubmit} className="space-y-4 pt-2">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Nova Senha</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Mínimo 6 caracteres"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full h-11 px-4 rounded-xl border border-white/10 bg-black/35 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-[#d4a017]/70"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Confirmar Nova Senha</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Repita a nova senha"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full h-11 px-4 rounded-xl border border-white/10 bg-black/35 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-[#d4a017]/70"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={changePasswordMutation.isPending}
+                className="w-full h-11 mt-4 rounded-xl bg-[#d4a017] text-[#050b18] hover:bg-[#c39010] text-xs font-black tracking-wider uppercase transition-all shadow-[0_4px_12px_rgba(212,160,23,0.2)] disabled:opacity-50"
+              >
+                {changePasswordMutation.isPending ? "Salvando..." : "Confirmar Alteração"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -522,82 +598,6 @@ function HeaderWithThemeToggle({
         </div>
 
       </div>
-
-      {/* Change Password Modal */}
-      {isChangePasswordOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) {
-              setMouseDownOnBackdrop(true);
-            }
-          }}
-          onMouseUp={(e) => {
-            if (e.target === e.currentTarget && mouseDownOnBackdrop) {
-              setIsChangePasswordOpen(false);
-            }
-            setMouseDownOnBackdrop(false);
-          }}
-        >
-          <div className="rounded-3xl p-6 max-w-md w-full space-y-5 relative overflow-hidden border border-white/10"
-            style={{
-              background: "linear-gradient(135deg, rgba(7,14,32,0.98) 0%, rgba(15,30,69,0.95) 100%)",
-              boxShadow: "0 25px 50px -12px rgba(212,160,23,0.25)"
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/40 to-transparent" />
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-[#d4a017]/10 text-[#d4a017] border border-[#d4a017]/30">
-                  <Key size={16} />
-                </div>
-                <h3 className="text-base font-black tracking-tight text-white">Alterar Minha Senha</h3>
-              </div>
-              <button 
-                onClick={() => setIsChangePasswordOpen(false)}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/5 transition-all"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleChangePasswordSubmit} className="space-y-4 pt-2">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Nova Senha</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Mínimo 6 caracteres"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full h-11 px-4 rounded-xl border border-white/10 bg-black/35 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-[#d4a017]/70"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Confirmar Nova Senha</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Repita a nova senha"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full h-11 px-4 rounded-xl border border-white/10 bg-black/35 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-[#d4a017]/70"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={changePasswordMutation.isPending}
-                className="w-full h-11 mt-4 rounded-xl bg-[#d4a017] text-[#050b18] hover:bg-[#c39010] text-xs font-black tracking-wider uppercase transition-all shadow-[0_4px_12px_rgba(212,160,23,0.2)] disabled:opacity-50"
-              >
-                {changePasswordMutation.isPending ? "Salvando..." : "Confirmar Alteração"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
