@@ -253,6 +253,14 @@ export async function getUserSettings(userId: number): Promise<UserSettings | nu
   return result[0] || null;
 }
 
+export async function getAdminSettings(): Promise<UserSettings | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const adminUser = await db.select().from(users).where(eq(users.role, "admin")).limit(1);
+  if (!adminUser[0]) return null;
+  return getUserSettings(adminUser[0].id);
+}
+
 export async function updateUserSettings(userId: number, data: Partial<UserSettings>): Promise<void> {
   const db = await getDb();
   if (!db) return;
