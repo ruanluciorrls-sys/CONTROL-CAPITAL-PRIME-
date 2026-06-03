@@ -161,8 +161,8 @@ export default function Calendario() {
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-black text-white/90">Gerenciamento de Plataformas</h2>
-          <p className="text-[10px] text-white/30 uppercase tracking-widest mt-0.5">
+          <h2 className="text-xl font-black text-white/95 dark:text-white">Gerenciamento de Plataformas</h2>
+          <p className="text-[10px] text-white/60 dark:text-white/35 uppercase tracking-widest mt-0.5">
             Calendário de lançamentos — prazos contam a partir do dia seguinte
           </p>
         </div>
@@ -262,12 +262,12 @@ export default function Calendario() {
           {/* Grid de Colunas por Dia */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {plataformasPorDia.map(({ dia, cor, plats }) => (
-              <div key={dia} className="rounded-2xl overflow-hidden border border-white/8"
-                style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+              <div key={dia} className="rounded-2xl overflow-hidden border"
+                style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)" }}
               >
                 {/* Header do dia */}
-                <div className="px-4 py-3 flex items-center justify-between border-b border-white/6"
-                  style={{ background: `${cor}10` }}
+                <div className="px-4 py-3 flex items-center justify-between border-b"
+                  style={{ background: `${cor}10`, borderColor: "var(--card-border-highlight)" }}
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ background: cor }} />
@@ -276,11 +276,11 @@ export default function Calendario() {
                     >
                       {DIAS_CURTOS[dia]}
                     </span>
-                    <span className="text-[10px] text-white/25 hidden sm:block">
+                    <span className="text-[10px] text-white/55 dark:text-white/40 hidden sm:block">
                       {dia.split("-")[0]}
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold text-white/25 tabular-nums">
+                  <span className="text-[10px] font-bold text-white/55 dark:text-white/40 tabular-nums">
                     {plats.length}
                   </span>
                 </div>
@@ -288,27 +288,27 @@ export default function Calendario() {
                 {/* Lista de plataformas */}
                 <div className="p-2 space-y-1 min-h-[60px]">
                   {plats.length === 0 ? (
-                    <p className="text-[10px] text-white/15 text-center py-4 italic">vazio</p>
+                    <p className="text-[10px] text-white/45 dark:text-white/30 text-center py-4 italic">vazio</p>
                   ) : (
                     plats.map((plat) => (
                       <div key={plat.id}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl group transition-all hover:border-white/12 border border-transparent"
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl group transition-all border border-transparent"
                         style={{ background: "rgba(255,255,255,0.03)" }}
                       >
                         {/* Nome + Prazo */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-black text-sm text-white/90 truncate">{plat.nome}</span>
+                            <span className="font-black text-sm text-white/90 dark:text-white truncate">{plat.nome}</span>
                             <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md"
                               style={{
                                 background: plat.diasPrazo === 0 ? "rgba(255,255,255,0.05)" : `${cor}18`,
-                                color: plat.diasPrazo === 0 ? "#ffffff30" : cor,
+                                color: plat.diasPrazo === 0 ? "rgba(255,255,255,0.4)" : cor,
                               }}
                             >
                               {plat.diasPrazo === 0 ? "—" : `+${plat.diasPrazo}d`}
                             </span>
                           </div>
-                          <p className="text-[9px] text-white/20 mt-0.5">
+                          <p className="text-[9px] text-white/50 dark:text-white/35 mt-0.5">
                             {plat.diasPrazo === 0
                               ? "Sem prazo"
                               : `${plat.diasPrazo} dia${plat.diasPrazo > 1 ? "s" : ""} após lançamento`}
@@ -340,8 +340,8 @@ export default function Calendario() {
             ))}
 
             {/* Card Total */}
-            <div className="rounded-2xl p-4 border border-white/8 flex flex-col justify-between"
-              style={{ background: "rgba(212,160,23,0.04)", borderColor: "rgba(212,160,23,0.12)" }}
+            <div className="rounded-2xl p-4 border flex flex-col justify-between"
+              style={{ background: "rgba(212,160,23,0.04)", borderColor: "var(--card-border-highlight)" }}
             >
               <div className="flex items-center gap-2 mb-3">
                 <Calendar size={14} className="text-[#d4a017]" />
@@ -349,7 +349,7 @@ export default function Calendario() {
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-white/30">Total plataformas</span>
+                  <span className="text-[10px] text-white/60 dark:text-white/35">Total plataformas</span>
                   <span className="text-sm font-black text-[#d4a017]">{plataformas.length}</span>
                 </div>
                 {DIAS_SEMANA.map((dia) => {
@@ -357,34 +357,36 @@ export default function Calendario() {
                   if (count === 0) return null;
                   return (
                     <div key={dia} className="flex justify-between items-center">
-                      <span className="text-[9px] font-bold uppercase" style={{ color: COR_DIA[dia] + "80" }}>
+                      <span className="text-[9px] font-bold uppercase" style={{ color: COR_DIA[dia] + "CC" }}>
                         {DIAS_CURTOS[dia]}
                       </span>
-                      <span className="text-[10px] font-bold text-white/40">{count}</span>
+                      <span className="text-[10px] font-bold text-white/60 dark:text-white/45">{count}</span>
                     </div>
                   );
                 })}
               </div>
-              <p className="text-[9px] text-white/20 mt-4 pt-3 border-t border-white/6 italic">
+              <p className="text-[9px] text-white/50 dark:text-white/30 mt-4 pt-3 border-t border-white/6 italic">
                 ⚠ Prazos contam a partir do dia seguinte ao lançamento
               </p>
             </div>
           </div>
 
           {/* Tabela completa (visão alternativa) */}
-          <div className="rounded-2xl border border-white/8 overflow-hidden"
-            style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+          <div className="rounded-2xl border overflow-hidden"
+            style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)" }}
           >
-            <div className="px-5 py-3 border-b border-white/6 flex items-center gap-2">
+            <div className="px-5 py-3 border-b flex items-center gap-2"
+              style={{ borderColor: "var(--card-border-highlight)" }}
+            >
               <div className="w-1 h-4 rounded-full" style={{ background: "#d4a017" }} />
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Todas as plataformas</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/60 dark:text-white/45">Todas as plataformas</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+                  <tr style={{ borderBottom: "1px solid var(--card-border-highlight)", background: "rgba(255,255,255,0.02)" }}>
                     {["Plataforma", "Dia da Semana", "Prazo (dias)", ""].map((h) => (
-                      <th key={h} className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-white/25">{h}</th>
+                      <th key={h} className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-white/60 dark:text-white/40">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -392,11 +394,11 @@ export default function Calendario() {
                   {[...plataformas].sort((a, b) => DIAS_SEMANA.indexOf(a.dia) - DIAS_SEMANA.indexOf(b.dia)).map((plat) => (
                     <tr key={plat.id}
                       className="transition-colors"
-                      style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+                      style={{ borderBottom: "1px solid var(--card-border-highlight)" }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "")}
                     >
-                      <td className="px-5 py-3 font-black text-white/80">{plat.nome}</td>
+                      <td className="px-5 py-3 font-black text-white/90 dark:text-white">{plat.nome}</td>
                       <td className="px-5 py-3">
                         <span className="text-[10px] font-bold px-2 py-1 rounded-lg"
                           style={{
@@ -408,7 +410,7 @@ export default function Calendario() {
                         </span>
                       </td>
                       <td className="px-5 py-3">
-                        <span className="font-black text-white/70">
+                        <span className="font-black text-white/80 dark:text-white/90">
                           {plat.diasPrazo === 0 ? "—" : `+${plat.diasPrazo} dias`}
                         </span>
                       </td>
@@ -441,8 +443,8 @@ export default function Calendario() {
 
       {/* ===== ABA LIXEIRA ===== */}
       {abaAtiva === "lixeira" && (
-        <div className="rounded-2xl border border-white/8 overflow-hidden"
-          style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+        <div className="rounded-2xl border overflow-hidden"
+          style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)" }}
         >
           {lixeira.length === 0 ? (
             <div className="p-12 text-center text-white/20 text-sm">Lixeira vazia</div>
@@ -496,10 +498,10 @@ export default function Calendario() {
           style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
           onClick={() => { setEditandoId(null); setEditData(null); }}
         >
-          <div className="rounded-2xl p-6 max-w-sm w-full space-y-4 relative"
+          <div className="rounded-2xl p-6 max-w-sm w-full space-y-4 relative border"
             style={{
-              background: "linear-gradient(145deg, #070e20, #0f1e45)",
-              border: "1px solid rgba(212,160,23,0.25)",
+              background: "var(--card-bg-gradient)",
+              borderColor: "var(--card-border-highlight)",
               boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
             }}
             onClick={(e) => e.stopPropagation()}
