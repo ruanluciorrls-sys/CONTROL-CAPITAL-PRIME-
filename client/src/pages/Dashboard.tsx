@@ -136,20 +136,6 @@ export default function Dashboard() {
     <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
 
-        {/* Header */}
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-1">Bem-vindo de volta</p>
-            <h1 className="text-2xl md:text-3xl font-black"
-              style={{
-                background: "linear-gradient(135deg, #ffffff 10%, #f3d078 50%, #ffffff 90%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >Dashboard CPA</h1>
-          </div>
-          <p className="text-[10px] text-white/25 uppercase tracking-wider hidden md:block">{dataFormatada}</p>
-        </div>
 
         {/* Lucro em Caixa — card principal */}
         <div className="relative overflow-hidden rounded-3xl p-6 md:p-8 border border-emerald-500/15 group transition-all duration-300 hover:border-emerald-500/25"
