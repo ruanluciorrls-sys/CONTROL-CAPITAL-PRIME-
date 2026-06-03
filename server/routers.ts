@@ -324,7 +324,7 @@ export const appRouter = router({
           userId: ctx.user.id,
           valor: input.valor,
           descricao: input.descricao,
-          data: new Date(input.data),
+          data: input.data as any, // string "yyyy-MM-dd" que o PostgreSQL date aceita
         });
         return gasto || { success: false };
       }),
@@ -338,9 +338,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const updateData: any = { ...input };
         delete updateData.id;
-        if (updateData.data) {
-          updateData.data = new Date(updateData.data);
-        }
+        // data já vem como string "yyyy-MM-dd" — não converter para Date
         await updateGastoProxy(input.id, updateData);
         return { success: true };
       }),
