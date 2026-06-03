@@ -171,7 +171,8 @@ function AppContent() {
 
       {/* ── DESKTOP SIDEBAR (ONLY VISIBLE ON DESKTOP SCREENS) ── */}
       <aside className="hidden md:flex w-72 h-screen sticky top-0 flex-col flex-shrink-0 z-20" style={{
-        background: "linear-gradient(180deg, #070e20 0%, #0f1e45 70%, #050b18 100%)",
+        background: "linear-gradient(180deg, rgba(7, 14, 32, 0.75) 0%, rgba(15, 30, 69, 0.65) 70%, rgba(5, 11, 24, 0.8) 100%)",
+        backdropFilter: "blur(16px)",
         borderRight: "2px solid rgba(212,160,23,0.35)",
         boxShadow: "4px 0 30px rgba(0,0,0,0.3)",
       }}>
@@ -449,8 +450,9 @@ function HeaderWithThemeToggle({
   const { logout, user } = useAuth();
 
   return (
-    <div className="relative z-20 bg-white dark:bg-slate-900 border-b border-border sticky top-0" style={{
-      background: "linear-gradient(135deg, #070e20 0%, #0f1e45 50%, #152757 100%)",
+    <div className="relative z-20 border-b border-border sticky top-0" style={{
+      background: "linear-gradient(135deg, rgba(7, 14, 32, 0.8) 0%, rgba(15, 30, 69, 0.7) 50%, rgba(21, 39, 87, 0.75) 100%)",
+      backdropFilter: "blur(16px)",
       borderBottom: "2px solid rgba(212,160,23,0.35)",
       boxShadow: "0 4px 30px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.05)",
     }}>
