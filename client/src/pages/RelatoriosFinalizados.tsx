@@ -101,14 +101,23 @@ export default function RelatoriosFinalizados() {
   const handleRowChange = (numero: number, field: string, value: string) => {
     setEditingData((prev: any) => ({
       ...prev,
-      rows: prev.rows.map((row: any) =>
-        row.numero === numero
-          ? {
-              ...row,
-              [field]: parseFloat(value) || 0,
-            }
-          : row
-      ),
+      rows: prev.rows.map((row: any) => {
+        if (row.numero === numero) {
+          const updatedRow = {
+            ...row,
+            [field]: parseFloat(value) || 0,
+          };
+          if (field !== "resultado") {
+            const d = updatedRow.deposito || 0;
+            const r = updatedRow.redeposito || 0;
+            const s = updatedRow.saque || 0;
+            const b = updatedRow.bau || 0;
+            updatedRow.resultado = s - d - r + b;
+          }
+          return updatedRow;
+        }
+        return row;
+      }),
     }));
   };
 

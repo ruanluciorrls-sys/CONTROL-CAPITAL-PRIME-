@@ -21,7 +21,9 @@ function Modal({ title, icon, onClose, children }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
-      onClick={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div className="rounded-2xl p-6 max-w-md w-full space-y-5 relative"
         style={{
