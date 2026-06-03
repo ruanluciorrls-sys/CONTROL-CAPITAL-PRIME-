@@ -575,11 +575,26 @@ export default function Relatorios() {
                             </div>
                           </div>
 
-                          {/* Lucro — destaque maior */}
-                          <div className="rounded-xl p-3 flex items-center justify-between mb-3" style={{ background: "rgba(0,0,0,0.3)" }}>
-                            <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Lucro</p>
-                            <p className="font-black text-lg"
-                              style={{ color: lucroTotal >= 0 ? "#4ade80" : "#f87171" }}
+                          {/* Lucro — centralizado e chamativo */}
+                          <div className="rounded-xl py-4 px-4 flex flex-col items-center justify-center mb-3 relative overflow-hidden"
+                            style={{
+                              background: lucroTotal >= 0
+                                ? "linear-gradient(145deg, rgba(74,222,128,0.08), rgba(74,222,128,0.04))"
+                                : "linear-gradient(145deg, rgba(248,113,113,0.08), rgba(248,113,113,0.04))",
+                              border: `1px solid ${lucroTotal >= 0 ? "rgba(74,222,128,0.2)" : "rgba(248,113,113,0.2)"}`,
+                            }}
+                          >
+                            <div className="absolute top-0 left-0 w-full h-[1px]"
+                              style={{ background: `linear-gradient(to right, transparent, ${lucroTotal >= 0 ? "rgba(74,222,128,0.4)" : "rgba(248,113,113,0.4)"}, transparent)` }}
+                            />
+                            <p className="text-[9px] font-black uppercase tracking-widest mb-1.5"
+                              style={{ color: lucroTotal >= 0 ? "rgba(74,222,128,0.5)" : "rgba(248,113,113,0.5)" }}
+                            >Lucro</p>
+                            <p className="font-black text-2xl tracking-tight"
+                              style={{
+                                color: lucroTotal >= 0 ? "#4ade80" : "#f87171",
+                                textShadow: lucroTotal >= 0 ? "0 0 20px rgba(74,222,128,0.3)" : "0 0 20px rgba(248,113,113,0.3)",
+                              }}
                             >
                               {lucroTotal >= 0 ? "+" : ""}R$ {lucroTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
