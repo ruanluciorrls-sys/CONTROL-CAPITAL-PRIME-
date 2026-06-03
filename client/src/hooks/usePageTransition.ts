@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 export function usePageTransition(dependency: string) {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     // Fade out
@@ -10,7 +10,7 @@ export function usePageTransition(dependency: string) {
     // Pequeno delay para permitir fade out antes de mudar conteúdo
     const timer = setTimeout(() => {
       setIsVisible(true);
-    }, 150);
+    }, 20);
 
     return () => clearTimeout(timer);
   }, [dependency]);

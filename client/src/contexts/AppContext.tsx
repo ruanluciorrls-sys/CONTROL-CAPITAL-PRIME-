@@ -48,14 +48,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Queries tRPC
   const casasQuery = trpc.casas.list.useQuery(undefined, {
     enabled: true,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    refetchOnWindowFocus: false,
   });
   
   const relatoriosQuery = trpc.relatorios.list.useQuery(undefined, {
     enabled: true,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   const settingsQuery = trpc.settings.get.useQuery(undefined, {
     enabled: true,
+    staleTime: 1000 * 60 * 30, // Cache for 30 minutes
+    refetchOnWindowFocus: false,
   });
 
   // Mutations tRPC

@@ -153,8 +153,8 @@
   from { opacity: 1; }
   to   { opacity: 0; }
 }
-.page-transition-enter { animation: fadeIn 280ms cubic-bezier(.4,0,.2,1) forwards; }
-.page-transition-exit  { animation: fadeOut 150ms ease forwards; }
+.page-transition-enter { animation: fadeIn 140ms cubic-bezier(.4,0,.2,1) forwards; }
+.page-transition-exit  { animation: fadeOut 70ms ease forwards; }
 
 /* ─────────────────────────────────────────
    LOGIN PAGE
