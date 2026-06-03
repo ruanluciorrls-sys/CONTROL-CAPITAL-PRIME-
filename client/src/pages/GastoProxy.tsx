@@ -44,16 +44,30 @@ function ModalCusto({
   const [data, setData] = useState(editItem ? editItem.data : format(new Date(), "yyyy-MM-dd"));
   const [nota, setNota] = useState(decoded.nota);
 
-  const createMutation = trpc.gastosProxy.create.useMutation({ onSuccess: () => { onSuccess(); onClose(); toast.success("Custo adicionado!"); } });
-  const updateMutation = trpc.gastosProxy.update.useMutation({ onSuccess: () => { onSuccess(); onClose(); toast.success("Custo atualizado!"); } });
+  const createMutation = trpc.gastosProxy.create.useMutation({
+    onSuccess: () => { onSuccess(); onClose(); toast.success("Custo adicionado!"); },
+    onError: (e) => toast.error(`Erro: ${e.message}`),
+  });
+  const updateMutation = trpc.gastosProxy.update.useMutation({
+    onSuccess: () => { onSuccess(); onClose(); toast.success("Custo atualizado!"); },
+    onError: (e) => toast.error(`Erro: ${e.message}`),
+  });
 
   const handleSubmit = () => {
-    if (!valor || !data) return toast.error("Preencha valor e data.");
+    const valorNum = parseFloat(valor);
+    if (!valor || isNaN(valorNum) || valorNum <= 0) {
+      toast.error("Informe um valor válido maior que zero.");
+      return;
+    }
+    if (!data) {
+      toast.error("Selecione uma data.");
+      return;
+    }
     const descricao = encodeTipo(tipo, nota);
     if (editItem) {
-      updateMutation.mutate({ id: editItem.id, valor, descricao, data });
+      updateMutation.mutate({ id: editItem.id, valor: valorNum.toString(), descricao, data });
     } else {
-      createMutation.mutate({ valor, descricao, data });
+      createMutation.mutate({ valor: valorNum.toString(), descricao, data });
     }
   };
 
@@ -127,7 +141,7 @@ function ModalCusto({
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 text-sm font-bold">R$</span>
             <input
-              type="number" step="0.01" placeholder="0,00" value={valor}
+              type="number" step="0.01" min="0.01" placeholder="0.00" value={valor}
               onChange={(e) => setValor(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl bg-transparent border border-white/15 text-white text-sm font-bold focus:outline-none focus:ring-1 focus:ring-[#d4a017] placeholder:text-white/20"
             />
@@ -170,7 +184,10 @@ export default function GastoProxy() {
   const [editItem, setEditItem] = useState<any>(null);
 
   const { data: gastos = [], refetch } = trpc.gastosProxy.list.useQuery();
-  const deleteMutation = trpc.gastosProxy.delete.useMutation({ onSuccess: () => refetch() });
+  const deleteMutation = trpc.gastosProxy.delete.useMutation({
+    onSuccess: () => { refetch(); toast.success("Custo removido!"); },
+    onError: (e) => toast.error(`Erro: ${e.message}`),
+  });
 
   const hoje = new Date();
   const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
