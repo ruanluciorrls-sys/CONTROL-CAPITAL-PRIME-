@@ -978,7 +978,7 @@ export default function Faturamento() {
                   <table className="w-full min-w-[900px] text-sm">
                     <thead>
                       <tr className="border-b border-white/10 bg-white/[0.025]">
-                        {["Operador", "Rede", "Plataforma", "Deposito", "Saque", "Bau", "Resultado", "Data"].map((heading) => (
+                        {["Rede", "Plataforma", "Deposito", "Saque", "Bau", "Resultado", "Data"].map((heading) => (
                           <th key={heading} className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-white/35">
                             {heading}
                           </th>
@@ -988,14 +988,6 @@ export default function Faturamento() {
                     <tbody>
                       {detailedHistoryRows.map((row) => (
                         <tr key={row.id} className="border-b border-white/7 transition-colors hover:bg-white/[0.03]">
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] text-[10px] font-black text-white/70">
-                                {row.operador.slice(0, 2).toUpperCase()}
-                              </div>
-                              <span className="font-bold text-white/80">{row.operador}</span>
-                            </div>
-                          </td>
                           <td className="px-5 py-4">
                             <span className="rounded-full border border-[#d4a017]/25 bg-[#d4a017]/10 px-3 py-1 text-[10px] font-black text-[#d4a017]">
                               {row.rede}
@@ -1349,10 +1341,7 @@ function FinanceFilters({
         ))}
         <input type="date" value={startDate} onChange={(e) => onStartDateChange(e.target.value)} className={inputClass} />
         <input type="date" value={endDate} onChange={(e) => onEndDateChange(e.target.value)} className={inputClass} />
-        <select value={operator} onChange={(e) => onOperatorChange(e.target.value)} className={selectClass}>
-          <option value="todos">Todos operadores</option>
-          {operadores.map((item) => <option key={item} value={item}>{item}</option>)}
-        </select>
+
         <select value={network} onChange={(e) => onNetworkChange(e.target.value)} className={selectClass}>
           <option value="todos">Todas redes</option>
           {redes.map((item) => <option key={item} value={item}>{item}</option>)}

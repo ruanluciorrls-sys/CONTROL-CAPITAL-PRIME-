@@ -301,7 +301,7 @@ export default function Dashboard() {
         </div>
 
         {/* Calendário */}
-        <DashboardCalendar />
+        <DashboardCalendar plataformas={plataformas} />
       </div>
     </div>
   );

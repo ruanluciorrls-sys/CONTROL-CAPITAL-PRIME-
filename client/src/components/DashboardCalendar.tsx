@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface Plataforma {
   id: string;
@@ -67,8 +67,39 @@ const coresPorPlataforma: { [key: string]: string } = {
   DZ: "bg-slate-500/10 border-slate-500/30 text-slate-400 hover:bg-slate-500/20 hover:border-slate-500/50",
 };
 
-export default function DashboardCalendar() {
-  const [plataformas] = useState<Plataforma[]>(plataformasInicial);
+interface DashboardCalendarProps {
+  plataformas?: Plataforma[];
+}
+
+export default function DashboardCalendar({ plataformas: plataformasProp }: DashboardCalendarProps) {
+  const lerPlataformas = (): Plataforma[] => {
+    try {
+      const saved = localStorage.getItem("plataformas-calendario-v2");
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return plataformasInicial;
+  };
+
+  const [plataformas, setPlataformas] = useState<Plataforma[]>(plataformasProp || lerPlataformas);
+
+  useEffect(() => {
+    if (plataformasProp) {
+      setPlataformas(plataformasProp);
+    }
+  }, [plataformasProp]);
+
+  useEffect(() => {
+    const handleUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (Array.isArray(detail)) {
+        setPlataformas(detail);
+      } else {
+        setPlataformas(lerPlataformas());
+      }
+    };
+    window.addEventListener("plataformas-updated", handleUpdate);
+    return () => window.removeEventListener("plataformas-updated", handleUpdate);
+  }, []);
 
   const plataformasPorDia = diasSemana.map((dia) => ({
     dia,

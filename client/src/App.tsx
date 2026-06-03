@@ -18,7 +18,7 @@ import GastoProxy from "@/pages/GastoProxy";
 import AdminPanel from "@/pages/AdminPanel";
 import Login from "@/pages/Login";
 import ChavesPix from "@/pages/ChavesPix";
-import { CheckCircle, Edit3, Home, Settings, FileText, Moon, Sun, LogOut, Zap, Shield, Crown, Wallet, Key, DollarSign, RefreshCw } from "lucide-react";
+import { CheckCircle, Edit3, Home, FileText, Moon, Sun, LogOut, Zap, Shield, Crown, Wallet, Key, DollarSign, RefreshCw, CalendarDays } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -34,7 +34,7 @@ const publicTabs = [
   { id: "gerenciar-casas", label: "MINHAS OPERAÇÃO", icon: <Home size={20} /> },
   { id: "contas", label: "Contas Não Sacadas", icon: <Wallet size={20} /> },
   { id: "chaves-pix", label: "Chaves PIX", icon: <Key size={20} /> },
-  { id: "editar-dados", label: "Configurações", icon: <Settings size={20} /> },
+  { id: "editar-dados", label: "Plataformas", icon: <CalendarDays size={20} /> },
 ];
 
 const adminTab = { id: "admin", label: "Painel Admin", icon: <Shield size={20} /> };
