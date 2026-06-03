@@ -130,12 +130,12 @@ export default function RelatorioSpreadsheet({
       {/* Header — Info do Relatório */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Agente + Prazo */}
-        <div className="rounded-2xl p-5 border border-white/8 relative overflow-hidden"
-          style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+        <div className="rounded-2xl p-5 border relative overflow-hidden"
+          style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)" }}
         >
           <div className="absolute left-0 top-0 h-full w-[3px] rounded-l-2xl" style={{ background: "#d4a017" }} />
-          <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-3">Agente & Prazo</p>
-          <p className="font-black text-lg text-white/90 truncate">{agente || "—"}</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 mb-3">Agente & Prazo</p>
+          <p className="font-black text-lg text-white/90 dark:text-white truncate">{agente || "—"}</p>
           {prazoFmt && (
             <p className="text-sm font-bold mt-1" style={{ color: "#d4a017" }}>{prazoFmt}</p>
           )}
@@ -143,20 +143,20 @@ export default function RelatorioSpreadsheet({
 
         {/* Casa Nome */}
         <div className="rounded-2xl p-5 border border-emerald-500/20 flex items-center justify-center"
-          style={{ background: "linear-gradient(145deg, #071a12, #0c2a1e)" }}
+          style={{ background: "linear-gradient(145deg, rgba(7, 26, 18, 0.75), rgba(12, 42, 30, 0.5))" }}
         >
           <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400/50 mb-1 text-center">Meta</p>
-            <p className="font-black text-2xl text-emerald-300 text-center">{casaNomeLimpo}</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400/70 dark:text-emerald-400/50 mb-1 text-center">Meta</p>
+            <p className="font-black text-2xl text-emerald-300 dark:text-emerald-200 text-center">{casaNomeLimpo}</p>
           </div>
         </div>
 
         {/* Link da Conta-Filha */}
         {linkContaFilha ? (
           <div className="rounded-2xl p-5 border border-[#a78bfa]/20 flex flex-col"
-            style={{ background: "linear-gradient(145deg, #0d0720, #150b2e)" }}
+            style={{ background: "linear-gradient(145deg, rgba(13, 7, 32, 0.75), rgba(21, 11, 46, 0.5))" }}
           >
-            <p className="text-[9px] font-black uppercase tracking-widest text-[#a78bfa]/50 mb-2">Link da Conta-Filha</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-[#a78bfa]/70 dark:text-[#a78bfa]/50 mb-2">Link da Conta-Filha</p>
 
             {/* Link real exibido */}
             <a href={linkContaFilha} target="_blank" rel="noopener noreferrer"
@@ -187,39 +187,39 @@ export default function RelatorioSpreadsheet({
       {/* Cards de Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Qtd DEP */}
-        <div className="rounded-2xl p-5 border border-white/8"
-          style={{ background: "linear-gradient(145deg, #070e20, #0c1524)", borderLeft: "3px solid #60a5fa" }}
+        <div className="rounded-2xl p-5 border"
+          style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)", borderLeft: "3px solid #60a5fa" }}
         >
-          <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-2">Quantidade de DEP</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 mb-2">Quantidade de DEP</p>
           <p className="text-3xl font-black" style={{ color: "#60a5fa" }}>{meta}</p>
-          <p className="text-[10px] text-white/25 mt-1">DEPs necessários</p>
+          <p className="text-[10px] text-white/50 dark:text-white/40 mt-1">DEPs necessários</p>
         </div>
 
         {/* Montante */}
         <div className="rounded-2xl p-5 border border-emerald-500/20"
-          style={{ background: "linear-gradient(145deg, #071a12, #0c2a1e)", borderLeft: "3px solid #4ade80" }}
+          style={{ background: "linear-gradient(145deg, rgba(7, 26, 18, 0.75), rgba(12, 42, 30, 0.5))", borderLeft: "3px solid #4ade80" }}
         >
-          <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400/50 mb-2">Montante a Atingir</p>
-          <p className="text-3xl font-black text-emerald-300">
+          <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400/70 dark:text-emerald-400/50 mb-2">Montante a Atingir</p>
+          <p className="text-3xl font-black text-emerald-300 dark:text-emerald-200">
             {fmt(isNaN(montante) ? 0 : montante)}
           </p>
-          {prazoFmt && <p className="text-[10px] text-emerald-400/40 mt-1">Prazo: {prazoFmt}</p>}
+          {prazoFmt && <p className="text-[10px] text-emerald-400/55 dark:text-emerald-400/40 mt-1">Prazo: {prazoFmt}</p>}
           {montante > 0 && (
             <div className="mt-3">
               <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(74,222,128,0.1)" }}>
                 <div className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${progressoPct}%`, background: "#4ade80" }} />
               </div>
-              <p className="text-[9px] text-emerald-400/40 mt-1">{progressoPct.toFixed(1)}% do montante</p>
+              <p className="text-[9px] text-emerald-400/55 dark:text-emerald-400/40 mt-1">{progressoPct.toFixed(1)}% do montante</p>
             </div>
           )}
         </div>
 
         {/* Progresso Cooperação */}
         <div className="rounded-2xl p-5 border border-[#a78bfa]/20"
-          style={{ background: "linear-gradient(145deg, #0d0720, #150b2e)", borderLeft: "3px solid #a78bfa" }}
+          style={{ background: "linear-gradient(145deg, rgba(13, 7, 32, 0.75), rgba(21, 11, 46, 0.5))", borderLeft: "3px solid #a78bfa" }}
         >
-          <p className="text-[9px] font-black uppercase tracking-widest text-[#a78bfa]/50 mb-2">Cooperação</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-[#a78bfa]/70 dark:text-[#a78bfa]/50 mb-2">Cooperação</p>
           <div className="flex gap-2 items-center mb-2">
             <input
               type="number"
@@ -241,17 +241,17 @@ export default function RelatorioSpreadsheet({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
 
         {/* Tabela */}
-        <div className="lg:col-span-3 rounded-2xl overflow-hidden border border-white/8"
-          style={{ background: "linear-gradient(145deg, #070e20, #0a1628)" }}
+        <div className="lg:col-span-3 rounded-2xl border overflow-hidden"
+          style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)" }}
         >
           <table className="w-full">
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(212,160,23,0.2)", background: "rgba(212,160,23,0.05)" }}>
-                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-left">#</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 text-left">#</th>
                 {["Depósito", "ReDepósito", "Saque", "Baú", "Resultado"].map((h) => (
                   <th key={h} className={thStyle}>{h}</th>
                 ))}
-                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-center">Ação</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 text-center">Ação</th>
               </tr>
             </thead>
             <tbody>
