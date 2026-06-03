@@ -8,6 +8,18 @@ import { supabaseUploadJSON } from "./storage";
 import { InsertRelatorio } from "../drizzle/schema";
 import { nanoid } from "nanoid";
 import { sdk } from "./_core/sdk";
+import fs from "fs";
+import path from "path";
+
+let defaultFundoUrl = "";
+try {
+  const filePath = path.join(process.cwd(), "fundo.txt");
+  if (fs.existsSync(filePath)) {
+    defaultFundoUrl = fs.readFileSync(filePath, "utf8").trim();
+  }
+} catch (err) {
+  console.error("Failed to load default background image from fundo.txt:", err);
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -39,6 +51,14 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    changePassword: protectedProcedure
+      .input(z.object({
+        newPassword: z.string().min(6),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await updateUserPassword(ctx.user.id, input.newPassword);
+        return { success: true };
+      }),
   }),
 
   // Admin router — apenas admins podem usar
@@ -269,11 +289,17 @@ export const appRouter = router({
   settings: router({
     get: protectedProcedure.query(async ({ ctx }) => {
       const settings = await getUserSettings(ctx.user.id);
-      return settings || {
+      if (settings) {
+        return {
+          ...settings,
+          fundoUrl: settings.fundoUrl || defaultFundoUrl
+        };
+      }
+      return {
         userId: ctx.user.id,
         nomeApp: "RUAN DARK CPA",
         corPrimaria: "#2563EB",
-        fundoUrl: null,
+        fundoUrl: defaultFundoUrl,
         logoUrl: null,
         nomeColorido: "Juan Dark",
         coresColorido: [],

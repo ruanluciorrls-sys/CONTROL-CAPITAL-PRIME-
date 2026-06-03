@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Search, Flame, Award, Heart, Check, Copy, RefreshCw, Layers } from "lucide-react";
+import { Search, Flame, Award, Heart, Check, Copy, RefreshCw, Layers, Plus, X } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "../_core/hooks/useAuth";
 import slotsData from "./slots_data.json";
 
 interface SlotGame {
@@ -12,10 +13,29 @@ interface SlotGame {
 }
 
 export default function Slots() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"catalogo" | "favoritos">("catalogo");
   const [search, setSearch] = useState("");
   const [selectedProvider, setSelectedProvider] = useState("TODOS");
   const [selectedPerformance, setSelectedPerformance] = useState("TODOS");
+  
+  // Custom slots state with localStorage persistence
+  const [games, setGames] = useState<SlotGame[]>(() => {
+    try {
+      const saved = localStorage.getItem("slots-custom-v1");
+      const customGames = saved ? JSON.parse(saved) : [];
+      const allGames = [...slotsData];
+      customGames.forEach((cg: SlotGame) => {
+        if (!allGames.some(g => g.name.toLowerCase() === cg.name.toLowerCase())) {
+          allGames.push(cg);
+        }
+      });
+      return allGames;
+    } catch {
+      return slotsData;
+    }
+  });
+
   const [favoritos, setFavoritos] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem("slots-favoritos-v1");
@@ -23,6 +43,17 @@ export default function Slots() {
     } catch {
       return [];
     }
+  });
+
+  // Modal form states
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [mouseDownOnBackdrop, setMouseDownOnBackdrop] = useState(false);
+  const [newGame, setNewGame] = useState<SlotGame>({
+    name: "",
+    provider: "PG",
+    performance: "ALTA",
+    tag: "",
+    image: ""
   });
 
   const providers = ["TODOS", "PG", "PP", "WG", "MG", "JILI", "JDB", "FC", "PESCARIA"];
@@ -53,8 +84,44 @@ export default function Slots() {
     toast.success(`Nome "${name}" copiado para o teclado!`);
   };
 
+  const handleAddGame = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGame.name.trim()) {
+      toast.error("Por favor, insira o nome do jogo");
+      return;
+    }
+
+    if (games.some(g => g.name.toLowerCase() === newGame.name.trim().toLowerCase())) {
+      toast.error("Já existe um jogo com este nome!");
+      return;
+    }
+
+    const updatedGames = [newGame, ...games];
+    setGames(updatedGames);
+
+    // Save custom games to localStorage
+    try {
+      const saved = localStorage.getItem("slots-custom-v1");
+      const customGames = saved ? JSON.parse(saved) : [];
+      customGames.unshift(newGame);
+      localStorage.setItem("slots-custom-v1", JSON.stringify(customGames));
+    } catch {
+      // Fail silently
+    }
+
+    toast.success("Novo jogo adicionado com sucesso!");
+    setIsAddModalOpen(false);
+    setNewGame({
+      name: "",
+      provider: "PG",
+      performance: "ALTA",
+      tag: "",
+      image: ""
+    });
+  };
+
   // Filter games logic
-  const filteredGames = (slotsData as SlotGame[]).filter((game) => {
+  const filteredGames = games.filter((game) => {
     const matchesSearch = game.name.toLowerCase().includes(search.toLowerCase()) || 
                           game.tag.toLowerCase().includes(search.toLowerCase());
     const matchesProvider = selectedProvider === "TODOS" || game.provider.toUpperCase() === selectedProvider.toUpperCase();
@@ -90,7 +157,7 @@ export default function Slots() {
   };
 
   const totalPorPerformance = (perf: string) => {
-    return (slotsData as SlotGame[]).filter(g => g.performance.toUpperCase() === perf.toUpperCase()).length;
+    return games.filter(g => g.performance.toUpperCase() === perf.toUpperCase()).length;
   };
 
   return (
@@ -120,7 +187,7 @@ export default function Slots() {
                 Slots Premium
               </h1>
               <p className="text-xs text-white/40 mt-1 uppercase tracking-widest">
-                48 jogos testados para rollover · atualizado semanalmente
+                {games.length} jogos testados para rollover · atualizado semanalmente
               </p>
             </div>
             
@@ -143,23 +210,33 @@ export default function Slots() {
         <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
           
           {/* Main Tabs */}
-          <div className="flex gap-1 p-1 rounded-xl border border-white/8 bg-white/[0.02] w-full sm:w-auto">
+          <div className="flex flex-wrap gap-3 items-center w-full xl:w-auto">
+            <div className="flex gap-1 p-1 rounded-xl border border-white/8 bg-white/[0.02] w-full sm:w-auto">
+              <button
+                onClick={() => setActiveTab("catalogo")}
+                className={`flex-1 sm:flex-initial px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                  activeTab === "catalogo" ? "bg-[#d4a017] text-[#050b18]" : "text-white/40 hover:text-white/70"
+                }`}
+              >
+                Catálogo Oficial ({games.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("favoritos")}
+                className={`flex-1 sm:flex-initial px-6 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  activeTab === "favoritos" ? "bg-[#d4a017] text-[#050b18]" : "text-white/40 hover:text-white/70"
+                }`}
+              >
+                <Heart size={13} className={activeTab === "favoritos" ? "fill-[#050b18]" : ""} />
+                Meus Jogos ({favoritos.length})
+              </button>
+            </div>
+
             <button
-              onClick={() => setActiveTab("catalogo")}
-              className={`flex-1 sm:flex-initial px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
-                activeTab === "catalogo" ? "bg-[#d4a017] text-[#050b18]" : "text-white/40 hover:text-white/70"
-              }`}
+              onClick={() => setIsAddModalOpen(true)}
+              className="px-4 py-2.5 rounded-lg text-xs font-black bg-[#d4a017]/10 text-[#d4a017] hover:bg-[#d4a017] hover:text-[#050b18] border border-[#d4a017]/20 transition-all flex items-center gap-1.5 shrink-0"
             >
-              Catálogo Oficial ({slotsData.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("favoritos")}
-              className={`flex-1 sm:flex-initial px-6 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === "favoritos" ? "bg-[#d4a017] text-[#050b18]" : "text-white/40 hover:text-white/70"
-              }`}
-            >
-              <Heart size={13} className={activeTab === "favoritos" ? "fill-[#050b18]" : ""} />
-              Meus Jogos ({favoritos.length})
+              <Plus size={13} />
+              Adicionar Jogo
             </button>
           </div>
 
@@ -228,6 +305,7 @@ export default function Slots() {
                         alt={game.name} 
                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         loading="lazy"
+                        referrerPolicy="no-referrer"
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-white/10">
@@ -295,6 +373,120 @@ export default function Slots() {
           </div>
         )}
       </div>
+
+      {/* Add Game Modal Overlay */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(12px)" }}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setMouseDownOnBackdrop(true);
+            }
+          }}
+          onMouseUp={(e) => {
+            if (e.target === e.currentTarget && mouseDownOnBackdrop) {
+              setIsAddModalOpen(false);
+            }
+            setMouseDownOnBackdrop(false);
+          }}
+        >
+          <div className="rounded-3xl p-6 max-w-md w-full space-y-5 relative overflow-hidden border border-white/10"
+            style={{
+              background: "linear-gradient(135deg, rgba(7,14,32,0.98) 0%, rgba(15,30,69,0.95) 100%)",
+              boxShadow: "0 25px 50px -12px rgba(212,160,23,0.25)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/40 to-transparent" />
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-[#d4a017]/10 text-[#d4a017] border border-[#d4a017]/30">
+                  <Plus size={16} />
+                </div>
+                <h3 className="text-base font-black tracking-tight text-white">Adicionar Novo Slot</h3>
+              </div>
+              <button 
+                onClick={() => setIsAddModalOpen(false)}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/5 transition-all"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddGame} className="space-y-4 pt-2">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Nome do Jogo</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Fortune Tiger"
+                  value={newGame.name}
+                  onChange={(e) => setNewGame({ ...newGame, name: e.target.value })}
+                  className="w-full h-11 px-4 rounded-xl border border-white/10 bg-black/35 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-[#d4a017]/70"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Provedor</label>
+                  <select
+                    value={newGame.provider}
+                    onChange={(e) => setNewGame({ ...newGame, provider: e.target.value })}
+                    className="w-full h-11 px-3 rounded-xl border border-white/10 bg-[#0a1428] text-xs text-white/80 focus:outline-none focus:border-[#d4a017]/70"
+                  >
+                    {providers.filter(p => p !== "TODOS").map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Performance</label>
+                  <select
+                    value={newGame.performance}
+                    onChange={(e) => setNewGame({ ...newGame, performance: e.target.value })}
+                    className="w-full h-11 px-3 rounded-xl border border-white/10 bg-[#0a1428] text-xs text-white/80 focus:outline-none focus:border-[#d4a017]/70"
+                  >
+                    <option value="ALTA">Alta Performance</option>
+                    <option value="MEDIA">Média</option>
+                    <option value="BAIXA">Baixa</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Categoria / Tag</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Tigre, Frutas, Clássico"
+                  value={newGame.tag}
+                  onChange={(e) => setNewGame({ ...newGame, tag: e.target.value })}
+                  className="w-full h-11 px-4 rounded-xl border border-white/10 bg-black/35 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-[#d4a017]/70"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">URL da Imagem (Opcional)</label>
+                <input
+                  type="url"
+                  placeholder="Ex: https://dominio.com/imagem.png"
+                  value={newGame.image}
+                  onChange={(e) => setNewGame({ ...newGame, image: e.target.value })}
+                  className="w-full h-11 px-4 rounded-xl border border-white/10 bg-black/35 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-[#d4a017]/70"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full h-11 mt-4 rounded-xl bg-[#d4a017] text-[#050b18] hover:bg-[#c39010] text-xs font-black tracking-wider uppercase transition-all shadow-[0_4px_12px_rgba(212,160,23,0.2)]"
+              >
+                Confirmar e Adicionar
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -245,23 +245,37 @@ export default function Dashboard() {
         </div>
 
         {/* Lançamentos de Hoje */}
-        <div className="rounded-2xl p-5 border border-white/8"
-          style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+        <div className="rounded-2xl p-5 border border-white/8 relative overflow-hidden"
+          style={{ 
+            background: "linear-gradient(135deg, rgba(8, 14, 32, 0.95) 0%, rgba(12, 21, 36, 0.85) 100%)",
+            backdropFilter: "blur(10px)"
+          }}
         >
+          {/* Decorative multi-color gradient line at the top */}
+          <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-cyan-400 via-emerald-400 via-amber-400 via-rose-400 to-indigo-400" />
+
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center border border-white/8"
-                style={{ background: corHoje + "15", color: corHoje }}
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center border border-white/10"
+                style={{ 
+                  background: "linear-gradient(135deg, rgba(212,160,23,0.15), rgba(245,158,11,0.05))", 
+                  color: "#d4a017",
+                  boxShadow: "0 0 10px rgba(212,160,23,0.2)"
+                }}
               >
                 <Calendar size={16} />
               </div>
               <div>
-                <h2 className="text-sm font-black text-white/90">Lançamentos de Hoje</h2>
-                <p className="text-[10px] text-white/25">{dataFormatada}</p>
+                <h2 className="text-sm font-black text-white" style={{ textShadow: "0 0 10px rgba(255,255,255,0.1)" }}>Lançamentos de Hoje</h2>
+                <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{dataFormatada}</p>
               </div>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg"
-              style={{ background: corHoje + "15", color: corHoje }}
+            <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-[#d4a017]/20"
+              style={{ 
+                background: "rgba(212,160,23,0.08)", 
+                color: "#d4a017",
+                boxShadow: "0 0 10px rgba(212,160,23,0.05)"
+              }}
             >
               {plataformasDeHoje.length} plataforma{plataformasDeHoje.length !== 1 ? "s" : ""}
             </span>
@@ -269,29 +283,49 @@ export default function Dashboard() {
 
           {plataformasDeHoje.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
-              {plataformasDeHoje.map((plat) => (
-                <div key={plat.id}
-                  className="flex items-center justify-between px-4 py-3 rounded-xl border border-white/6 transition-all hover:border-white/12"
-                  style={{ background: "rgba(255,255,255,0.03)" }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs"
-                      style={{ background: corHoje + "18", color: corHoje }}
+              {(() => {
+                const CORES_DIVERSAS = [
+                  { text: "#38bdf8", bg: "rgba(56, 189, 248, 0.08)", border: "rgba(56, 189, 248, 0.25)" }, // Blue
+                  { text: "#4ade80", bg: "rgba(74, 222, 128, 0.08)", border: "rgba(74, 222, 128, 0.25)" }, // Green
+                  { text: "#fb7185", bg: "rgba(251, 113, 133, 0.08)", border: "rgba(251, 113, 133, 0.25)" }, // Pink/Rose
+                  { text: "#f59e0b", bg: "rgba(245, 158, 11, 0.08)", border: "rgba(245, 158, 11, 0.25)" }, // Gold
+                  { text: "#a78bfa", bg: "rgba(167, 139, 250, 0.08)", border: "rgba(167, 139, 250, 0.25)" }, // Purple
+                  { text: "#22d3ee", bg: "rgba(34, 211, 238, 0.08)", border: "rgba(34, 211, 238, 0.25)" }, // Cyan
+                  { text: "#f43f5e", bg: "rgba(244, 63, 94, 0.08)", border: "rgba(244, 63, 94, 0.25)" }, // Red
+                  { text: "#fb923c", bg: "rgba(251, 146, 60, 0.08)", border: "rgba(251, 146, 60, 0.25)" }, // Orange
+                ];
+                return plataformasDeHoje.map((plat, idx) => {
+                  const colorConfig = CORES_DIVERSAS[idx % CORES_DIVERSAS.length];
+                  return (
+                    <div key={plat.id}
+                      className="flex items-center justify-between px-4 py-3 rounded-xl border transition-all duration-300 hover:-translate-y-0.5"
+                      style={{ 
+                        background: "rgba(255,255,255,0.02)", 
+                        borderColor: colorConfig.border,
+                        boxShadow: `0 4px 20px -8px ${colorConfig.text}10`
+                      }}
                     >
-                      {plat.nome.slice(0, 2)}
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs"
+                          style={{ background: colorConfig.bg, color: colorConfig.text, border: `1px solid ${colorConfig.border}` }}
+                        >
+                          {plat.nome.slice(0, 2)}
+                        </div>
+                        <span className="font-extrabold text-sm text-white/90">{plat.nome}</span>
+                      </div>
+                      <span className="text-[10px] font-black px-2 py-1 rounded-lg border"
+                        style={{
+                          background: plat.diasPrazo === 0 ? "rgba(255,255,255,0.03)" : colorConfig.bg,
+                          color: plat.diasPrazo === 0 ? "rgba(255,255,255,0.4)" : colorConfig.text,
+                          borderColor: plat.diasPrazo === 0 ? "rgba(255,255,255,0.08)" : colorConfig.border
+                        }}
+                      >
+                        {plat.diasPrazo === 0 ? "Imediato" : `+${plat.diasPrazo}d`}
+                      </span>
                     </div>
-                    <span className="font-black text-sm text-white/85">{plat.nome}</span>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-1 rounded-lg"
-                    style={{
-                      background: plat.diasPrazo === 0 ? "rgba(255,255,255,0.05)" : corHoje + "15",
-                      color: plat.diasPrazo === 0 ? "rgba(255,255,255,0.2)" : corHoje,
-                    }}
-                  >
-                    {plat.diasPrazo === 0 ? "Imediato" : `+${plat.diasPrazo}d`}
-                  </span>
-                </div>
-              ))}
+                  );
+                });
+              })()}
             </div>
           ) : (
             <div className="py-10 text-center rounded-xl border border-dashed border-white/8">

@@ -18,11 +18,21 @@ const SUB_CONFIG: Record<SubscriptionStatus, { label: string; color: string; bg:
 function Modal({ title, icon, onClose, children }: {
   title: string; icon: React.ReactNode; onClose: () => void; children: React.ReactNode;
 }) {
+  const [mouseDownOnBackdrop, setMouseDownOnBackdrop] = useState(false);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) {
+          setMouseDownOnBackdrop(true);
+        }
+      }}
+      onMouseUp={(e) => {
+        if (e.target === e.currentTarget && mouseDownOnBackdrop) {
+          onClose();
+        }
+        setMouseDownOnBackdrop(false);
       }}
     >
       <div className="rounded-2xl p-6 max-w-md w-full space-y-5 relative"

@@ -19,10 +19,11 @@ import AdminPanel from "@/pages/AdminPanel";
 import Login from "@/pages/Login";
 import Slots from "@/pages/Slots";
 import ChavesPix from "@/pages/ChavesPix";
-import { CheckCircle, Edit3, Home, FileText, Moon, Sun, LogOut, Zap, Shield, Crown, Wallet, Key, DollarSign, RefreshCw, CalendarDays, Flame } from "lucide-react";
+import { CheckCircle, Edit3, Home, FileText, Moon, Sun, LogOut, Zap, Shield, Crown, Wallet, Key, DollarSign, RefreshCw, CalendarDays, Flame, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
 import { setNavigateFn } from "@/lib/navigate";
 import { usePageTransition } from "@/hooks/usePageTransition";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -50,6 +51,36 @@ function AppContent() {
     return localStorage.getItem("lastActiveTab") || "dashboard";
   });
   const { user, loading, isAuthenticated, logout } = useAuth({ redirectOnUnauthenticated: true });
+
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [mouseDownOnBackdrop, setMouseDownOnBackdrop] = useState(false);
+
+  const changePasswordMutation = trpc.auth.changePassword.useMutation({
+    onSuccess: () => {
+      toast.success("Senha atualizada com sucesso!");
+      setIsChangePasswordOpen(false);
+      setNewPassword("");
+      setConfirmPassword("");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Erro ao atualizar senha");
+    }
+  });
+
+  const handleChangePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      toast.error("A senha deve ter no mínimo 6 caracteres!");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("As senhas não coincidem!");
+      return;
+    }
+    changePasswordMutation.mutate({ newPassword });
+  };
 
   const handleRefreshSite = () => {
     setIsRefreshing(true);
@@ -234,18 +265,27 @@ function AppContent() {
         >
           {/* User card */}
           {user && (
-            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-white/8"
+            <div className="flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-xl border border-white/8"
               style={{ background: "rgba(255,255,255,0.03)" }}
             >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm text-[#050b18] shrink-0"
-                style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm text-[#050b18] shrink-0"
+                  style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                >
+                  {(user.email || user.name || "?")[0].toUpperCase()}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[8px] text-white/25 uppercase tracking-widest font-black leading-tight">Logado como</span>
+                  <span className="text-[11px] font-bold text-white/70 truncate leading-tight">{user.email || user.name}</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsChangePasswordOpen(true)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center border border-white/10 bg-white/5 text-white/55 hover:text-[#d4a017] hover:border-[#d4a017]/30 hover:bg-[#d4a017]/10 transition-all shrink-0"
+                title="Alterar Senha"
               >
-                {(user.email || user.name || "?")[0].toUpperCase()}
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[8px] text-white/25 uppercase tracking-widest font-black leading-tight">Logado como</span>
-                <span className="text-[11px] font-bold text-white/70 truncate leading-tight">{user.email || user.name}</span>
-              </div>
+                <Key size={13} />
+              </button>
             </div>
           )}
 
@@ -412,6 +452,22 @@ function HeaderWithThemeToggle({
 
           <div className="h-6 w-[1px] bg-white/10 hidden sm:block"></div>
 
+          {user && (
+            <button
+              onClick={() => setIsChangePasswordOpen(true)}
+              className="p-2 rounded-xl transition-all duration-300 min-h-[42px] min-w-[42px] flex items-center justify-center hover:scale-105 active:scale-95"
+              style={{
+                color: "#d4a017",
+                background: "rgba(212,160,23,0.08)",
+                border: "1px solid rgba(212,160,23,0.2)",
+              }}
+              title="Alterar Senha"
+              aria-label="Alterar Senha"
+            >
+              <Key size={18} />
+            </button>
+          )}
+
           <button
             onClick={onRefresh}
             disabled={isRefreshing}
@@ -463,6 +519,82 @@ function HeaderWithThemeToggle({
         </div>
 
       </div>
+
+      {/* Change Password Modal */}
+      {isChangePasswordOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setMouseDownOnBackdrop(true);
+            }
+          }}
+          onMouseUp={(e) => {
+            if (e.target === e.currentTarget && mouseDownOnBackdrop) {
+              setIsChangePasswordOpen(false);
+            }
+            setMouseDownOnBackdrop(false);
+          }}
+        >
+          <div className="rounded-3xl p-6 max-w-md w-full space-y-5 relative overflow-hidden border border-white/10"
+            style={{
+              background: "linear-gradient(135deg, rgba(7,14,32,0.98) 0%, rgba(15,30,69,0.95) 100%)",
+              boxShadow: "0 25px 50px -12px rgba(212,160,23,0.25)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/40 to-transparent" />
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-[#d4a017]/10 text-[#d4a017] border border-[#d4a017]/30">
+                  <Key size={16} />
+                </div>
+                <h3 className="text-base font-black tracking-tight text-white">Alterar Minha Senha</h3>
+              </div>
+              <button 
+                onClick={() => setIsChangePasswordOpen(false)}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/5 transition-all"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleChangePasswordSubmit} className="space-y-4 pt-2">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Nova Senha</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Mínimo 6 caracteres"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full h-11 px-4 rounded-xl border border-white/10 bg-black/35 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-[#d4a017]/70"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Confirmar Nova Senha</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Repita a nova senha"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full h-11 px-4 rounded-xl border border-white/10 bg-black/35 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-[#d4a017]/70"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={changePasswordMutation.isPending}
+                className="w-full h-11 mt-4 rounded-xl bg-[#d4a017] text-[#050b18] hover:bg-[#c39010] text-xs font-black tracking-wider uppercase transition-all shadow-[0_4px_12px_rgba(212,160,23,0.2)] disabled:opacity-50"
+              >
+                {changePasswordMutation.isPending ? "Salvando..." : "Confirmar Alteração"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
