@@ -22,6 +22,7 @@ import { CheckCircle, Edit3, Home, Settings, FileText, Moon, Sun, LogOut, Zap, S
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { setNavigateFn } from "@/lib/navigate";
 import { usePageTransition } from "@/hooks/usePageTransition";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
@@ -65,6 +66,11 @@ function AppContent() {
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
   };
+
+  // Registra função de navegação global
+  useEffect(() => {
+    setNavigateFn(handleTabChange);
+  }, []);
 
   const isVisible = usePageTransition(activeTab);
 
@@ -141,16 +147,32 @@ function AppContent() {
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#d4a017] to-transparent opacity-85" />
           
           <div className="relative group cursor-pointer mb-4">
-            <div className="absolute -inset-1.5 bg-gradient-to-r from-orange-400 to-orange-600 rounded-xl blur opacity-45 group-hover:opacity-75 transition duration-500"></div>
-            <div className="relative" style={{
-              width: 52, height: 52,
-              background: "linear-gradient(135deg, #f97316, #ea580c)",
-              border: "1.5px solid rgba(255,255,255,0.2)",
-              borderRadius: 14,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              transition: "transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
-            }}>
-              <Crown color="white" size={28} className="group-hover:rotate-12 transition duration-300" strokeWidth={2.5} />
+            {/* Glow externo pulsante */}
+            <div className="absolute -inset-2 rounded-2xl blur-xl opacity-30 group-hover:opacity-60 transition duration-700 animate-pulse"
+              style={{ background: "linear-gradient(135deg, #d4a017, #f97316)" }}
+            />
+            {/* Anel decorativo */}
+            <div className="absolute -inset-1 rounded-2xl opacity-40 group-hover:opacity-70 transition duration-500"
+              style={{ background: "conic-gradient(from 0deg, #d4a017, #f97316, #d4a017)", padding: "1px", borderRadius: 16 }}
+            />
+            {/* Corpo do logo */}
+            <div className="relative flex items-center justify-center"
+              style={{
+                width: 56, height: 56,
+                background: "linear-gradient(145deg, #1a0a00, #0d0500)",
+                borderRadius: 16,
+                border: "1.5px solid rgba(212,160,23,0.5)",
+                boxShadow: "0 0 20px rgba(212,160,23,0.2), inset 0 1px 0 rgba(255,255,255,0.1)",
+              }}
+            >
+              {/* Brilho interno */}
+              <div className="absolute top-1 left-3 right-3 h-[1px]"
+                style={{ background: "linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent)" }}
+              />
+              <Crown style={{
+                color: "#f3d078",
+                filter: "drop-shadow(0 0 8px rgba(212,160,23,0.8))",
+              }} size={26} strokeWidth={2} className="group-hover:scale-110 transition duration-300" />
             </div>
           </div>
 
@@ -329,19 +351,23 @@ function HeaderWithThemeToggle({
         
         {/* Left Side: Hexagonal Premium Logo and Badge */}
         <div className="flex items-center gap-3 w-full md:w-1/4 justify-center md:justify-start">
-          <div className="relative group cursor-pointer">
-            <div className="absolute -inset-1 bg-gradient-to-r from-orange-400 to-orange-600 rounded-xl blur opacity-45 group-hover:opacity-75 transition duration-500"></div>
-            <div className="relative" style={{
-              width: 42, height: 42,
-              background: "linear-gradient(135deg, #f97316, #ea580c)",
-              border: "1.5px solid rgba(255,255,255,0.2)",
-              borderRadius: 11,
-              display: "flex", alignItems: "center", justifyItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              transition: "transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
-            }}>
-              <Crown color="white" size={24} className="group-hover:rotate-12 transition duration-300" strokeWidth={2.5} />
+          <div className="relative group cursor-pointer shrink-0">
+            <div className="absolute -inset-1.5 rounded-xl blur-lg opacity-30 group-hover:opacity-60 transition duration-500"
+              style={{ background: "linear-gradient(135deg, #d4a017, #f97316)" }}
+            />
+            <div className="relative flex items-center justify-center"
+              style={{
+                width: 42, height: 42,
+                background: "linear-gradient(145deg, #1a0a00, #0d0500)",
+                borderRadius: 12,
+                border: "1.5px solid rgba(212,160,23,0.5)",
+                boxShadow: "0 0 14px rgba(212,160,23,0.2)",
+                flexShrink: 0,
+              }}
+            >
+              <Crown style={{ color: "#f3d078", filter: "drop-shadow(0 0 6px rgba(212,160,23,0.7))" }}
+                size={20} strokeWidth={2} className="group-hover:scale-110 transition duration-300"
+              />
             </div>
           </div>
           <div className="hidden lg:flex flex-col">

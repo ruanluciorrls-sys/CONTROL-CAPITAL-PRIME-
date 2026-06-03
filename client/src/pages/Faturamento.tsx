@@ -804,17 +804,27 @@ export default function Faturamento() {
 
             {/* Logo */}
             <div className="relative inline-flex mb-6">
-              <div className="absolute -inset-3 rounded-2xl blur-xl opacity-40"
-                style={{ background: "linear-gradient(135deg, #f97316, #d4a017)" }}
+              <div className="absolute -inset-3 rounded-2xl blur-2xl opacity-40 animate-pulse"
+                style={{ background: "linear-gradient(135deg, #d4a017, #f97316)" }}
               />
-              <div className="relative w-16 h-16 rounded-2xl flex items-center justify-center"
+              <div className="absolute -inset-[3px] rounded-2xl opacity-50"
+                style={{ background: "conic-gradient(from 0deg, #d4a017, #f97316, #d4a017)", padding: "2px", borderRadius: 20 }}
+              />
+              <div className="relative w-18 h-18 flex items-center justify-center"
                 style={{
-                  background: "linear-gradient(135deg, #f97316, #ea580c)",
-                  border: "1.5px solid rgba(255,255,255,0.2)",
-                  boxShadow: "0 8px 24px rgba(249,115,22,0.3)",
+                  width: 72, height: 72,
+                  background: "linear-gradient(145deg, #1a0a00, #0d0500)",
+                  borderRadius: 20,
+                  border: "2px solid rgba(212,160,23,0.6)",
+                  boxShadow: "0 0 30px rgba(212,160,23,0.25), inset 0 1px 0 rgba(255,255,255,0.1)",
                 }}
               >
-                <Crown color="white" size={32} />
+                <div className="absolute top-1.5 left-4 right-4 h-[1px]"
+                  style={{ background: "linear-gradient(to right, transparent, rgba(255,255,255,0.25), transparent)" }}
+                />
+                <Crown style={{ color: "#f3d078", filter: "drop-shadow(0 0 12px rgba(212,160,23,0.9))" }}
+                  size={34} strokeWidth={2}
+                />
               </div>
             </div>
 
