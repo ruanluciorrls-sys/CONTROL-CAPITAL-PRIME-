@@ -10,7 +10,7 @@ export function usePageTransition(dependency: string) {
     // Pequeno delay para permitir fade out antes de mudar conteúdo
     const timer = setTimeout(() => {
       setIsVisible(true);
-    }, 20);
+    }, 40);
 
     return () => clearTimeout(timer);
   }, [dependency]);
