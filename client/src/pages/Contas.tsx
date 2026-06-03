@@ -325,19 +325,32 @@ export default function Contas() {
     }
   };
 
+  const totalValor = filteredContas.reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+  const totalFmt = `R$ ${totalValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black"
-            style={{
-              background: "linear-gradient(135deg, #ffffff 10%, #f3d078 50%, #ffffff 90%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >Contas Não Sacadas</h1>
-          <p className="text-xs text-white/30 mt-0.5 uppercase tracking-widest">Gerenciamento de contas</p>
+        <div className="flex flex-col md:flex-row md:items-start md:items-center gap-2 md:gap-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black"
+              style={{
+                background: "linear-gradient(135deg, #ffffff 10%, #f3d078 50%, #ffffff 90%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >Contas Não Sacadas</h1>
+            <p className="text-xs text-white/30 mt-0.5 uppercase tracking-widest">Gerenciamento de contas</p>
+          </div>
+          
+          {/* Total Valor Badge */}
+          <div className="px-4 py-1.5 rounded-xl border border-[#d4a017]/25 flex flex-col justify-center shrink-0 h-fit"
+            style={{ background: "rgba(212,160,23,0.08)", boxShadow: "0 0 15px rgba(212,160,23,0.05)" }}
+          >
+            <span className="text-[8px] font-black tracking-widest text-[#d4a017] uppercase leading-tight">Valor Total Acumulado</span>
+            <span className="text-base font-black text-white leading-none mt-0.5">{totalFmt}</span>
+          </div>
         </div>
         <button
           onClick={addNewForm}
