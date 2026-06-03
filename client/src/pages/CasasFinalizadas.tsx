@@ -1,11 +1,23 @@
 import { useApp } from "@/contexts/AppContext";
-import { Trash2, Edit2, RotateCcw, Eye, EyeOff, CheckSquare2, Square } from "lucide-react";
-import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import {
+  Archive,
+  CalendarDays,
+  CheckSquare2,
+  Download,
+  Edit2,
+  Eye,
+  EyeOff,
+  RotateCcw,
+  Square,
+  Trash2,
+  Trophy,
+} from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export default function CasasFinalizadas() {
-  const { state, deleteCasa, updateCasa, deletePermanentementeCasa, esvaziarLixeiraCasas } = useApp();
+  const { state, updateCasa, deletePermanentementeCasa, esvaziarLixeiraCasas } = useApp();
   const { data: totalGastosProxy = 0 } = trpc.gastosProxy.total.useQuery();
   const [editingCasa, setEditingCasa] = useState<any>(null);
   const [editData, setEditData] = useState<any>(null);
@@ -15,11 +27,22 @@ export default function CasasFinalizadas() {
   const [filtroMes, setFiltroMes] = useState<string | null>(null);
   const [selectedLixeira, setSelectedLixeira] = useState<Set<string>>(new Set());
 
-  // Extrair nome inicial (primeira palavra) de cada casa
-  const getNomeInicial = (nome: string) => {
-    const palavras = nome.trim().split(/\s+/);
-    return palavras[0].toUpperCase();
+  const panelClass =
+    "relative overflow-hidden rounded-2xl border border-white/10 bg-[#071226]/80 shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur-xl";
+  const subtlePanelClass =
+    "relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] shadow-[0_14px_42px_rgba(0,0,0,0.22)] backdrop-blur-xl";
+  const goldButtonStyle = {
+    background: "linear-gradient(135deg, #d4a017, #f6b51b)",
+    color: "#050b18",
+    boxShadow: "0 10px 24px rgba(212,160,23,0.24)",
   };
+  const ghostButtonStyle = {
+    background: "rgba(255,255,255,0.055)",
+    color: "rgba(255,255,255,0.68)",
+    border: "1px solid rgba(255,255,255,0.10)",
+  };
+
+  const getNomeInicial = (nome: string) => nome.trim().split(/\s+/)[0].toUpperCase();
 
   const casasFinalizadas = state.casas.filter((c) => c.status === "finalizada");
   const casasLixeira = state.casas.filter((c) => c.status === "lixeira");
@@ -29,45 +52,50 @@ export default function CasasFinalizadas() {
     const hoje = new Date();
     for (let i = 0; i < 12; i++) {
       const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
-      const mesKey = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
-      meses.push(mesKey);
+      meses.push(`${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`);
     }
     return meses;
   };
-
-  const mesesDisponiveis = getMesesDisponiveis();
 
   const getCasasMes = (mesKey: string) => {
     return casasFinalizadas.filter((casa) => {
       if (!casa.dataFim) return false;
       const dataCasa = new Date(casa.dataFim);
-      const casaMesKey = `${dataCasa.getFullYear()}-${String(dataCasa.getMonth() + 1).padStart(2, '0')}`;
+      const casaMesKey = `${dataCasa.getFullYear()}-${String(dataCasa.getMonth() + 1).padStart(2, "0")}`;
       return casaMesKey === mesKey;
     });
   };
 
-  const casasFiltradas = filtroMes === null || filtroMes === "todas"
-    ? casasFinalizadas
-    : getCasasMes(filtroMes);
+  const casasFiltradas =
+    filtroMes === null || filtroMes === "todas" ? casasFinalizadas : getCasasMes(filtroMes);
 
-  const casasFiltroNome = filtroNomeInicial === ""
-    ? casasFiltradas
-    : casasFiltradas.filter((casa) => getNomeInicial(casa.nome) === filtroNomeInicial);
+  const casasFiltroNome =
+    filtroNomeInicial === ""
+      ? casasFiltradas
+      : casasFiltradas.filter((casa) => getNomeInicial(casa.nome) === filtroNomeInicial);
 
   const calculateCasaLucros = (casaId: string) => {
-    const relatoriosCasa = state.relatorios.filter((r) => r.casaId === casaId && r.status === "finalizado");
-    const totalResultado = relatoriosCasa.reduce((total, r) => total + r.rows.reduce((sum, row) => sum + row.resultado, 0), 0);
-    const totalCooperacao = relatoriosCasa.reduce((total, r) => total + r.cooperacao, 0);
+    const relatoriosCasa = state.relatorios.filter(
+      (relatorio) => relatorio.casaId === casaId && relatorio.status === "finalizado"
+    );
+    const totalResultado = relatoriosCasa.reduce(
+      (total, relatorio) =>
+        total + relatorio.rows.reduce((sum, row) => sum + row.resultado, 0),
+      0
+    );
+    const totalCooperacao = relatoriosCasa.reduce(
+      (total, relatorio) => total + relatorio.cooperacao,
+      0
+    );
     return totalResultado + totalCooperacao;
   };
-
-  const totalLucrosFinalizados = casasFiltroNome.reduce((total, casa) => {
-    return total + calculateCasaLucros(casa.id);
-  }, 0);
 
   const totalLucrosTodosFiltrados = casasFiltroNome.reduce((total, casa) => {
     return total + calculateCasaLucros(casa.id);
   }, 0);
+
+  const nomesIniciais = Array.from(new Set(casasFinalizadas.map((casa) => getNomeInicial(casa.nome)))).sort();
+  const mesesDisponiveis = getMesesDisponiveis();
 
   const handleEditClick = (casa: any) => {
     setEditingCasa(casa);
@@ -75,12 +103,11 @@ export default function CasasFinalizadas() {
   };
 
   const handleSaveEdit = () => {
-    if (editData) {
-      updateCasa(editData.id, editData);
-      setEditingCasa(null);
-      setEditData(null);
-      toast.success("Casa atualizada com sucesso!");
-    }
+    if (!editData) return;
+    updateCasa(editData.id, editData);
+    setEditingCasa(null);
+    setEditData(null);
+    toast.success("Casa atualizada com sucesso!");
   };
 
   const handleReactivate = (casaId: string) => {
@@ -89,34 +116,32 @@ export default function CasasFinalizadas() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedLixeira.size === casasLixeira.length) {
-      setSelectedLixeira(new Set());
-    } else {
-      setSelectedLixeira(new Set(casasLixeira.map((c) => c.id)));
-    }
+    setSelectedLixeira(
+      selectedLixeira.size === casasLixeira.length ? new Set() : new Set(casasLixeira.map((casa) => casa.id))
+    );
   };
 
   const toggleSelectItem = (id: string) => {
-    const newSelected = new Set(selectedLixeira);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
+    const nextSelected = new Set(selectedLixeira);
+    if (nextSelected.has(id)) {
+      nextSelected.delete(id);
     } else {
-      newSelected.add(id);
+      nextSelected.add(id);
     }
-    setSelectedLixeira(newSelected);
+    setSelectedLixeira(nextSelected);
   };
 
   const handleDeleteMultiple = () => {
     if (confirm(`Deletar permanentemente ${selectedLixeira.size} casa(s)?`)) {
-      const qtd = selectedLixeira.size;
+      const quantidade = selectedLixeira.size;
       selectedLixeira.forEach((id) => deletePermanentementeCasa(id));
       setSelectedLixeira(new Set());
-      toast.success(`${qtd} casa(s) deletada(s) permanentemente`);
+      toast.success(`${quantidade} casa(s) deletada(s) permanentemente`);
     }
   };
 
   const handleEsvaziarLixeira = () => {
-    if (confirm(`Esvaziar lixeira? ${casasLixeira.length} casa(s) serão deletada(s) permanentemente.`)) {
+    if (confirm(`Esvaziar lixeira? ${casasLixeira.length} casa(s) serao deletada(s) permanentemente.`)) {
       esvaziarLixeiraCasas();
       toast.success("Lixeira esvaziada com sucesso!");
     }
@@ -124,35 +149,27 @@ export default function CasasFinalizadas() {
 
   const handleRecoverMultiple = () => {
     if (selectedLixeira.size === 0) return;
-    if (confirm(`Recuperar ${selectedLixeira.size} casa(s)? Serão movidas para 'Casas Ativas'.`)) {
-      const qtd = selectedLixeira.size;
-      selectedLixeira.forEach((id) => {
-        updateCasa(id, { status: "ativa" });
-      });
+    if (confirm(`Recuperar ${selectedLixeira.size} casa(s)? Serao movidas para Casas Ativas.`)) {
+      const quantidade = selectedLixeira.size;
+      selectedLixeira.forEach((id) => updateCasa(id, { status: "ativa" }));
       setSelectedLixeira(new Set());
-      toast.success(`${qtd} casa(s) recuperada(s)!`);
+      toast.success(`${quantidade} casa(s) recuperada(s)!`);
     }
   };
 
-  // Agrupar casas por nome inicial
-  const casasAgrupadasPorNomeInicial = Array.from(
-    new Set(casasFinalizadas.map((c) => getNomeInicial(c.nome)))
-  )
-    .sort()
-    .map((nomeInicial) => ({
-      nomeInicial,
-      casas: casasFinalizadas.filter((c) => getNomeInicial(c.nome) === nomeInicial),
-    }));
-
-  // Nomes iniciais únicos para filtro
-  const nomesIniciais = casasAgrupadasPorNomeInicial.map((g) => g.nomeInicial);
-
   const handleExportarCasas = () => {
-    const casasParaExportar = activeTab === "finalizadas" ? casasFiltradas : Array.from(selectedLixeira).map((id) => casasLixeira.find((c) => c.id === id)).filter(Boolean);
+    const casasParaExportar =
+      activeTab === "finalizadas"
+        ? casasFiltradas
+        : Array.from(selectedLixeira)
+            .map((id) => casasLixeira.find((casa) => casa.id === id))
+            .filter(Boolean);
+
     if (casasParaExportar.length === 0) {
       toast.error("Nenhuma casa para exportar!");
       return;
     }
+
     const csv = [
       ["Nome", "Login", "Senha", "Status", "Lucro", "Criada em"],
       ...casasParaExportar.map((casa: any) => [
@@ -166,32 +183,36 @@ export default function CasasFinalizadas() {
     ]
       .map((row) => row.map((cell) => `"${cell}"`).join(","))
       .join("\n");
+
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `casas-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `casas-${new Date().toISOString().split("T")[0]}.csv`;
+    anchor.click();
     URL.revokeObjectURL(url);
     toast.success("CSV exportado com sucesso!");
   };
 
   return (
     <div className="space-y-8">
-      {/* Abas */}
-      <div className="flex gap-1 p-1 rounded-xl border border-white/10 w-fit"
-        style={{ background: "rgba(255,255,255,0.03)" }}
+      <div
+        className="flex w-fit gap-1.5 rounded-2xl border border-white/10 p-1.5 shadow-[0_10px_34px_rgba(0,0,0,0.24)]"
+        style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025))" }}
       >
         {[
           { id: "finalizadas", label: `Casas Finalizadas (${casasFinalizadas.length})` },
           { id: "lixeira", label: `Lixeira (${casasLixeira.length})` },
         ].map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
-            className="px-5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
-            style={activeTab === tab.id ? {
-              background: "linear-gradient(135deg, #d4a017, #f59e0b)",
-              color: "#050b18",
-            } : { color: "rgba(255,255,255,0.4)" }}
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className="rounded-xl px-5 py-2.5 text-xs font-black transition-all whitespace-nowrap"
+            style={
+              activeTab === tab.id
+                ? goldButtonStyle
+                : { color: "rgba(255,255,255,0.45)" }
+            }
           >
             {tab.label}
           </button>
@@ -200,138 +221,114 @@ export default function CasasFinalizadas() {
 
       {activeTab === "finalizadas" && (
         <>
-          {/* Cards de totais */}
           <div className={`grid grid-cols-1 ${totalGastosProxy > 0 ? "md:grid-cols-2" : ""} gap-4`}>
-            {/* Lucro Total */}
-            <div className="relative overflow-hidden rounded-2xl p-6 border border-emerald-500/15"
-              style={{ background: "linear-gradient(145deg, #071a12, #0c2a1e)" }}
+            <div
+              className="relative overflow-hidden rounded-3xl border border-emerald-400/20 p-7 shadow-[0_20px_70px_rgba(6,95,70,0.18)]"
+              style={{ background: "linear-gradient(135deg, rgba(6,26,28,0.94), rgba(7,33,56,0.9))" }}
             >
-              <div className="absolute top-0 left-0 w-full h-[1px]"
-                style={{ background: "linear-gradient(to right, transparent, rgba(74,222,128,0.4), transparent)" }}
-              />
-              <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400/50 mb-3">Lucro Total — Casas Finalizadas</p>
-              <p className="text-5xl font-black tracking-tighter text-emerald-300 font-mono">
-                R$ {(totalLucrosTodosFiltrados || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </p>
-              <p className="text-emerald-400/40 text-xs mt-3 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                {casasFiltradas.length} casas {filtroNomeInicial ? "filtradas" : "finalizadas"}
-              </p>
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/45 to-transparent" />
+              <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-emerald-400/10 blur-3xl" />
+              <div className="relative flex items-start justify-between gap-4">
+                <div>
+                  <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-300/55">
+                    Lucro Total - Casas Finalizadas
+                  </p>
+                  <p className="font-mono text-4xl font-black tracking-tighter text-emerald-300 sm:text-5xl">
+                    R$ {(totalLucrosTodosFiltrados || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="mt-4 flex items-center gap-2 text-xs text-emerald-200/45">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                    {casasFiltradas.length} casas {filtroNomeInicial ? "filtradas" : "finalizadas"}
+                  </p>
+                </div>
+                <div className="hidden h-12 w-12 items-center justify-center rounded-2xl border border-emerald-300/20 bg-emerald-300/10 text-emerald-200 sm:flex">
+                  <Trophy size={22} />
+                </div>
+              </div>
             </div>
 
-            {/* Lucro com Desconto de Proxy */}
             {totalGastosProxy > 0 && (
-              <div className="relative overflow-hidden rounded-2xl p-6 border border-orange-500/15"
-                style={{ background: "linear-gradient(145deg, #1a0d07, #2a150a)" }}
+              <div
+                className="relative overflow-hidden rounded-3xl border border-orange-400/20 p-7 shadow-[0_20px_70px_rgba(251,146,60,0.14)]"
+                style={{ background: "linear-gradient(135deg, rgba(34,18,10,0.94), rgba(47,27,10,0.88))" }}
               >
-                <div className="absolute top-0 left-0 w-full h-[1px]"
-                  style={{ background: "linear-gradient(to right, transparent, rgba(251,146,60,0.4), transparent)" }}
-                />
-                <p className="text-[9px] font-black uppercase tracking-widest text-orange-400/50 mb-3">Lucro Real (desconto proxy)</p>
-                <p className="text-5xl font-black tracking-tighter text-orange-300 font-mono">
-                  R$ {((totalLucrosTodosFiltrados || 0) - totalGastosProxy).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-300/45 to-transparent" />
+                <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-orange-300/55">
+                  Lucro Real (desconto proxy)
                 </p>
-                <p className="text-orange-400/40 text-xs mt-3 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
-                  Proxy: – R$ {totalGastosProxy.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                <p className="font-mono text-4xl font-black tracking-tighter text-orange-300 sm:text-5xl">
+                  R$ {((totalLucrosTodosFiltrados || 0) - totalGastosProxy).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </p>
+                <p className="mt-4 flex items-center gap-2 text-xs text-orange-200/45">
+                  <span className="h-1.5 w-1.5 rounded-full bg-orange-300 animate-pulse" />
+                  Proxy: - R$ {totalGastosProxy.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
             )}
           </div>
 
-          {/* Botão de Exportação */}
-          <div className="flex gap-2 mb-4">
-            <button
-              onClick={handleExportarCasas}
-              className="px-4 py-2 rounded-xl font-bold text-sm text-white/60 border border-white/15 hover:bg-white/5 transition-colors flex items-center gap-2"
-            >
-              📥 Exportar CSV
-            </button>
-          </div>
-
-          {/* Filtro por Mês — elegante */}
-          <div className="rounded-2xl p-4 border border-white/8"
-            style={{ background: "rgba(255,255,255,0.03)" }}
+          <button
+            onClick={handleExportarCasas}
+            className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-4 py-2.5 text-sm font-bold text-white/70 backdrop-blur transition-colors hover:bg-white/8 hover:text-white"
           >
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-1 h-4 rounded-full" style={{ background: "#d4a017" }} />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">Filtrar por Mês</span>
+            <Download size={16} /> Exportar CSV
+          </button>
+
+          <div className={`${subtlePanelClass} p-5`}>
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/35 to-transparent" />
+            <div className="mb-3 flex items-center gap-2">
+              <CalendarDays size={15} className="text-[#d4a017]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/45">Filtrar por Mes</span>
             </div>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setFiltroMes("todas")}
-                className="px-4 py-2 rounded-xl text-xs font-bold transition-all"
-                style={filtroMes === "todas" || filtroMes === null ? {
-                  background: "linear-gradient(135deg, #d4a017, #f59e0b)",
-                  color: "#050b18",
-                  boxShadow: "0 4px 12px rgba(212,160,23,0.3)",
-                } : {
-                  background: "rgba(255,255,255,0.05)",
-                  color: "rgba(255,255,255,0.5)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                }}
+                className="rounded-xl px-4 py-2 text-xs font-bold transition-all"
+                style={filtroMes === "todas" || filtroMes === null ? goldButtonStyle : ghostButtonStyle}
               >
                 Todas ({casasFinalizadas.length})
               </button>
-              {mesesDisponiveis.filter(m => getCasasMes(m).length > 0).map((mesKey) => {
-                const [ano, mes] = mesKey.split('-');
-                const data = new Date(parseInt(ano), parseInt(mes) - 1);
-                const mesLabel = data.toLocaleString('pt-BR', { month: 'short', year: 'numeric' });
-                const casasMes = getCasasMes(mesKey);
-                const isActive = filtroMes === mesKey;
-                return (
-                  <button
-                    key={mesKey}
-                    onClick={() => setFiltroMes(mesKey)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold transition-all capitalize"
-                    style={isActive ? {
-                      background: "linear-gradient(135deg, #d4a017, #f59e0b)",
-                      color: "#050b18",
-                      boxShadow: "0 4px 12px rgba(212,160,23,0.3)",
-                    } : {
-                      background: "rgba(255,255,255,0.05)",
-                      color: "rgba(255,255,255,0.5)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    {mesLabel} <span className="opacity-60">({casasMes.length})</span>
-                  </button>
-                );
-              })}
+              {mesesDisponiveis
+                .filter((mes) => getCasasMes(mes).length > 0)
+                .map((mesKey) => {
+                  const [ano, mes] = mesKey.split("-");
+                  const data = new Date(parseInt(ano), parseInt(mes) - 1);
+                  const mesLabel = data.toLocaleString("pt-BR", { month: "short", year: "numeric" });
+                  const casasMes = getCasasMes(mesKey);
+                  const isActive = filtroMes === mesKey;
+                  return (
+                    <button
+                      key={mesKey}
+                      onClick={() => setFiltroMes(mesKey)}
+                      className="rounded-xl px-4 py-2 text-xs font-bold capitalize transition-all"
+                      style={isActive ? goldButtonStyle : ghostButtonStyle}
+                    >
+                      {mesLabel} <span className="opacity-60">({casasMes.length})</span>
+                    </button>
+                  );
+                })}
             </div>
           </div>
 
-          {/* Filtro por Nome */}
-          <div className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-lg">
-            <label className="block text-sm font-medium text-foreground mb-3">
-              Filtrar por Nome da Casa
-            </label>
-            <div className="flex gap-2 flex-wrap">
+          <div className={`${subtlePanelClass} p-5`}>
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/25 to-transparent" />
+            <label className="mb-3 block text-sm font-bold text-white/85">Filtrar por Nome da Casa</label>
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setFiltroNomeInicial("")}
-                className="px-4 py-2 rounded-xl transition-all font-bold text-xs"
-                style={filtroNomeInicial === "" ? {
-                  background: "linear-gradient(135deg, #d4a017, #f59e0b)", color: "#050b18",
-                } : {
-                  background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                }}
+                className="rounded-xl px-4 py-2 text-xs font-bold transition-all"
+                style={filtroNomeInicial === "" ? goldButtonStyle : ghostButtonStyle}
               >
                 Todas
               </button>
-              {nomesIniciais.map((nomeInicial: string) => {
-                const casasDoGrupo = casasFinalizadas.filter((c) => getNomeInicial(c.nome) === nomeInicial);
+              {nomesIniciais.map((nomeInicial) => {
+                const casasDoGrupo = casasFinalizadas.filter((casa) => getNomeInicial(casa.nome) === nomeInicial);
                 return (
                   <button
                     key={nomeInicial}
                     onClick={() => setFiltroNomeInicial(nomeInicial)}
-                    className="px-4 py-2 rounded-xl transition-all font-bold text-xs"
-                    style={filtroNomeInicial === nomeInicial ? {
-                      background: "linear-gradient(135deg, #d4a017, #f59e0b)", color: "#050b18",
-                    } : {
-                      background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
+                    className="rounded-xl px-4 py-2 text-xs font-bold transition-all"
+                    style={filtroNomeInicial === nomeInicial ? goldButtonStyle : ghostButtonStyle}
                   >
                     {nomeInicial} ({casasDoGrupo.length})
                   </button>
@@ -340,101 +337,102 @@ export default function CasasFinalizadas() {
             </div>
           </div>
 
-          {/* Lista de Casas Finalizadas */}
-          <div className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-lg">
-            <h3 className="text-xl font-bold text-foreground mb-4">
-              Histórico de Casas
-            </h3>
+          <div className={`${panelClass} p-6`}>
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/30 to-transparent" />
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">Arquivo Operacional</p>
+                <h3 className="mt-1 text-xl font-bold text-white">Historico de Casas</h3>
+              </div>
+              <div className="hidden h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-[#d4a017] sm:flex">
+                <Archive size={18} />
+              </div>
+            </div>
+
             {casasFiltroNome.length === 0 ? (
-              <p className="text-muted-foreground">
+              <p className="text-white/45">
                 {filtroNomeInicial ? "Nenhuma casa encontrada com esse nome inicial" : "Nenhuma casa finalizada ainda"}
               </p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {(() => {
-                  const colors = [
-                    "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:border-blue-500/50",
-                    "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:border-emerald-500/50",
-                    "bg-purple-500/10 border-purple-500/20 text-purple-400 hover:border-purple-500/50",
-                    "bg-pink-500/10 border-pink-500/20 text-pink-400 hover:border-pink-500/50",
-                    "bg-amber-500/10 border-amber-500/20 text-amber-400 hover:border-amber-500/50",
-                    "bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:border-indigo-500/50",
-                    "bg-rose-500/10 border-rose-500/20 text-rose-400 hover:border-rose-500/50",
-                    "bg-cyan-500/10 border-cyan-500/20 text-cyan-400 hover:border-cyan-500/50",
-                    "bg-orange-500/10 border-orange-500/20 text-orange-400 hover:border-orange-500/50",
-                  ];
-                  return casasFiltroNome.map((casa, index) => {
-                    const lucrosCasa = calculateCasaLucros(casa.id);
-                    const isLucro = lucrosCasa > 0;
-                    const bgColor = colors[index % colors.length];
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {casasFiltroNome.map((casa) => {
+                  const lucrosCasa = calculateCasaLucros(casa.id);
+                  const isLucro = lucrosCasa > 0;
 
-                    return (
-                      <div
-                        key={casa.id}
-                        className={`p-4 ${bgColor} rounded-lg border-2 transition-all hover:shadow-lg`}
-                      >
-                        <h4 className="font-bold text-foreground text-lg truncate mb-2">
-                          {casa.nome}
-                        </h4>
-                        <span
-                          className={`text-xs font-bold px-2 py-1 rounded inline-block mb-3 ${
-                            isLucro
-                              ? "bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-100"
-                              : "bg-red-200 dark:bg-red-800 text-red-900 dark:text-red-100"
-                          }`}
-                        >
-                          {isLucro ? "✓ Lucro" : "✗ Prejuízo"}
-                        </span>
-                        <div className="mb-3 pb-3 border-b border-current border-opacity-20">
-                          <p className="text-xs font-semibold text-foreground opacity-70">LUCRO</p>
-                          <p className={`font-bold text-lg ${
-                            isLucro
-                              ? "text-green-700 dark:text-green-400"
-                              : "text-red-700 dark:text-red-400"
-                          }`}>
-                            R$ {(lucrosCasa || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  return (
+                    <div
+                      key={casa.id}
+                      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#0d1c3c]/90 to-[#071226]/92 p-5 shadow-[0_12px_34px_rgba(0,0,0,0.24)] transition-all hover:-translate-y-1 hover:border-[#d4a017]/35 hover:shadow-[0_20px_46px_rgba(0,0,0,0.34)]"
+                    >
+                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                      <div className="absolute -right-10 -top-12 h-28 w-28 rounded-full bg-[#d4a017]/8 blur-2xl" />
+                      <div className="relative">
+                        <div className="mb-4 flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Casa</p>
+                            <h4 className="mt-1 truncate text-lg font-black text-white">{casa.nome}</h4>
+                          </div>
+                          <span
+                            className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide ${
+                              isLucro
+                                ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-300"
+                                : "border-red-300/20 bg-red-300/10 text-red-300"
+                            }`}
+                          >
+                            {isLucro ? "Lucro" : "Prejuizo"}
+                          </span>
+                        </div>
+
+                        <div className="rounded-2xl border border-white/8 bg-white/[0.035] p-4">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-white/35">Lucro</p>
+                          <p className={`mt-1 font-mono text-2xl font-black ${isLucro ? "text-emerald-300" : "text-red-300"}`}>
+                            R$ {(lucrosCasa || 0).toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
                           </p>
                         </div>
-                        <div className="mb-4">
-                          <p className="text-xs font-semibold text-foreground opacity-70">FINALIZADA EM</p>
-                          <p className="text-sm font-mono text-foreground">
-                            {casa.dataFim
-                              ? new Date(casa.dataFim).toLocaleDateString("pt-BR")
-                              : "N/A"}
-                          </p>
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                          <button
-                            onClick={() => handleEditClick(casa)}
-                            className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-800 rounded transition-colors"
-                            title="Editar casa"
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleReactivate(casa.id)}
-                            className="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-800 rounded transition-colors"
-                            title="Reativar casa"
-                          >
-                            <RotateCcw size={18} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (confirm("Tem certeza que deseja mover esta casa para a lixeira?")) {
-                                updateCasa(casa.id, { status: "lixeira" });
-                                toast.success("Casa movida para a lixeira");
-                              }
-                            }}
-                            className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-800 rounded transition-colors"
-                            title="Mover para lixeira"
-                          >
-                            <Trash2 size={18} />
-                          </button>
+
+                        <div className="mt-4 flex items-end justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-white/35">Finalizada em</p>
+                            <p className="mt-1 text-sm font-bold text-white/80">
+                              {casa.dataFim ? new Date(casa.dataFim).toLocaleDateString("pt-BR") : "N/A"}
+                            </p>
+                          </div>
+                          <div className="flex gap-1.5">
+                            <button
+                              onClick={() => handleEditClick(casa)}
+                              className="h-9 w-9 rounded-xl border border-blue-400/20 bg-blue-400/10 text-blue-300 transition-colors hover:bg-blue-400/18"
+                              title="Editar casa"
+                            >
+                              <Edit2 size={16} className="mx-auto" />
+                            </button>
+                            <button
+                              onClick={() => handleReactivate(casa.id)}
+                              className="h-9 w-9 rounded-xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-300 transition-colors hover:bg-emerald-400/18"
+                              title="Reativar casa"
+                            >
+                              <RotateCcw size={16} className="mx-auto" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm("Tem certeza que deseja mover esta casa para a lixeira?")) {
+                                  updateCasa(casa.id, { status: "lixeira" });
+                                  toast.success("Casa movida para a lixeira");
+                                }
+                              }}
+                              className="h-9 w-9 rounded-xl border border-red-400/20 bg-red-400/10 text-red-300 transition-colors hover:bg-red-400/18"
+                              title="Mover para lixeira"
+                            >
+                              <Trash2 size={16} className="mx-auto" />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    );
-                  });
-                })()}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -443,84 +441,81 @@ export default function CasasFinalizadas() {
 
       {activeTab === "lixeira" && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <h2 className="text-2xl font-bold text-foreground dark:text-white">Lixeira de Casas</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">Casas removidas</p>
+              <h2 className="mt-1 text-2xl font-bold text-white">Lixeira de Casas</h2>
+            </div>
             {casasLixeira.length > 0 && (
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex flex-wrap gap-2">
                 {selectedLixeira.size > 0 && (
                   <>
                     <button
                       onClick={handleRecoverMultiple}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                      className="rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-4 py-2 text-sm font-bold text-emerald-300 transition-colors hover:bg-emerald-400/18"
                     >
                       Recuperar {selectedLixeira.size}
                     </button>
                     <button
                       onClick={handleDeleteMultiple}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
+                      className="rounded-xl border border-red-400/25 bg-red-400/10 px-4 py-2 text-sm font-bold text-red-300 transition-colors hover:bg-red-400/18"
                     >
                       Deletar {selectedLixeira.size}
                     </button>
                   </>
                 )}
+                <button
+                  onClick={handleEsvaziarLixeira}
+                  className="rounded-xl border border-white/12 bg-white/[0.035] px-4 py-2 text-sm font-bold text-white/65 transition-colors hover:bg-white/8"
+                >
+                  Esvaziar lixeira
+                </button>
               </div>
             )}
           </div>
 
           {casasLixeira.length === 0 ? (
-            <div className="bg-card backdrop-blur-sm border border-border/50 shadow-lg rounded-xl p-8 text-center">
-              <p className="text-muted-foreground text-lg">
-                Nenhuma casa na lixeira
-              </p>
+            <div className={`${subtlePanelClass} p-10 text-center`}>
+              <p className="text-lg text-white/45">Nenhuma casa na lixeira</p>
             </div>
           ) : (
-            <div className="bg-card backdrop-blur-sm rounded-xl border border-border/50 shadow-lg overflow-x-auto">
+            <div className={`${panelClass} overflow-x-auto`}>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border dark:border-slate-700 bg-gray-50 dark:bg-slate-700">
-                    <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white w-12">
-                      <button
-                        onClick={toggleSelectAll}
-                        className="p-1 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition-colors"
-                      >
+                  <tr className="border-b border-white/10 bg-white/[0.04]">
+                    <th className="w-12 px-4 py-3 text-left font-semibold text-white/70">
+                      <button onClick={toggleSelectAll} className="rounded-lg p-1 text-white/60 transition-colors hover:bg-white/10">
                         {selectedLixeira.size === casasLixeira.length && casasLixeira.length > 0 ? (
-                          <CheckSquare2 size={18} className="text-primary" />
+                          <CheckSquare2 size={18} className="text-[#d4a017]" />
                         ) : (
                           <Square size={18} />
                         )}
                       </button>
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Nome</th>
-                    <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Agente</th>
-                    <th className="text-center py-3 px-4 font-semibold text-foreground dark:text-white">Ações</th>
+                    <th className="px-4 py-3 text-left font-semibold text-white/70">Nome</th>
+                    <th className="px-4 py-3 text-left font-semibold text-white/70">Agente</th>
+                    <th className="px-4 py-3 text-center font-semibold text-white/70">Acoes</th>
                   </tr>
                 </thead>
                 <tbody>
                   {casasLixeira.map((casa) => (
-                    <tr key={casa.id} className="border-b border-border dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700">
-                      <td className="py-3 px-4 text-foreground dark:text-white w-12">
-                        <button
-                          onClick={() => toggleSelectItem(casa.id)}
-                          className="p-1 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition-colors"
-                        >
+                    <tr key={casa.id} className="border-b border-white/8 transition-colors hover:bg-white/[0.035]">
+                      <td className="w-12 px-4 py-3 text-white/75">
+                        <button onClick={() => toggleSelectItem(casa.id)} className="rounded-lg p-1 transition-colors hover:bg-white/10">
                           {selectedLixeira.has(casa.id) ? (
-                            <CheckSquare2 size={18} className="text-primary" />
+                            <CheckSquare2 size={18} className="text-[#d4a017]" />
                           ) : (
                             <Square size={18} />
                           )}
                         </button>
                       </td>
-                      <td className="py-3 px-4 text-foreground dark:text-white">
-                        {casa.nome}
-                      </td>
-                      <td className="py-3 px-4 text-foreground dark:text-white">
-                        -
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex gap-2 justify-center">
+                      <td className="px-4 py-3 font-bold text-white/85">{casa.nome}</td>
+                      <td className="px-4 py-3 text-white/55">-</td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex justify-center gap-2">
                           <button
                             onClick={() => handleEditClick(casa)}
-                            className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                            className="rounded-xl border border-blue-400/20 bg-blue-400/10 p-2 text-blue-300 transition-colors hover:bg-blue-400/18"
                             title="Editar casa"
                           >
                             <Edit2 size={18} />
@@ -530,7 +525,7 @@ export default function CasasFinalizadas() {
                               updateCasa(casa.id, { status: "ativa" });
                               toast.success("Casa recuperada!");
                             }}
-                            className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                            className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-2 text-emerald-300 transition-colors hover:bg-emerald-400/18"
                             title="Recuperar casa"
                           >
                             <RotateCcw size={18} />
@@ -542,7 +537,7 @@ export default function CasasFinalizadas() {
                                 toast.success("Casa deletada permanentemente");
                               }
                             }}
-                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                            className="rounded-xl border border-red-400/20 bg-red-400/10 p-2 text-red-300 transition-colors hover:bg-red-400/18"
                             title="Deletar permanentemente"
                           >
                             <Trash2 size={18} />
@@ -558,52 +553,45 @@ export default function CasasFinalizadas() {
         </div>
       )}
 
-      {/* Modal de Edição */}
       {editingCasa && editData && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card backdrop-blur-sm rounded-xl p-6 max-w-md w-full space-y-4 border border-border/50 shadow-2xl">
-            <h3 className="text-xl font-bold text-foreground">Editar Casa</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-white/10 bg-[#071226]/95 p-6 shadow-2xl">
+            <h3 className="text-xl font-bold text-white">Editar Casa</h3>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Nome da Casa
-                </label>
+                <label className="mb-1 block text-sm font-medium text-white/70">Nome da Casa</label>
                 <input
                   type="text"
                   value={editData.nome || ""}
                   onChange={(e) => setEditData({ ...editData, nome: e.target.value })}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-white outline-none transition focus:border-[#d4a017]/60 focus:ring-2 focus:ring-[#d4a017]/15"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Login
-                </label>
+                <label className="mb-1 block text-sm font-medium text-white/70">Login</label>
                 <input
                   type="text"
                   value={editData.login || ""}
                   onChange={(e) => setEditData({ ...editData, login: e.target.value })}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-white outline-none transition focus:border-[#d4a017]/60 focus:ring-2 focus:ring-[#d4a017]/15"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Senha
-                </label>
+                <label className="mb-1 block text-sm font-medium text-white/70">Senha</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
                     value={editData.senha || ""}
                     onChange={(e) => setEditData({ ...editData, senha: e.target.value })}
-                    className="w-full px-3 py-2 pr-10 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:text-white"
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 pr-10 text-white outline-none transition focus:border-[#d4a017]/60 focus:ring-2 focus:ring-[#d4a017]/15"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/45 transition-colors hover:text-white/80"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -611,34 +599,31 @@ export default function CasasFinalizadas() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Agente
-                </label>
+                <label className="mb-1 block text-sm font-medium text-white/70">Agente</label>
                 <input
                   type="text"
                   value={editData.agente || ""}
                   onChange={(e) => setEditData({ ...editData, agente: e.target.value })}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-white outline-none transition focus:border-[#d4a017]/60 focus:ring-2 focus:ring-[#d4a017]/15"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Meta
-                </label>
+                <label className="mb-1 block text-sm font-medium text-white/70">Meta</label>
                 <input
                   type="number"
                   value={editData.meta || 0}
                   onChange={(e) => setEditData({ ...editData, meta: parseFloat(e.target.value) })}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-white outline-none transition focus:border-[#d4a017]/60 focus:ring-2 focus:ring-[#d4a017]/15"
                 />
               </div>
             </div>
 
-            <div className="flex gap-2 pt-4 border-t border-border">
+            <div className="flex gap-2 border-t border-white/10 pt-4">
               <button
                 onClick={handleSaveEdit}
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                className="flex-1 rounded-xl px-4 py-2 font-bold transition-all hover:scale-[1.01]"
+                style={goldButtonStyle}
               >
                 Salvar
               </button>
@@ -647,7 +632,7 @@ export default function CasasFinalizadas() {
                   setEditingCasa(null);
                   setEditData(null);
                 }}
-                className="flex-1 px-4 py-2 bg-gray-300 dark:bg-slate-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-slate-600 transition-colors font-medium"
+                className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 font-bold text-white/65 transition-colors hover:bg-white/8"
               >
                 Cancelar
               </button>

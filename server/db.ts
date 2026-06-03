@@ -184,7 +184,7 @@ export async function createCasa(casa: InsertCasa): Promise<Casa | null> {
 export async function updateCasa(id: string, data: Partial<InsertCasa>): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db.update(casas).set(data).where(eq(casas.id, id));
+  await db.update(casas).set({ ...data, atualizadoEm: new Date() } as any).where(eq(casas.id, id));
 }
 
 export async function deleteCasa(id: string): Promise<void> {
@@ -210,7 +210,7 @@ export async function createRelatorio(relatorio: InsertRelatorio): Promise<Relat
 export async function updateRelatorio(id: string, data: Partial<InsertRelatorio>): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db.update(relatorios).set(data).where(eq(relatorios.id, id));
+  await db.update(relatorios).set({ ...data, atualizadoEm: new Date() } as any).where(eq(relatorios.id, id));
 }
 
 export async function deleteRelatorio(id: string): Promise<void> {

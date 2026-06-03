@@ -35,6 +35,7 @@ export interface RelatorioData {
   rows: RelatorioRow[];
   status: "ativo" | "finalizado" | "lixeira";
   criadoEm: string;
+  atualizadoEm?: string;
   finalizadoEm?: string;
 }
 

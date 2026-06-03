@@ -20,7 +20,7 @@ import {
   Percent,
 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from "recharts";
 
 const HISTORICO_KEY = "faturamento-historico-v1";
 const META_KEY = "faturamento-meta-v1";
@@ -46,6 +46,24 @@ function getMesAtual(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function endOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+}
+
+function parseLocalDate(value?: string | Date | null): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  const normalized = String(value);
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(normalized)
+    ? new Date(`${normalized}T12:00:00`)
+    : new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export default function Faturamento() {
   const { state } = useApp();
   const { data: gastosProxyList = [] } = trpc.gastosProxy.list.useQuery();
@@ -68,6 +86,13 @@ export default function Faturamento() {
     operacoes: 0,
   });
   const [showAddMes, setShowAddMes] = useState(false);
+  const [financeFilterQuick, setFinanceFilterQuick] = useState<"hoje" | "ontem" | "7dias" | "30dias" | "todos" | "custom">("todos");
+  const [financeStartDate, setFinanceStartDate] = useState("");
+  const [financeEndDate, setFinanceEndDate] = useState("");
+  const [financeOperator, setFinanceOperator] = useState("todos");
+  const [financeNetwork, setFinanceNetwork] = useState("todos");
+  const [financeResultType, setFinanceResultType] = useState<"todos" | "lucro" | "prejuizo">("todos");
+  const [financeGranularity, setFinanceGranularity] = useState<"diario" | "semanal" | "mensal">("diario");
 
   // Calcular lucros do sistema
   const relatoriosFinalizados = state.relatorios.filter((r) => r.status === "finalizado");
@@ -79,19 +104,27 @@ export default function Faturamento() {
     }, 0);
 
   const hoje = new Date();
-  const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-  const inicio7Dias = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const inicioHoje = startOfDay(hoje);
+  const fimHoje = endOfDay(hoje);
+  const inicio7Dias = startOfDay(new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - 6));
   const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
 
-  const relHoje = relatoriosFinalizados.filter(
-    (r) => r.finalizadoEm && new Date(r.finalizadoEm) >= inicioHoje
-  );
-  const rel7Dias = relatoriosFinalizados.filter(
-    (r) => r.finalizadoEm && new Date(r.finalizadoEm) >= inicio7Dias
-  );
-  const relMes = relatoriosFinalizados.filter(
-    (r) => r.finalizadoEm && new Date(r.finalizadoEm) >= inicioMes
-  );
+  const getDataFaturamento = (relatorio: typeof relatoriosFinalizados[number]) => {
+    return (
+      parseLocalDate(relatorio.finalizadoEm) ||
+      parseLocalDate(relatorio.criadoEm) ||
+      parseLocalDate(relatorio.atualizadoEm)
+    );
+  };
+
+  const isRelatorioNoPeriodo = (relatorio: typeof relatoriosFinalizados[number], inicio: Date) => {
+    const data = getDataFaturamento(relatorio);
+    return !!data && data >= inicio && data <= fimHoje;
+  };
+
+  const relHoje = relatoriosFinalizados.filter((r) => isRelatorioNoPeriodo(r, inicioHoje));
+  const rel7Dias = relatoriosFinalizados.filter((r) => isRelatorioNoPeriodo(r, inicio7Dias));
+  const relMes = relatoriosFinalizados.filter((r) => isRelatorioNoPeriodo(r, inicioMes));
 
   const lucroHoje = calcLucro(relHoje);
   const lucro7Dias = calcLucro(rel7Dias);
@@ -142,12 +175,13 @@ export default function Faturamento() {
 
   // Gastos proxy filtrados pelo período
   const gastosNoPeriodo = (gastosProxyList as any[]).reduce((sum, g) => {
-    const d = new Date(g.data + "T12:00:00");
+    const d = parseLocalDate(g.data);
+    if (!d) return sum;
     const limite =
       period === "hoje" ? inicioHoje :
       period === "7dias" ? inicio7Dias :
       period === "mes" ? inicioMes : new Date(0);
-    if (d >= limite) return sum + parseFloat(g.valor?.toString() || "0");
+    if (d >= limite && d <= fimHoje) return sum + parseFloat(g.valor?.toString() || "0");
     return sum;
   }, 0);
   const lucroRealPeriodo = lucroExibido - gastosNoPeriodo;

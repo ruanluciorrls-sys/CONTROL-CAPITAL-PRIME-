@@ -1,5 +1,14 @@
 import { useApp } from "@/contexts/AppContext";
-import { Copy, Trash2, Edit2, X, Check } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Edit2,
+  FileText,
+  ListFilter,
+  ReceiptText,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -8,28 +17,37 @@ export default function RelatoriosFinalizados() {
   const [selectedRelatorioId, setSelectedRelatorioId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingData, setEditingData] = useState<any>(null);
-
-  const relatoriosFinalizados = state.relatorios.filter((r) => r.status === "finalizado");
   const [filtroNomeInicial, setFiltroNomeInicial] = useState("");
 
-  const getCasaNome = (casaId: string) => {
-    return state.casas.find((c) => c.id === casaId)?.nome || "Casa não encontrada";
+  const relatoriosFinalizados = state.relatorios.filter((relatorio) => relatorio.status === "finalizado");
+
+  const panelClass =
+    "relative overflow-hidden rounded-2xl border border-white/10 bg-[#071226]/82 shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur-xl";
+  const subtlePanelClass =
+    "relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] shadow-[0_14px_42px_rgba(0,0,0,0.22)] backdrop-blur-xl";
+  const goldButtonStyle = {
+    background: "linear-gradient(135deg, #d4a017, #f6b51b)",
+    color: "#050b18",
+    boxShadow: "0 10px 24px rgba(212,160,23,0.24)",
+  };
+  const ghostButtonStyle = {
+    background: "rgba(255,255,255,0.055)",
+    color: "rgba(255,255,255,0.68)",
+    border: "1px solid rgba(255,255,255,0.10)",
   };
 
-  const getNomeInicial = (nome: string) => {
-    const palavras = nome.trim().split(/\s+/);
-    return palavras[0].toUpperCase();
+  const getCasaNome = (casaId: string) => {
+    return state.casas.find((casa) => casa.id === casaId)?.nome || "Casa nao encontrada";
   };
+
+  const getNomeInicial = (nome: string) => nome.trim().split(/\s+/)[0].toUpperCase();
 
   const relatoriosAgrupados = () => {
     const grupos: { [key: string]: any[] } = {};
-    relatoriosFinalizados.forEach((rel) => {
-      const casaNome = getCasaNome(rel.casaId);
-      const nomeInicial = getNomeInicial(casaNome);
-      if (!grupos[nomeInicial]) {
-        grupos[nomeInicial] = [];
-      }
-      grupos[nomeInicial].push(rel);
+    relatoriosFinalizados.forEach((relatorio) => {
+      const nomeInicial = getNomeInicial(getCasaNome(relatorio.casaId));
+      if (!grupos[nomeInicial]) grupos[nomeInicial] = [];
+      grupos[nomeInicial].push(relatorio);
     });
     Object.keys(grupos).forEach((key) => {
       grupos[key].sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime());
@@ -39,37 +57,40 @@ export default function RelatoriosFinalizados() {
 
   const grupos = relatoriosAgrupados();
   const nomesIniciais = Object.keys(grupos).sort();
-  const relatoriosFiltrados = filtroNomeInicial === ""
-    ? relatoriosFinalizados.sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime())
-    : (grupos[filtroNomeInicial] || []);
+  const relatoriosFiltrados =
+    filtroNomeInicial === ""
+      ? [...relatoriosFinalizados].sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime())
+      : grupos[filtroNomeInicial] || [];
 
   const selectedRelatorio = selectedRelatorioId
-    ? relatoriosFiltrados.find((r) => r.id === selectedRelatorioId)
+    ? relatoriosFiltrados.find((relatorio) => relatorio.id === selectedRelatorioId)
     : null;
 
-  const calculateTotalResultado = (rows: any[]) => {
-    return rows.reduce((sum, r) => sum + r.resultado, 0);
+  const calculateTotalResultado = (rows: any[]) => rows.reduce((sum, row) => sum + row.resultado, 0);
+
+  const getRelatorioTotal = (relatorio: any) => {
+    return calculateTotalResultado(relatorio.rows || []) + (relatorio.cooperacao || 0);
   };
+
+  const totalFinalizado = relatoriosFinalizados.reduce((total, relatorio) => total + getRelatorioTotal(relatorio), 0);
 
   const handleReutilizar = (relatorioId: string) => {
     reutilizarRelatorio(relatorioId);
-    toast.success("Relatório reutilizado! Verifique em Operação CPA.");
+    toast.success("Relatorio reutilizado! Verifique em Operacao CPA.");
   };
 
   const handleEditClick = () => {
-    if (selectedRelatorio) {
-      setEditingData(JSON.parse(JSON.stringify(selectedRelatorio)));
-      setIsEditing(true);
-    }
+    if (!selectedRelatorio) return;
+    setEditingData(JSON.parse(JSON.stringify(selectedRelatorio)));
+    setIsEditing(true);
   };
 
   const handleSaveEdit = () => {
-    if (editingData && selectedRelatorio) {
-      updateRelatorio(selectedRelatorio.id, editingData);
-      setIsEditing(false);
-      setEditingData(null);
-      toast.success("Relatório atualizado com sucesso!");
-    }
+    if (!editingData || !selectedRelatorio) return;
+    updateRelatorio(selectedRelatorio.id, editingData);
+    setIsEditing(false);
+    setEditingData(null);
+    toast.success("Relatorio atualizado com sucesso!");
   };
 
   const handleCancelEdit = () => {
@@ -100,40 +121,53 @@ export default function RelatoriosFinalizados() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl p-6 border border-white/8"
-        style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)" }}
+      <div
+        className="relative overflow-hidden rounded-3xl border border-[#d4a017]/18 p-7 shadow-[0_22px_74px_rgba(0,0,0,0.3)]"
+        style={{ background: "linear-gradient(135deg, rgba(7,14,32,0.94), rgba(15,30,69,0.9))" }}
       >
-        <div className="absolute top-0 left-0 w-full h-[1px]"
-          style={{ background: "linear-gradient(to right, transparent, rgba(212,160,23,0.5), transparent)" }}
-        />
-        <div className="relative z-10">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">
-            Relatórios Finalizados
-          </p>
-          <p className="text-5xl font-black tracking-tighter font-mono"
-            style={{ color: "#d4a017" }}
-          >
-            {relatoriosFinalizados.length}
-          </p>
-          <p className="text-white/30 text-xs mt-2 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#d4a017] animate-pulse"></span>
-            Total de relatórios finalizados
-          </p>
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/50 to-transparent" />
+        <div className="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#d4a017]/10 blur-3xl" />
+        <div className="relative grid gap-6 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div>
+            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-white/38">
+              Relatorios Finalizados
+            </p>
+            <div className="flex flex-wrap items-end gap-5">
+              <p className="font-mono text-5xl font-black tracking-tighter text-[#d4a017]">
+                {relatoriosFinalizados.length}
+              </p>
+              <div className="pb-1">
+                <p className="text-xs font-bold uppercase tracking-widest text-white/35">Resultado arquivado</p>
+                <p className="mt-1 font-mono text-xl font-black text-emerald-300">
+                  R$ {totalFinalizado.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
+            <p className="mt-4 flex items-center gap-2 text-xs text-white/35">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#d4a017] animate-pulse" />
+              Total de relatorios finalizados
+            </p>
+          </div>
+          <div className="hidden h-14 w-14 items-center justify-center rounded-2xl border border-[#d4a017]/20 bg-[#d4a017]/10 text-[#f6c64a] sm:flex">
+            <FileText size={24} />
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Lista de Relatórios */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <div className="rounded-2xl p-5 border border-white/8" style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}>
-            <h3 className="text-lg font-bold text-foreground dark:text-white mb-4">
-              Filtrar por Nomenclatura
-            </h3>
-            <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
+          <div className={`${panelClass} p-5`}>
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/30 to-transparent" />
+            <div className="mb-4 flex items-center gap-2">
+              <ListFilter size={16} className="text-[#d4a017]" />
+              <h3 className="text-lg font-bold text-white">Filtrar por Nomenclatura</h3>
+            </div>
+
+            <div className="mb-5 max-h-64 space-y-2 overflow-y-auto pr-1">
               <button
                 onClick={() => setFiltroNomeInicial("")}
-                className={`w-full text-left px-3 py-2 rounded-lg border transition-colors text-sm ${filtroNomeInicial === "" ? "bg-primary text-white border-primary" : "bg-secondary dark:bg-slate-700 border-border"}`}
+                className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-bold transition-all"
+                style={filtroNomeInicial === "" ? goldButtonStyle : ghostButtonStyle}
               >
                 Todos ({relatoriosFinalizados.length})
               </button>
@@ -141,91 +175,116 @@ export default function RelatoriosFinalizados() {
                 <button
                   key={nome}
                   onClick={() => setFiltroNomeInicial(nome)}
-                  className={`w-full text-left px-3 py-2 rounded-lg border transition-colors text-sm ${filtroNomeInicial === nome ? "bg-primary text-white border-primary" : "bg-secondary dark:bg-slate-700 border-border"}`}
+                  className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-bold transition-all"
+                  style={filtroNomeInicial === nome ? goldButtonStyle : ghostButtonStyle}
                 >
                   {nome} ({grupos[nome].length})
                 </button>
               ))}
             </div>
-            <hr className="my-4" />
-            <h3 className="text-lg font-bold text-foreground dark:text-white mb-4">
-              Relatórios
-            </h3>
+
+            <div className="my-5 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+            <div className="mb-4 flex items-center gap-2">
+              <ReceiptText size={16} className="text-[#d4a017]" />
+              <h3 className="text-lg font-bold text-white">Relatorios</h3>
+            </div>
+
             {relatoriosFiltrados.length === 0 ? (
-              <p className="text-muted-foreground">
-                Nenhum relatório finalizado ainda
+              <p className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm text-white/45">
+                Nenhum relatorio finalizado ainda
               </p>
             ) : (
               <div className="space-y-2">
-                {relatoriosFiltrados.map((rel) => (
-                  <button
-                    key={rel.id}
-                    onClick={() => {
-                      setSelectedRelatorioId(rel.id);
-                      setIsEditing(false);
-                    }}
-                    className="w-full text-left p-3 rounded-xl border transition-all text-sm"
-                  style={selectedRelatorioId === rel.id ? {
-                    background: "linear-gradient(135deg, rgba(212,160,23,0.15), rgba(212,160,23,0.08))",
-                    borderColor: "rgba(212,160,23,0.35)",
-                  } : {
-                    background: "rgba(255,255,255,0.03)",
-                    borderColor: "rgba(255,255,255,0.08)",
-                  }}
-                  >
-                    <p className="font-bold text-white/80 text-sm">{getCasaNome(rel.casaId).replace(/[\s-]+$/, "").trim()}{rel.agente ? `-${rel.agente}` : ""}</p>
-                    <p className="text-xs opacity-60 text-white/40">
-                      {rel.agente} • {new Date(rel.criadoEm).toLocaleDateString("pt-BR")}
-                    </p>
-                  </button>
-                ))}
+                {relatoriosFiltrados.map((relatorio) => {
+                  const isSelected = selectedRelatorioId === relatorio.id;
+                  const relatorioTotal = getRelatorioTotal(relatorio);
+                  return (
+                    <button
+                      key={relatorio.id}
+                      onClick={() => {
+                        setSelectedRelatorioId(relatorio.id);
+                        setIsEditing(false);
+                      }}
+                      className="group w-full rounded-2xl border p-4 text-left text-sm transition-all hover:-translate-y-0.5"
+                      style={
+                        isSelected
+                          ? {
+                              background: "linear-gradient(135deg, rgba(212,160,23,0.16), rgba(212,160,23,0.07))",
+                              borderColor: "rgba(212,160,23,0.42)",
+                              boxShadow: "0 12px 30px rgba(212,160,23,0.1)",
+                            }
+                          : {
+                              background: "rgba(255,255,255,0.035)",
+                              borderColor: "rgba(255,255,255,0.09)",
+                            }
+                      }
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-black text-white/88">
+                            {getCasaNome(relatorio.casaId).replace(/[\s-]+$/, "").trim()}
+                            {relatorio.agente ? ` - ${relatorio.agente}` : ""}
+                          </p>
+                          <p className="mt-1 text-xs text-white/38">
+                            {relatorio.agente || "Sem agente"} - {new Date(relatorio.criadoEm).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                        <span className="shrink-0 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 font-mono text-[11px] font-black text-emerald-300">
+                          R$ {relatorioTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
 
-        {/* Detalhes do Relatório */}
         <div className="lg:col-span-2">
           {selectedRelatorio ? (
             <div className="space-y-4">
-              {/* Header */}
-              <div className="rounded-2xl p-5 border border-white/8" style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}>
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-2xl font-bold text-foreground dark:text-white">
+              <div className={`${panelClass} p-6`}>
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/30 to-transparent" />
+                <div className="relative mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">Relatorio selecionado</p>
+                    <h3 className="mt-1 text-2xl font-black text-white">
                       {isEditing ? (
                         <input
                           type="text"
                           value={editingData?.agente || ""}
                           onChange={(e) => handleFieldChange("agente", e.target.value)}
-                          className="w-full px-2 py-1 border border-border rounded-lg bg-white dark:bg-slate-700 text-foreground dark:text-white"
+                          className="w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-white outline-none focus:border-[#d4a017]/60"
                         />
                       ) : (
                         getCasaNome(selectedRelatorio.casaId).replace(/[\s-]+$/, "").trim()
                       )}
                     </h3>
-                    <p className="text-muted-foreground dark:text-slate-400 mt-1">
-                      Agente: {isEditing ? (
+                    <p className="mt-2 text-sm text-white/50">
+                      Agente:{" "}
+                      {isEditing ? (
                         <input
                           type="text"
                           value={editingData?.agente || ""}
                           onChange={(e) => handleFieldChange("agente", e.target.value)}
-                          className="px-2 py-1 border border-border rounded-lg bg-white dark:bg-slate-700 text-foreground dark:text-white"
+                          className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-1.5 text-white outline-none focus:border-[#d4a017]/60"
                         />
                       ) : (
-                        selectedRelatorio.agente
+                        selectedRelatorio.agente || "-"
                       )}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Prazo</p>
-                    <p className="text-lg font-semibold dark:text-white">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-left sm:text-right">
+                    <p className="text-xs font-bold uppercase tracking-widest text-white/35">Prazo</p>
+                    <p className="mt-1 text-lg font-black text-white">
                       {isEditing ? (
                         <input
                           type="date"
                           value={editingData?.prazo?.split("T")[0] || ""}
                           onChange={(e) => handleFieldChange("prazo", e.target.value)}
-                          className="px-2 py-1 border border-border rounded-lg bg-white dark:bg-slate-700 text-foreground dark:text-white"
+                          className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-1.5 text-white outline-none focus:border-[#d4a017]/60"
                         />
                       ) : (
                         new Date(selectedRelatorio.prazo).toLocaleDateString("pt-BR")
@@ -234,96 +293,76 @@ export default function RelatoriosFinalizados() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div className="rounded-xl p-3 border border-blue-500/15" style={{ background: "rgba(96,165,250,0.05)" }}>
-                    <p className="text-xs text-muted-foreground dark:text-slate-400">Cooperação</p>
+                <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-blue-300/15 bg-blue-300/[0.055] p-4">
+                    <p className="text-xs font-bold uppercase tracking-widest text-blue-200/45">Cooperacao</p>
                     {isEditing ? (
                       <input
                         type="number"
                         step="0.01"
                         value={editingData?.cooperacao || 0}
                         onChange={(e) => handleFieldChange("cooperacao", e.target.value)}
-                        className="w-full px-2 py-1 border border-border rounded-lg bg-white dark:bg-slate-700 text-foreground dark:text-white"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-white outline-none focus:border-[#d4a017]/60"
                       />
                     ) : (
-                      <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                      <p className="mt-2 font-mono text-xl font-black text-blue-300">
                         R$ {(selectedRelatorio.cooperacao || 0).toFixed(2)}
                       </p>
                     )}
                   </div>
-                  <div className="rounded-xl p-3 border border-emerald-500/15" style={{ background: "rgba(74,222,128,0.05)" }}>
-                    <p className="text-xs text-muted-foreground dark:text-slate-400">Resultado Total</p>
-                    <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                      R$ {(calculateTotalResultado(isEditing ? editingData?.rows || [] : selectedRelatorio.rows) + (isEditing ? editingData?.cooperacao || 0 : selectedRelatorio.cooperacao || 0)).toFixed(2)}
+                  <div className="rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.055] p-4">
+                    <p className="text-xs font-bold uppercase tracking-widest text-emerald-200/45">Resultado Total</p>
+                    <p className="mt-2 font-mono text-xl font-black text-emerald-300">
+                      R${" "}
+                      {(
+                        calculateTotalResultado(isEditing ? editingData?.rows || [] : selectedRelatorio.rows) +
+                        (isEditing ? editingData?.cooperacao || 0 : selectedRelatorio.cooperacao || 0)
+                      ).toFixed(2)}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Tabela de Dados */}
-              <div className="bg-card backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-lg overflow-x-auto">
-                <h4 className="font-semibold text-foreground dark:text-white mb-4">Dados do Relatório</h4>
+              <div className={`${subtlePanelClass} overflow-x-auto p-6`}>
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+                <h4 className="mb-4 font-bold text-white">Dados do Relatorio</h4>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border dark:border-slate-700">
-                      <th className="text-left py-2 px-2 dark:text-slate-300">#</th>
-                      <th className="text-left py-2 px-2 dark:text-slate-300">Depósito</th>
-                      <th className="text-left py-2 px-2 dark:text-slate-300">Saque</th>
-                      <th className="text-left py-2 px-2 dark:text-slate-300">Baú</th>
-                      <th className="text-left py-2 px-2 dark:text-slate-300">Resultado</th>
+                    <tr className="border-b border-white/10">
+                      <th className="px-2 py-3 text-left font-bold text-white/55">#</th>
+                      <th className="px-2 py-3 text-left font-bold text-white/55">Deposito</th>
+                      <th className="px-2 py-3 text-left font-bold text-white/55">Saque</th>
+                      <th className="px-2 py-3 text-left font-bold text-white/55">Bau</th>
+                      <th className="px-2 py-3 text-left font-bold text-white/55">Resultado</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(isEditing ? editingData?.rows || [] : selectedRelatorio.rows).map((row: any) => (
-                      <tr key={row.numero} className="border-b border-border dark:border-slate-700 hover:bg-secondary dark:hover:bg-slate-700">
-                        <td className="py-2 px-2 dark:text-slate-300">{row.numero}</td>
-                        <td className="py-2 px-2 dark:text-slate-300">
-                          {isEditing ? (
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={row.deposito}
-                              onChange={(e) => handleRowChange(row.numero, "deposito", e.target.value)}
-                              className="w-20 px-2 py-1 border border-border rounded-lg bg-white dark:bg-slate-700 text-foreground dark:text-white"
-                            />
-                          ) : (
-                            `R$ ${(row.deposito || 0).toFixed(2)}`
-                          )}
-                        </td>
-                        <td className="py-2 px-2 dark:text-slate-300">
-                          {isEditing ? (
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={row.saque}
-                              onChange={(e) => handleRowChange(row.numero, "saque", e.target.value)}
-                              className="w-20 px-2 py-1 border border-border rounded-lg bg-white dark:bg-slate-700 text-foreground dark:text-white"
-                            />
-                          ) : (
-                            `R$ ${(row.saque || 0).toFixed(2)}`
-                          )}
-                        </td>
-                        <td className="py-2 px-2 dark:text-slate-300">
-                          {isEditing ? (
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={row.bau}
-                              onChange={(e) => handleRowChange(row.numero, "bau", e.target.value)}
-                              className="w-20 px-2 py-1 border border-border rounded-lg bg-white dark:bg-slate-700 text-foreground dark:text-white"
-                            />
-                          ) : (
-                            `R$ ${(row.bau || 0).toFixed(2)}`
-                          )}
-                        </td>
-                        <td className={`py-2 px-2 font-semibold ${row.resultado >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                      <tr key={row.numero} className="border-b border-white/8 transition-colors hover:bg-white/[0.035]">
+                        <td className="px-2 py-3 text-white/70">{row.numero}</td>
+                        {["deposito", "saque", "bau"].map((field) => (
+                          <td key={field} className="px-2 py-3 text-white/70">
+                            {isEditing ? (
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={row[field]}
+                                onChange={(e) => handleRowChange(row.numero, field, e.target.value)}
+                                className="w-24 rounded-lg border border-white/10 bg-white/[0.05] px-2 py-1 text-white outline-none focus:border-[#d4a017]/60"
+                              />
+                            ) : (
+                              `R$ ${(row[field] || 0).toFixed(2)}`
+                            )}
+                          </td>
+                        ))}
+                        <td className={`px-2 py-3 font-black ${row.resultado >= 0 ? "text-emerald-300" : "text-red-300"}`}>
                           {isEditing ? (
                             <input
                               type="number"
                               step="0.01"
                               value={row.resultado}
                               onChange={(e) => handleRowChange(row.numero, "resultado", e.target.value)}
-                              className="w-20 px-2 py-1 border border-border rounded-lg bg-white dark:bg-slate-700 text-foreground dark:text-white"
+                              className="w-24 rounded-lg border border-white/10 bg-white/[0.05] px-2 py-1 text-white outline-none focus:border-[#d4a017]/60"
                             />
                           ) : (
                             `R$ ${(row.resultado || 0).toFixed(2)}`
@@ -335,38 +374,47 @@ export default function RelatoriosFinalizados() {
                 </table>
               </div>
 
-              {/* Ações */}
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 {!isEditing ? (
                   <>
-                    <button onClick={handleEditClick}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.01]"
-                      style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                    <button
+                      onClick={handleEditClick}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black transition-all hover:scale-[1.01]"
+                      style={goldButtonStyle}
                     >
                       <Edit2 size={16} /> Editar
                     </button>
-                    <button onClick={() => handleReutilizar(selectedRelatorio.id)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm text-white/60 border border-white/12 hover:bg-white/5 transition-colors"
+                    <button
+                      onClick={() => handleReutilizar(selectedRelatorio.id)}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors hover:bg-white/8"
+                      style={ghostButtonStyle}
                     >
                       <Copy size={16} /> Reutilizar
                     </button>
-                    <button onClick={() => { deleteRelatorio(selectedRelatorio.id); setSelectedRelatorioId(null); toast.success("Relatório excluído"); }}
-                      className="px-4 py-2.5 rounded-xl text-red-400 border border-red-500/20 hover:bg-red-500/10 transition-colors"
-                      style={{ background: "rgba(239,68,68,0.05)" }}
+                    <button
+                      onClick={() => {
+                        deleteRelatorio(selectedRelatorio.id);
+                        setSelectedRelatorioId(null);
+                        toast.success("Relatorio excluido");
+                      }}
+                      className="rounded-xl border border-red-400/25 bg-red-400/10 px-4 py-3 text-red-300 transition-colors hover:bg-red-400/18"
                     >
                       <Trash2 size={16} />
                     </button>
                   </>
                 ) : (
                   <>
-                    <button onClick={handleSaveEdit}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.01]"
-                      style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                    <button
+                      onClick={handleSaveEdit}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black transition-all hover:scale-[1.01]"
+                      style={goldButtonStyle}
                     >
                       <Check size={16} /> Salvar
                     </button>
-                    <button onClick={handleCancelEdit}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm text-white/50 border border-white/12 hover:bg-white/5 transition-colors"
+                    <button
+                      onClick={handleCancelEdit}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors hover:bg-white/8"
+                      style={ghostButtonStyle}
                     >
                       <X size={16} /> Cancelar
                     </button>
@@ -375,8 +423,9 @@ export default function RelatoriosFinalizados() {
               </div>
             </div>
           ) : (
-            <div className="rounded-2xl p-12 text-center border border-white/8" style={{ background: "rgba(255,255,255,0.02)" }}>
-              <p className="text-white/25 text-sm">Selecione um relatório para visualizar os detalhes</p>
+            <div className={`${subtlePanelClass} p-12 text-center`}>
+              <FileText size={32} className="mx-auto mb-4 text-[#d4a017]/65" />
+              <p className="text-sm text-white/35">Selecione um relatorio para visualizar os detalhes</p>
             </div>
           )}
         </div>

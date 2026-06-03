@@ -29,6 +29,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const STORAGE_KEY = "cpa-app-state";
+const RELATORIOS_FINALIZADOS_EM_KEY = "relatorios-finalizados-em-v1";
 
 const initialState: AppState = {
   casas: [],
@@ -89,13 +90,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try { return JSON.parse(localStorage.getItem("relatorio-prazos-v1") || "{}"); } catch { return {}; }
     })();
 
+    const finalizadosEmLocais: Record<string, string> = (() => {
+      try { return JSON.parse(localStorage.getItem(RELATORIOS_FINALIZADOS_EM_KEY) || "{}"); } catch { return {}; }
+    })();
+
     const relatorios = (relatoriosQuery.data || []).map((rel: any) => ({
       ...rel,
       cooperacao: rel.cooperacao ? Number(rel.cooperacao) : 0,
       // Usa prazo do DB se existir, senão usa o salvo localmente
       prazo: rel.prazo || prazosLocais[rel.id] || "",
+      finalizadoEm: rel.finalizadoEm || finalizadosEmLocais[rel.id] || undefined,
       rows: rel.rows || [],
       criadoEm: rel.criadoEm instanceof Date ? rel.criadoEm.toISOString() : rel.criadoEm,
+      atualizadoEm: rel.atualizadoEm instanceof Date ? rel.atualizadoEm.toISOString() : rel.atualizadoEm,
     })) as RelatorioData[];
 
     const settings = (settingsQuery.data || {}) as any;
@@ -280,6 +287,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const finalizarRelatorio = async (id: string) => {
     try {
+      try {
+        const finalizadosEm = JSON.parse(localStorage.getItem(RELATORIOS_FINALIZADOS_EM_KEY) || "{}");
+        finalizadosEm[id] = new Date().toISOString();
+        localStorage.setItem(RELATORIOS_FINALIZADOS_EM_KEY, JSON.stringify(finalizadosEm));
+      } catch {}
       await updateRelatorioMutation.mutateAsync({
         id,
         status: "finalizado",
