@@ -224,10 +224,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
 
       // Salvar prazo em localStorage mapeado pelo ID do relatório criado
-      if (relatorio.prazo && result && (result as any).id) {
+      const relId = (result as any).id;
+      if (relatorio.prazo && relId) {
         try {
           const prazos = JSON.parse(localStorage.getItem("relatorio-prazos-v1") || "{}");
-          prazos[(result as any).id] = relatorio.prazo;
+          prazos[relId] = relatorio.prazo;
           localStorage.setItem("relatorio-prazos-v1", JSON.stringify(prazos));
         } catch {}
       }

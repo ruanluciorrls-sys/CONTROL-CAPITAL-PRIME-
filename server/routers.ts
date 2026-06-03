@@ -171,17 +171,21 @@ export const appRouter = router({
         cooperacao: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        // NOTA: coluna 'prazo' adicionada ao schema local mas migration pendente no Supabase.
+        // Prazo é salvo/lido via localStorage no cliente (AppContext.tsx).
+        // Para ativar no banco, rodar no Supabase SQL Editor:
+        //   ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS prazo text;
         const relatorio = await createRelatorio({
           id: nanoid(),
           userId: ctx.user.id,
           casaId: input.casaId,
           agente: input.agente,
-          prazo: input.prazo || null,
           rows: input.rows,
           status: "ativo",
           cooperacao: input.cooperacao || "0",
-        } as any);
-        return relatorio || { success: false };
+        });
+        // Retorna com prazo do input para o cliente salvar no localStorage
+        return relatorio ? { ...relatorio, prazoInput: input.prazo || null } : { success: false };
       }),
     update: protectedProcedure
       .input(z.object({
@@ -195,7 +199,8 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const updateData: Partial<InsertRelatorio> = {};
         if (input.agente !== undefined) updateData.agente = input.agente;
-        if (input.prazo !== undefined) (updateData as any).prazo = input.prazo;
+        // prazo omitido intencionalmente — coluna não existe no banco ainda
+        // SQL para ativar: ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS prazo text;
         if (input.rows !== undefined) updateData.rows = input.rows;
         if (input.cooperacao !== undefined) updateData.cooperacao = input.cooperacao;
         if (input.status !== undefined) updateData.status = input.status;
