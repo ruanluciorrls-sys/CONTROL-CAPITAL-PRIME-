@@ -1,0 +1,290 @@
+[
+  {
+    "provider": "PG",
+    "performance": "BAIXA",
+    "name": "Chicky Run",
+    "tag": "Comida"
+  },
+  {
+    "provider": "PG",
+    "performance": "MEDIA",
+    "name": "Gem Saviour",
+    "tag": "Aventura"
+  },
+  {
+    "provider": "PG",
+    "performance": "MEDIA",
+    "name": "Fortune Dragon",
+    "tag": "Ganho Certo 2.00"
+  },
+  {
+    "provider": "PG",
+    "performance": "ALTA",
+    "name": "Plushie Frenzy",
+    "tag": "Casual"
+  },
+  {
+    "provider": "PG",
+    "performance": "ALTA",
+    "name": "Prosperity Lion",
+    "tag": "Favorito"
+  },
+  {
+    "provider": "PG",
+    "performance": "ALTA",
+    "name": "Win Win Won",
+    "tag": "Popular"
+  },
+  {
+    "provider": "PG",
+    "performance": "MEDIA",
+    "name": "Piggy Gold",
+    "tag": "Favorito"
+  },
+  {
+    "provider": "PG",
+    "performance": "ALTA",
+    "name": "Mr Hallow Jackpot",
+    "tag": "Jackpot"
+  },
+  {
+    "provider": "PP",
+    "performance": "MEDIA",
+    "name": "888 Gold",
+    "tag": "Ouro"
+  },
+  {
+    "provider": "PP",
+    "performance": "ALTA",
+    "name": "Fire Strike",
+    "tag": "Fogo"
+  },
+  {
+    "provider": "PP",
+    "performance": "MEDIA",
+    "name": "Diamond Strike",
+    "tag": "Diamante"
+  },
+  {
+    "provider": "PP",
+    "performance": "MEDIA",
+    "name": "Irish Charms",
+    "tag": "Trevo"
+  },
+  {
+    "provider": "PP",
+    "performance": "MEDIA",
+    "name": "Plush WINS",
+    "tag": "Clássico"
+  },
+  {
+    "provider": "PP",
+    "performance": "MEDIA",
+    "name": "Diamonds Are Forever",
+    "tag": "Diamante"
+  },
+  {
+    "provider": "PP",
+    "performance": "BAIXA",
+    "name": "Jade Butterfly",
+    "tag": "Média/Montante"
+  },
+  {
+    "provider": "WG",
+    "performance": "ALTA",
+    "name": "Dragon vs Tiger",
+    "tag": "Cartas"
+  },
+  {
+    "provider": "WG",
+    "performance": "MEDIA",
+    "name": "Lucky Dog",
+    "tag": "Animal"
+  },
+  {
+    "provider": "WG",
+    "performance": "ALTA",
+    "name": "Dragon Treasure II",
+    "tag": "Dragão"
+  },
+  {
+    "provider": "WG",
+    "performance": "MEDIA",
+    "name": "Fishing Master",
+    "tag": "Pescaria"
+  },
+  {
+    "provider": "WG",
+    "performance": "MEDIA",
+    "name": "Treasure Bowl",
+    "tag": "Pote"
+  },
+  {
+    "provider": "MG",
+    "performance": "ALTA",
+    "name": "Lucky Twins",
+    "tag": "Asiático"
+  },
+  {
+    "provider": "MG",
+    "performance": "MEDIA",
+    "name": "777 Mega Deluxe",
+    "tag": "Clássico"
+  },
+  {
+    "provider": "MG",
+    "performance": "MEDIA",
+    "name": "777 BIG",
+    "tag": "Jackpot"
+  },
+  {
+    "provider": "JILI",
+    "performance": "BAIXA",
+    "name": "FaFaFa",
+    "tag": "Simples"
+  },
+  {
+    "provider": "JILI",
+    "performance": "ALTA",
+    "name": "XIYANGYANG",
+    "tag": "Cartas"
+  },
+  {
+    "provider": "JILI",
+    "performance": "ALTA",
+    "name": "Jungle King",
+    "tag": "Aventura"
+  },
+  {
+    "provider": "JILI",
+    "performance": "MEDIA",
+    "name": "Crazy Hunter",
+    "tag": "Pulso"
+  },
+  {
+    "provider": "JILI",
+    "performance": "BAIXA",
+    "name": "Golden Joker",
+    "tag": "Simples"
+  },
+  {
+    "provider": "JILI",
+    "performance": "BAIXA",
+    "name": "Crazy 777",
+    "tag": "Rápido"
+  },
+  {
+    "provider": "JDB",
+    "performance": "ALTA",
+    "name": "Super Niubi",
+    "tag": "Popular"
+  },
+  {
+    "provider": "JDB",
+    "performance": "ALTA",
+    "name": "Crazy King Kong",
+    "tag": "Ação"
+  },
+  {
+    "provider": "JDB",
+    "performance": "MEDIA",
+    "name": "Funky King Kong",
+    "tag": "Ação"
+  },
+  {
+    "provider": "JDB",
+    "performance": "MEDIA",
+    "name": "Fruity Bonanza",
+    "tag": "Frutas"
+  },
+  {
+    "provider": "JDB",
+    "performance": "ALTA",
+    "name": "Triple King Kong",
+    "tag": "Ação"
+  },
+  {
+    "provider": "JDB",
+    "performance": "MEDIA",
+    "name": "Lucky Color",
+    "tag": "Casual"
+  },
+  {
+    "provider": "JDB",
+    "performance": "MEDIA",
+    "name": "Treasure Bowl",
+    "tag": "Pote"
+  },
+  {
+    "provider": "JDB",
+    "performance": "MEDIA",
+    "name": "Bulls Treasure",
+    "tag": "Aventura"
+  },
+  {
+    "provider": "FC",
+    "performance": "ALTA",
+    "name": "Gladiatriz de Roma",
+    "tag": "Batalha"
+  },
+  {
+    "provider": "FC",
+    "performance": "ALTA",
+    "name": "Golden Panther",
+    "tag": "Pantera"
+  },
+  {
+    "provider": "FC",
+    "performance": "ALTA",
+    "name": "Rich Man",
+    "tag": "Magnata"
+  },
+  {
+    "provider": "FC",
+    "performance": "MEDIA",
+    "name": "Treasure Raiders",
+    "tag": "Tumba"
+  },
+  {
+    "provider": "FC",
+    "performance": "BAIXA",
+    "name": "Color Game",
+    "tag": "Dados"
+  },
+  {
+    "provider": "FC",
+    "performance": "ALTA",
+    "name": "Cowboys",
+    "tag": "Oeste"
+  },
+  {
+    "provider": "FC",
+    "performance": "BAIXA",
+    "name": "Fortune Sheep",
+    "tag": "Ovelha"
+  },
+  {
+    "provider": "PESCARIA",
+    "performance": "ALTA",
+    "name": "Boom Legend",
+    "tag": "Montante"
+  },
+  {
+    "provider": "PESCARIA",
+    "performance": "ALTA",
+    "name": "Mega Fishing",
+    "tag": "Média Alta"
+  },
+  {
+    "provider": "PESCARIA",
+    "performance": "ALTA",
+    "name": "Dragon Fortune",
+    "tag": "Montante"
+  },
+  {
+    "provider": "PESCARIA",
+    "performance": "ALTA",
+    "name": "Happy Fishing",
+    "tag": "Montante"
+  }
+]

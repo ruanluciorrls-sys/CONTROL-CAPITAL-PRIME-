@@ -17,8 +17,9 @@ import Faturamento from "@/pages/Faturamento";
 import GastoProxy from "@/pages/GastoProxy";
 import AdminPanel from "@/pages/AdminPanel";
 import Login from "@/pages/Login";
+import Slots from "@/pages/Slots";
 import ChavesPix from "@/pages/ChavesPix";
-import { CheckCircle, Edit3, Home, FileText, Moon, Sun, LogOut, Zap, Shield, Crown, Wallet, Key, DollarSign, RefreshCw, CalendarDays } from "lucide-react";
+import { CheckCircle, Edit3, Home, FileText, Moon, Sun, LogOut, Zap, Shield, Crown, Wallet, Key, DollarSign, RefreshCw, CalendarDays, Flame } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -34,6 +35,7 @@ const publicTabs = [
   { id: "gerenciar-casas", label: "MINHAS OPERAÇÃO", icon: <Home size={20} /> },
   { id: "contas", label: "Contas Não Sacadas", icon: <Wallet size={20} /> },
   { id: "chaves-pix", label: "Chaves PIX", icon: <Key size={20} /> },
+  { id: "slots", label: "Slots Premium", icon: <Flame size={20} /> },
   { id: "editar-dados", label: "Plataformas", icon: <CalendarDays size={20} /> },
 ];
 
@@ -84,6 +86,7 @@ function AppContent() {
       case "chaves-pix": return <ChavesPix />;
       case "calendario": return <Calendario />;
       case "editar-dados": return <EditarDados />;
+      case "slots": return <Slots />;
       case "admin": return <AdminPanel />;
       default: return <Dashboard />;
     }
