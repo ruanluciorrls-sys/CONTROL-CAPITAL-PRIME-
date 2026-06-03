@@ -23,6 +23,12 @@ export function ThemeProvider({
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (switchable) {
+      const migrated = localStorage.getItem("theme_migrated_v2");
+      if (!migrated) {
+        localStorage.setItem("theme", "dark");
+        localStorage.setItem("theme_migrated_v2", "true");
+        return "dark";
+      }
       const stored = localStorage.getItem("theme");
       return (stored as Theme) || defaultTheme;
     }
