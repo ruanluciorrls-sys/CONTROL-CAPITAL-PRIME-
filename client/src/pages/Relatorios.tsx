@@ -335,13 +335,23 @@ export default function Relatorios() {
 
   const currentRelatorio = selectedRelatorioId ? relatoriosAtivos.find((r) => r.id === selectedRelatorioId) : null;
 
-  // Plataformas do calendário salvas no localStorage
-  const plataformasCalendario = (() => {
+  // Plataformas do calendário — lê do localStorage e atualiza quando mudar
+  const lerPlataformas = () => {
     try {
       const saved = localStorage.getItem("plataformas-calendario-v2");
       return saved ? JSON.parse(saved) : PLATAFORMAS_CALENDARIO;
     } catch { return PLATAFORMAS_CALENDARIO; }
-  })();
+  };
+  const [plataformasCalendario, setPlataformasCalendario] = useState(lerPlataformas);
+
+  useEffect(() => {
+    const handleUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setPlataformasCalendario(Array.isArray(detail) ? detail : lerPlataformas());
+    };
+    window.addEventListener("plataformas-updated", handleUpdate);
+    return () => window.removeEventListener("plataformas-updated", handleUpdate);
+  }, []);
 
   return (
     <div className="space-y-4 md:space-y-8">

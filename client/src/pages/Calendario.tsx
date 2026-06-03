@@ -90,11 +90,14 @@ export default function Calendario() {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(plataformas));
+    window.dispatchEvent(new CustomEvent("plataformas-updated", { detail: plataformas }));
   }, [plataformas]);
 
   const salvar = (lista: Plataforma[]) => {
     setPlataformas(lista);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
+    // Notifica outros componentes (Dashboard, Relatorios) que as plataformas mudaram
+    window.dispatchEvent(new CustomEvent("plataformas-updated", { detail: lista }));
   };
 
   const handleAdicionar = () => {

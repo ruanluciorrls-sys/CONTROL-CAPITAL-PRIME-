@@ -1,7 +1,7 @@
 import { useApp } from "@/contexts/AppContext";
 import { trpc } from "@/lib/trpc";
 import { Calendar, Home, FileText, DollarSign, Wallet, TrendingUp, Clock, Zap, ArrowRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardCalendar from "@/components/DashboardCalendar";
 import { navigateToTab } from "@/lib/navigate";
 
@@ -18,7 +18,7 @@ export default function Dashboard() {
   const { data: gastosProxyList = [] } = trpc.gastosProxy.list.useQuery();
   const { data: contasData = [] } = trpc.contas.list.useQuery();
 
-  const [plataformas] = useState<Plataforma[]>(() => {
+  const lerPlataformas = (): Plataforma[] => {
     try {
       const saved = localStorage.getItem("plataformas-calendario-v2");
       if (saved) return JSON.parse(saved);
@@ -52,7 +52,23 @@ export default function Dashboard() {
       { id: "26", nome: "DY", diasPrazo: 3, dia: "DOMINGO" },
       { id: "27", nome: "MK", diasPrazo: 3, dia: "DOMINGO" },
     ];
-  });
+  };
+
+  const [plataformas, setPlataformas] = useState<Plataforma[]>(lerPlataformas);
+
+  // Atualiza quando o Gerenciamento de Plataformas salvar algo novo
+  useEffect(() => {
+    const handleUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (Array.isArray(detail)) {
+        setPlataformas(detail);
+      } else {
+        setPlataformas(lerPlataformas());
+      }
+    };
+    window.addEventListener("plataformas-updated", handleUpdate);
+    return () => window.removeEventListener("plataformas-updated", handleUpdate);
+  }, []);
 
   // Dados
   const relatoriosFinalizados = state.relatorios.filter((r) => r.status === "finalizado");
