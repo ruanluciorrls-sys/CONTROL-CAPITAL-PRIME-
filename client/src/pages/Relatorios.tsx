@@ -1,6 +1,7 @@
 import { useApp } from "@/contexts/AppContext";
 import { Plus, Trash2, Copy, Clock, ChevronDown, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import RelatorioSpreadsheet from "@/components/RelatorioSpreadsheet";
 import AbaProgresso from "@/components/AbaProgresso";
 
@@ -214,18 +215,21 @@ export default function Relatorios() {
   const relatoriosLixeira = state.relatorios.filter((r) => r.status === "lixeira");
 
   const handleCreateRelatorio = () => {
-    if (newRelatorioData.casaId && newRelatorioData.agente) {
-      addRelatorio({
-        casaId: newRelatorioData.casaId,
-        agente: newRelatorioData.agente,
-        prazo: newRelatorioData.prazo,
-        cooperacao: 0,
-        rows: [],
-        status: "ativo",
-      });
-      setNewRelatorioData({ casaId: "", agente: "", prazo: "" });
-      setShowNewForm(false);
+    if (!newRelatorioData.casaId) {
+      toast.error("Selecione uma Meta antes de criar o relatório.");
+      return;
     }
+    addRelatorio({
+      casaId: newRelatorioData.casaId,
+      agente: newRelatorioData.agente || "",
+      prazo: newRelatorioData.prazo,
+      cooperacao: 0,
+      rows: [],
+      status: "ativo",
+    });
+    setNewRelatorioData({ casaId: "", agente: "", prazo: "" });
+    setShowNewForm(false);
+    toast.success("Relatório criado com sucesso!");
   };
 
   const handleAddRow = (relatorioId: string, row: any) => {
