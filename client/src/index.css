@@ -84,6 +84,8 @@
   --sidebar-accent-foreground: var(--prime-gold2);
   --sidebar-border: rgba(255,255,255,0.08);
   --sidebar-ring: var(--prime-gold);
+  --card-bg-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(240, 244, 255, 0.85));
+  --card-border-highlight: rgba(15, 30, 69, 0.1);
 }
 
 /* ── CAPITAL PRIME CONTROL — Dark Theme ── */
@@ -116,6 +118,8 @@
   --sidebar-accent-foreground: #f3d078;
   --sidebar-border: rgba(255, 255, 255, 0.05);
   --sidebar-ring: #d4a017;
+  --card-bg-gradient: linear-gradient(145deg, rgba(7, 14, 32, 0.75), rgba(15, 30, 69, 0.5));
+  --card-border-highlight: rgba(255, 255, 255, 0.08);
 }
 
 @layer base {

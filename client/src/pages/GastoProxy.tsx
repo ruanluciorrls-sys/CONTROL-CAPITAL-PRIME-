@@ -78,10 +78,10 @@ function ModalCusto({
       style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
       onClick={onClose}
     >
-      <div className="rounded-2xl p-6 w-full max-w-sm space-y-5 relative"
+      <div className="rounded-2xl p-6 w-full max-w-sm space-y-5 relative border"
         style={{
-          background: "linear-gradient(145deg, #070e20, #0f1e45)",
-          border: "1px solid rgba(212,160,23,0.25)",
+          background: "var(--card-bg-gradient)",
+          borderColor: "var(--card-border-highlight)",
           boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
         }}
         onClick={(e) => e.stopPropagation()}
@@ -233,22 +233,22 @@ export default function GastoProxy() {
       {/* Três cards de sumário */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Custo do Dia */}
-        <div className="rounded-2xl p-5 border border-white/8 relative overflow-hidden"
-          style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+        <div className="rounded-2xl p-5 border relative overflow-hidden"
+          style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)" }}
         >
           <div className="absolute left-0 top-0 w-[3px] h-full rounded-l-2xl" style={{ background: "#f87171" }} />
-          <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-3">Custo do Dia</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 mb-3">Custo do Dia</p>
           <p className="text-3xl font-black" style={{ color: "#f87171" }}>{fmt(custoHoje)}</p>
-          <p className="text-[10px] text-white/25 mt-2">
+          <p className="text-[10px] text-white/50 dark:text-white/40 mt-2">
             {custoHoje === 0 ? "sem custo registrado hoje" : `${(gastos as any[]).filter((g) => new Date(g.data + "T00:00:00") >= inicioHoje).length} lançamento(s)`}
           </p>
         </div>
 
         {/* Lucro vs Custo Hoje */}
-        <div className="rounded-2xl p-5 border border-white/8"
-          style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+        <div className="rounded-2xl p-5 border"
+          style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)" }}
         >
-          <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-3">Resumo de Custos (Mês)</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 mb-3">Resumo de Custos (Mês)</p>
           <div className="space-y-2">
             {TIPOS.map(({ id, color }) => {
               const v = (gastos as any[])
@@ -257,32 +257,32 @@ export default function GastoProxy() {
               if (v === 0) return null;
               return (
                 <div key={id} className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-white/40">{id}</span>
+                  <span className="text-[10px] font-bold text-white/70 dark:text-white/50">{id}</span>
                   <span className="text-xs font-black" style={{ color }}>– {fmt(v)}</span>
                 </div>
               );
             })}
             <div className="border-t border-white/8 pt-2 flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-white/50">Total mês</span>
-              <span className="text-sm font-black text-white/80">{fmt(custoMes)}</span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-white/70 dark:text-white/55">Total mês</span>
+              <span className="text-sm font-black text-white/90 dark:text-white">{fmt(custoMes)}</span>
             </div>
           </div>
         </div>
 
         {/* Custo do Mês */}
-        <div className="rounded-2xl p-5 border border-white/8 relative overflow-hidden"
-          style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+        <div className="rounded-2xl p-5 border relative overflow-hidden"
+          style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)" }}
         >
           <div className="absolute left-0 top-0 w-[3px] h-full rounded-l-2xl" style={{ background: "#d4a017" }} />
-          <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-3">Custo do Mês</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 mb-3">Custo do Mês</p>
           <p className="text-3xl font-black" style={{ color: "#d4a017" }}>{fmt(custoMes)}</p>
-          <p className="text-[10px] text-white/25 mt-2">Média de {fmt(mediaDia)}/dia</p>
+          <p className="text-[10px] text-white/50 dark:text-white/40 mt-2">Média de {fmt(mediaDia)}/dia</p>
         </div>
       </div>
 
       {/* Histórico */}
-      <div className="rounded-2xl border border-white/8 overflow-hidden"
-        style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+      <div className="rounded-2xl border overflow-hidden"
+        style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)" }}
       >
         <div className="px-5 py-4 border-b border-white/6 flex items-center justify-between">
           <div className="flex items-center gap-2">
