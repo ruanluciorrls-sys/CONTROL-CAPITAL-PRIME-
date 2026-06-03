@@ -294,7 +294,7 @@ export default function RelatorioSpreadsheet({
                       background: row.resultado < 0 ? "rgba(248,113,113,0.04)" : row.resultado > 0 ? "rgba(74,222,128,0.04)" : "transparent",
                       cursor: "pointer",
                     }}
-                    onDoubleClick={() => { setEditingId(row.numero); setEditRow({ ...row }); }}
+                    onClick={() => { setEditingId(row.numero); setEditRow({ ...row }); }}
                   >
                     <td className="px-4 py-3 text-white/40 font-bold text-sm">{row.numero}</td>
                     {[row.deposito, row.redeposito, row.saque, row.bau].map((v, i) => (
@@ -362,7 +362,7 @@ export default function RelatorioSpreadsheet({
               </tr>
             </tbody>
           </table>
-          <p className="text-[9px] text-white/15 px-4 py-2">Dica: duplo clique em uma linha para editar</p>
+          <p className="text-[9px] text-white/45 dark:text-white/30 px-4 py-2">Dica: clique em uma linha para editar</p>
         </div>
 
         {/* Painel Lateral */}
