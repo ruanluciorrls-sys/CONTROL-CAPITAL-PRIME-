@@ -4,9 +4,11 @@ import RelatoriosFinalizados from "./RelatoriosFinalizados";
 import CasasFinalizadas from "./CasasFinalizadas";
 import GerenciarCasas from "./GerenciarCasas";
 import { FileText, CheckCircle, Home, List } from "lucide-react";
+import { usePageTransition } from "@/hooks/usePageTransition";
 
 export default function MinhasOperacoes() {
   const [activeSubTab, setActiveSubTab] = useState<string>("operacao-cpa");
+  const { isVisible, renderedValue: renderedSubTab } = usePageTransition(activeSubTab);
 
   const subTabs = [
     { id: "operacao-cpa", label: "Operação CPA", icon: <FileText size={16} /> },
@@ -36,11 +38,13 @@ export default function MinhasOperacoes() {
       </div>
 
       {/* Conteúdo da Aba Ativa */}
-      <div className="flex-1 overflow-y-auto">
-        {activeSubTab === "operacao-cpa" && <Relatorios />}
-        {activeSubTab === "gerenciar-casas" && <GerenciarCasas />}
-        {activeSubTab === "casas-finalizadas" && <CasasFinalizadas />}
-        {activeSubTab === "relatorios-finalizados" && <RelatoriosFinalizados />}
+      <div className={`flex-1 overflow-y-auto transition-opacity duration-300 ${
+        isVisible ? "page-transition-enter" : "page-transition-exit"
+      }`}>
+        {renderedSubTab === "operacao-cpa" && <Relatorios />}
+        {renderedSubTab === "gerenciar-casas" && <GerenciarCasas />}
+        {renderedSubTab === "casas-finalizadas" && <CasasFinalizadas />}
+        {renderedSubTab === "relatorios-finalizados" && <RelatoriosFinalizados />}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import RelatorioSpreadsheet from "@/components/RelatorioSpreadsheet";
 import AbaProgresso from "@/components/AbaProgresso";
+import { usePageTransition } from "@/hooks/usePageTransition";
 
 // Plataformas do calendário (espelhando Calendario.tsx)
 const PLATAFORMAS_CALENDARIO = [
@@ -195,6 +196,7 @@ export default function Relatorios() {
   const [selectedRelatorioId, setSelectedRelatorioId] = useState<string>("");
   const [showNewForm, setShowNewForm] = useState(false);
   const [activeTab, setActiveTab] = useState<"relatorio" | "progresso" | "lixeira">("relatorio");
+  const { isVisible, renderedValue: renderedTab } = usePageTransition(activeTab);
   const [newRelatorioData, setNewRelatorioData] = useState({
     casaId: "",
     agente: "",
@@ -369,392 +371,396 @@ export default function Relatorios() {
         ))}
       </div>
 
-      {activeTab === "relatorio" && (
-        <>
-          {/* Botão Criar Novo Relatório */}
-          <button
-            onClick={() => setShowNewForm(!showNewForm)}
-            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold min-h-[44px] w-full md:w-auto text-[#050b18] transition-all hover:scale-[1.02]"
-            style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
-          >
-            <Plus size={20} />
-            Criar Novo Relatório
-          </button>
-
-          {/* Formulário de Novo Relatório */}
-          {showNewForm && (
-            <div className="rounded-2xl p-5 border border-white/8 space-y-4"
-              style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(8px)" }}
+      <div className={`transition-opacity duration-300 ${
+        isVisible ? "page-transition-enter" : "page-transition-exit"
+      }`}>
+        {renderedTab === "relatorio" && (
+          <>
+            {/* Botão Criar Novo Relatório */}
+            <button
+              onClick={() => setShowNewForm(!showNewForm)}
+              className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold min-h-[44px] w-full md:w-auto text-[#050b18] transition-all hover:scale-[1.02]"
+              style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
             >
-              <h3 className="text-base font-black text-foreground">Novo Relatório</h3>
+              <Plus size={20} />
+              Criar Novo Relatório
+            </button>
 
-              {/* 1. Meta — Selecionar Casa de Criação Meta */}
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
-                  Meta
-                </label>
-                <select
-                  value={newRelatorioData.casaId}
-                  onChange={(e) => {
-                    const casaSelecionada = casasAtivas.find((c) => c.id === e.target.value);
-                    setNewRelatorioData({
-                      ...newRelatorioData,
-                      casaId: e.target.value,
-                      prazo: casaSelecionada?.prazo || newRelatorioData.prazo,
-                    });
-                  }}
-                  className="w-full px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-background text-foreground text-sm"
-                >
-                  <option value="">Selecionar Meta</option>
-                  {casasAtivas.map((casa) => (
-                    <option key={casa.id} value={casa.id}>
-                      {casa.nome}{casa.meta ? ` — Meta: R$ ${Number(casa.meta).toFixed(2)}` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Formulário de Novo Relatório */}
+            {showNewForm && (
+              <div className="rounded-2xl p-5 border border-white/8 space-y-4"
+                style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(8px)" }}
+              >
+                <h3 className="text-base font-black text-foreground">Novo Relatório</h3>
 
-              {/* 2. Nome do Agente | Redes */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 1. Meta — Selecionar Casa de Criação Meta */}
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
-                    Nome do Agente
+                    Meta
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Nome do agente..."
-                    value={newRelatorioData.agente}
-                    onChange={(e) => setNewRelatorioData({ ...newRelatorioData, agente: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-background text-foreground text-sm"
-                  />
-                  {newRelatorioData.casaId && (
-                    <p className="text-[10px] text-white/30 mt-1">
-                      Exibido como: <span className="text-[#d4a017] font-bold">
-                        {getCasaNome(newRelatorioData.casaId)}{newRelatorioData.agente ? `-${newRelatorioData.agente}` : ""}
-                      </span>
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
-                    Redes
-                  </label>
-                  <RedesDropdown
-                    plataformas={plataformasCalendario}
-                    onSelect={(dia, diasPrazo) => {
-                      const prazoCalc = calcularPrazo(dia, diasPrazo);
-                      setNewRelatorioData((prev) => ({ ...prev, prazo: prazoCalc }));
+                  <select
+                    value={newRelatorioData.casaId}
+                    onChange={(e) => {
+                      const casaSelecionada = casasAtivas.find((c) => c.id === e.target.value);
+                      setNewRelatorioData({
+                        ...newRelatorioData,
+                        casaId: e.target.value,
+                        prazo: casaSelecionada?.prazo || newRelatorioData.prazo,
+                      });
                     }}
-                  />
-                  <p className="text-[10px] text-white/25 mt-1">
-                    Selecionar preenche o prazo automaticamente
-                  </p>
+                    className="w-full px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-background text-foreground text-sm"
+                  >
+                    <option value="">Selecionar Meta</option>
+                    {casasAtivas.map((casa) => (
+                      <option key={casa.id} value={casa.id}>
+                        {casa.nome}{casa.meta ? ` — Meta: R$ ${Number(casa.meta).toFixed(2)}` : ""}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </div>
 
-              {/* 3. Prazo + Countdown */}
-              {newRelatorioData.prazo ? (
-                <div className="rounded-xl p-4 border border-[#d4a017]/20 flex items-center gap-4"
-                  style={{ background: "rgba(212,160,23,0.06)" }}
-                >
-                  <Clock size={18} className="text-[#d4a017] shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#d4a017]/60 mb-0.5">Prazo</p>
-                    <p className="text-lg font-black text-[#d4a017]">
-                      {new Date(newRelatorioData.prazo + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
-                    </p>
-                    {countdown && (
-                      <p className="text-xs text-white/40 mt-0.5">{countdown}</p>
+                {/* 2. Nome do Agente | Redes */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
+                      Nome do Agente
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Nome do agente..."
+                      value={newRelatorioData.agente}
+                      onChange={(e) => setNewRelatorioData({ ...newRelatorioData, agente: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-background text-foreground text-sm"
+                    />
+                    {newRelatorioData.casaId && (
+                      <p className="text-[10px] text-white/30 mt-1">
+                        Exibido como: <span className="text-[#d4a017] font-bold">
+                          {getCasaNome(newRelatorioData.casaId)}{newRelatorioData.agente ? `-${newRelatorioData.agente}` : ""}
+                        </span>
+                      </p>
                     )}
                   </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
+                      Redes
+                    </label>
+                    <RedesDropdown
+                      plataformas={plataformasCalendario}
+                      onSelect={(dia, diasPrazo) => {
+                        const prazoCalc = calcularPrazo(dia, diasPrazo);
+                        setNewRelatorioData((prev) => ({ ...prev, prazo: prazoCalc }));
+                      }}
+                    />
+                    <p className="text-[10px] text-white/25 mt-1">
+                      Selecionar preenche o prazo automaticamente
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <div className="rounded-xl p-3 border border-white/8 text-center text-xs text-white/20">
-                  Selecione uma rede para preencher o prazo automaticamente
+
+                {/* 3. Prazo + Countdown */}
+                {newRelatorioData.prazo ? (
+                  <div className="rounded-xl p-4 border border-[#d4a017]/20 flex items-center gap-4"
+                    style={{ background: "rgba(212,160,23,0.06)" }}
+                  >
+                    <Clock size={18} className="text-[#d4a017] shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#d4a017]/60 mb-0.5">Prazo</p>
+                      <p className="text-lg font-black text-[#d4a017]">
+                        {new Date(newRelatorioData.prazo + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
+                      </p>
+                      {countdown && (
+                        <p className="text-xs text-white/40 mt-0.5">{countdown}</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl p-3 border border-white/8 text-center text-xs text-white/20">
+                    Selecione uma rede para preencher o prazo automaticamente
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={handleCreateRelatorio}
+                    className="px-6 py-2.5 rounded-xl text-sm font-bold text-[#050b18] transition-all hover:scale-[1.02]"
+                    style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                  >
+                    Criar Relatório
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowNewForm(false);
+                      setNewRelatorioData({ casaId: "", agente: "", prazo: "" });
+                    }}
+                    className="px-6 py-2.5 rounded-xl text-sm font-medium text-white/50 border border-white/10 hover:bg-white/5 transition-colors"
+                  >
+                    Cancelar
+                  </button>
                 </div>
-              )}
-
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={handleCreateRelatorio}
-                  className="px-6 py-2.5 rounded-xl text-sm font-bold text-[#050b18] transition-all hover:scale-[1.02]"
-                  style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
-                >
-                  Criar Relatório
-                </button>
-                <button
-                  onClick={() => {
-                    setShowNewForm(false);
-                    setNewRelatorioData({ casaId: "", agente: "", prazo: "" });
-                  }}
-                  className="px-6 py-2.5 rounded-xl text-sm font-medium text-white/50 border border-white/10 hover:bg-white/5 transition-colors"
-                >
-                  Cancelar
-                </button>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Lista de Relatórios */}
-          {relatoriosAtivos.length > 0 && (
-            <div className="rounded-2xl p-5 border border-white/8" style={{ background: "rgba(255,255,255,0.02)" }}>
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="text-sm font-black text-white/70 uppercase tracking-wider">Relatórios Criados</h3>
-                <span className="text-[10px] font-bold text-white/25">{relatoriosAtivos.length} ativo(s)</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(() => {
-                  const accentColors = [
-                    "#60a5fa", "#34d399", "#a78bfa", "#f472b6",
-                    "#d4a017", "#818cf8", "#fb923c", "#22d3ee", "#f87171",
-                  ];
-                  return relatoriosAtivos.map((rel, index) => {
-                    const accent = accentColors[index % accentColors.length];
-                    const lucroTotal = calculateTotalResultado(rel.rows, rel.cooperacao);
-                    const isSelected = selectedRelatorioId === rel.id;
-                    const nomeBase = getCasaNome(rel.casaId).replace(/[\s-]+$/, "").trim();
-                    const nome = `${nomeBase}${rel.agente ? `-${rel.agente}` : ""}`;
-                    const countdown = rel.prazo ? calcCountdown(rel.prazo) : "";
-                    const prazoDate = rel.prazo
-                      ? new Date(rel.prazo + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
-                      : null;
-                    const isVencido = rel.prazo ? new Date(rel.prazo + "T23:59:59") < new Date() : false;
+            {/* Lista de Relatórios */}
+            {relatoriosAtivos.length > 0 && (
+              <div className="rounded-2xl p-5 border border-white/8" style={{ background: "rgba(255,255,255,0.02)" }}>
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-sm font-black text-white/70 uppercase tracking-wider">Relatórios Criados</h3>
+                  <span className="text-[10px] font-bold text-white/25">{relatoriosAtivos.length} ativo(s)</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(() => {
+                    const accentColors = [
+                      "#60a5fa", "#34d399", "#a78bfa", "#f472b6",
+                      "#d4a017", "#818cf8", "#fb923c", "#22d3ee", "#f87171",
+                    ];
+                    return relatoriosAtivos.map((rel, index) => {
+                      const accent = accentColors[index % accentColors.length];
+                      const lucroTotal = calculateTotalResultado(rel.rows, rel.cooperacao);
+                      const isSelected = selectedRelatorioId === rel.id;
+                      const nomeBase = getCasaNome(rel.casaId).replace(/[\s-]+$/, "").trim();
+                      const nome = `${nomeBase}${rel.agente ? `-${rel.agente}` : ""}`;
+                      const countdown = rel.prazo ? calcCountdown(rel.prazo) : "";
+                      const prazoDate = rel.prazo
+                        ? new Date(rel.prazo + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
+                        : null;
+                      const isVencido = rel.prazo ? new Date(rel.prazo + "T23:59:59") < new Date() : false;
 
-                    return (
-                      <div
-                        key={rel.id}
-                        onClick={() => setSelectedRelatorioId(rel.id)}
-                        className="group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
-                        style={{
-                          background: isSelected
-                            ? `linear-gradient(145deg, ${accent}18, ${accent}06)`
-                            : "linear-gradient(145deg, #070e20, #0c1524)",
-                          border: `1px solid ${isSelected ? accent + "50" : "rgba(255,255,255,0.08)"}`,
-                          boxShadow: isSelected ? `0 0 24px ${accent}20` : "none",
-                        }}
-                      >
-                        {/* Barra de cor no topo */}
-                        <div className="h-[2px] w-full" style={{ background: accent }} />
+                      return (
+                        <div
+                          key={rel.id}
+                          onClick={() => setSelectedRelatorioId(rel.id)}
+                          className="group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
+                          style={{
+                            background: isSelected
+                              ? `linear-gradient(145deg, ${accent}18, ${accent}06)`
+                              : "linear-gradient(145deg, #070e20, #0c1524)",
+                            border: `1px solid ${isSelected ? accent + "50" : "rgba(255,255,255,0.08)"}`,
+                            boxShadow: isSelected ? `0 0 24px ${accent}20` : "none",
+                          }}
+                        >
+                          {/* Barra de cor no topo */}
+                          <div className="h-[2px] w-full" style={{ background: accent }} />
 
-                        <div className="p-5">
-                          {/* Nome */}
-                          <p className="font-black text-base text-white/90 truncate mb-4" title={nome}>
-                            {nome}
-                          </p>
+                          <div className="p-5">
+                            {/* Nome */}
+                            <p className="font-black text-base text-white/90 truncate mb-4" title={nome}>
+                              {nome}
+                            </p>
 
-                          {/* Stats — 3 colunas maiores */}
-                          <div className="grid grid-cols-3 gap-3 mb-4">
-                            {/* Linhas */}
-                            <div className="rounded-xl p-3 text-center" style={{ background: "rgba(0,0,0,0.3)" }}>
-                              <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-1">Linhas</p>
-                              <p className="font-black text-xl" style={{ color: accent }}>{rel.rows.length}</p>
+                            {/* Stats — 3 colunas maiores */}
+                            <div className="grid grid-cols-3 gap-3 mb-4">
+                              {/* Linhas */}
+                              <div className="rounded-xl p-3 text-center" style={{ background: "rgba(0,0,0,0.3)" }}>
+                                <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-1">Linhas</p>
+                                <p className="font-black text-xl" style={{ color: accent }}>{rel.rows.length}</p>
+                              </div>
+
+                              {/* Prazo + Countdown */}
+                              <div className="rounded-xl p-3 text-center col-span-2" style={{ background: "rgba(0,0,0,0.3)" }}>
+                                <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-1">Prazo</p>
+                                {prazoDate ? (
+                                  <>
+                                    <p className="font-black text-base" style={{ color: isVencido ? "#f87171" : accent }}>
+                                      {prazoDate}
+                                    </p>
+                                    <p className="text-[9px] font-bold mt-0.5" style={{ color: isVencido ? "#f87171" : "rgba(255,255,255,0.35)" }}>
+                                      {isVencido ? "⚠ Vencido" : countdown}
+                                    </p>
+                                  </>
+                                ) : (
+                                  <p className="font-black text-base text-white/20">—</p>
+                                )}
+                              </div>
                             </div>
 
-                            {/* Prazo + Countdown */}
-                            <div className="rounded-xl p-3 text-center col-span-2" style={{ background: "rgba(0,0,0,0.3)" }}>
-                              <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-1">Prazo</p>
-                              {prazoDate ? (
-                                <>
-                                  <p className="font-black text-base" style={{ color: isVencido ? "#f87171" : accent }}>
-                                    {prazoDate}
-                                  </p>
-                                  <p className="text-[9px] font-bold mt-0.5" style={{ color: isVencido ? "#f87171" : "rgba(255,255,255,0.35)" }}>
-                                    {isVencido ? "⚠ Vencido" : countdown}
-                                  </p>
-                                </>
-                              ) : (
-                                <p className="font-black text-base text-white/20">—</p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Lucro — centralizado e chamativo */}
-                          <div className="rounded-xl py-4 px-4 flex flex-col items-center justify-center mb-3 relative overflow-hidden"
-                            style={{
-                              background: lucroTotal >= 0
-                                ? "linear-gradient(145deg, rgba(74,222,128,0.08), rgba(74,222,128,0.04))"
-                                : "linear-gradient(145deg, rgba(248,113,113,0.08), rgba(248,113,113,0.04))",
-                              border: `1px solid ${lucroTotal >= 0 ? "rgba(74,222,128,0.2)" : "rgba(248,113,113,0.2)"}`,
-                            }}
-                          >
-                            <div className="absolute top-0 left-0 w-full h-[1px]"
-                              style={{ background: `linear-gradient(to right, transparent, ${lucroTotal >= 0 ? "rgba(74,222,128,0.4)" : "rgba(248,113,113,0.4)"}, transparent)` }}
-                            />
-                            <p className="text-[9px] font-black uppercase tracking-widest mb-1.5"
-                              style={{ color: lucroTotal >= 0 ? "rgba(74,222,128,0.5)" : "rgba(248,113,113,0.5)" }}
-                            >Lucro</p>
-                            <p className="font-black text-2xl tracking-tight"
+                            {/* Lucro — centralizado e chamativo */}
+                            <div className="rounded-xl py-4 px-4 flex flex-col items-center justify-center mb-3 relative overflow-hidden"
                               style={{
-                                color: lucroTotal >= 0 ? "#4ade80" : "#f87171",
-                                textShadow: lucroTotal >= 0 ? "0 0 20px rgba(74,222,128,0.3)" : "0 0 20px rgba(248,113,113,0.3)",
+                                background: lucroTotal >= 0
+                                  ? "linear-gradient(145deg, rgba(74,222,128,0.08), rgba(74,222,128,0.04))"
+                                  : "linear-gradient(145deg, rgba(248,113,113,0.08), rgba(248,113,113,0.04))",
+                                border: `1px solid ${lucroTotal >= 0 ? "rgba(74,222,128,0.2)" : "rgba(248,113,113,0.2)"}`,
                               }}
                             >
-                              {lucroTotal >= 0 ? "+" : ""}R$ {lucroTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </p>
-                          </div>
+                              <div className="absolute top-0 left-0 w-full h-[1px]"
+                                style={{ background: `linear-gradient(to right, transparent, lucroTotal >= 0 ? "rgba(74,222,128,0.4)" : "rgba(248,113,113,0.4)", transparent)` }}
+                              />
+                              <p className="text-[9px] font-black uppercase tracking-widest mb-1.5"
+                                style={{ color: lucroTotal >= 0 ? "rgba(74,222,128,0.5)" : "rgba(248,113,113,0.5)" }}
+                              >Lucro</p>
+                              <p className="font-black text-2xl tracking-tight"
+                                style={{
+                                  color: lucroTotal >= 0 ? "#4ade80" : "#f87171",
+                                  textShadow: lucroTotal >= 0 ? "0 0 20px rgba(74,222,128,0.3)" : "0 0 20px rgba(248,113,113,0.3)",
+                                }}
+                              >
+                                {lucroTotal >= 0 ? "+" : ""}R$ {lucroTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </p>
+                            </div>
 
-                          {/* Ações */}
-                          <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); duplicarRelatorio(rel.id); }}
-                              className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-white/8 text-white/30 hover:text-[#60a5fa] hover:border-[#60a5fa]/30"
-                              style={{ background: "rgba(255,255,255,0.04)" }}
-                              title="Duplicar"
-                            >
-                              <Copy size={14} />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDeleteRelatorio(rel.id); }}
-                              className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-red-500/15 text-red-400/40 hover:text-red-400 hover:border-red-500/30"
-                              style={{ background: "rgba(239,68,68,0.04)" }}
-                              title="Lixeira"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            {/* Ações */}
+                            <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); duplicarRelatorio(rel.id); }}
+                                className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-white/8 text-white/30 hover:text-[#60a5fa] hover:border-[#60a5fa]/30"
+                                style={{ background: "rgba(255,255,255,0.04)" }}
+                                title="Duplicar"
+                              >
+                                <Copy size={14} />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteRelatorio(rel.id); }}
+                                className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-red-500/15 text-red-400/40 hover:text-red-400 hover:border-red-500/30"
+                                style={{ background: "rgba(239,68,68,0.04)" }}
+                                title="Lixeira"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  });
-                })()}
+                      );
+                    });
+                  })()}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Planilha de Relatório Selecionado */}
-          {currentRelatorio && (
-            <>
-              <RelatorioSpreadsheet
-                key={`${selectedRelatorioId}-${currentRelatorio.id}`}
-                casaNome={getCasaNome(currentRelatorio.casaId)}
-                agente={currentRelatorio.agente}
-                prazo={currentRelatorio.prazo || ""}
+            {/* Planilha de Relatório Selecionado */}
+            {currentRelatorio && (
+              <>
+                <RelatorioSpreadsheet
+                  key={`${selectedRelatorioId}-${currentRelatorio.id}`}
+                  casaNome={getCasaNome(currentRelatorio.casaId)}
+                  agente={currentRelatorio.agente}
+                  prazo={currentRelatorio.prazo || ""}
 
-                cooperacao={currentRelatorio.cooperacao}
-                onCooperacaoChange={(valor) =>
-                  handleCooperacaoChange(selectedRelatorioId, valor)
-                }
-                linkContaFilha={getCasaLinks(currentRelatorio.casaId).linkContaFilha}
-                media={state.casas.find((c) => c.id === currentRelatorio.casaId)?.media || 0}
-                meta={state.casas.find((c) => c.id === currentRelatorio.casaId)?.meta || 0}
-                rows={currentRelatorio.rows}
-                onAddRow={(row) => handleAddRow(selectedRelatorioId, row)}
-                onDeleteRow={(numero) => handleDeleteRow(selectedRelatorioId, numero)}
-                onUpdateRow={(numero, row) =>
-                  handleUpdateRow(selectedRelatorioId, numero, row)
-                }
-              />
-              <button
-                onClick={() => {
-                  if (selectedRelatorioId) {
-                    finalizarRelatorio(selectedRelatorioId);
-                    setSelectedRelatorioId("");
-                    toast.success("Relatório finalizado! Movido para Relatórios Finalizados.");
+                  cooperacao={currentRelatorio.cooperacao}
+                  onCooperacaoChange={(valor) =>
+                    handleCooperacaoChange(selectedRelatorioId, valor)
                   }
-                }}
-                className="mt-6 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-              >
-                ✓ Finalizar Relatório
-              </button>
-            </>
-          )}
-
-          {/* Mensagem Vazia */}
-          {relatoriosAtivos.length === 0 && !showNewForm && (
-            <div className="bg-card backdrop-blur-sm border border-border/50 shadow-lg rounded-xl p-8 text-center">
-              <p className="text-muted-foreground text-lg">
-                Nenhum relatório criado. Clique em "Criar Novo Relatório" para começar!
-              </p>
-            </div>
-          )}
-        </>
-      )}
-
-      {activeTab === "progresso" && currentRelatorio && (
-        <AbaProgresso
-          meta={state.casas.find((c) => c.id === currentRelatorio.casaId)?.meta || 0}
-          media={state.casas.find((c) => c.id === currentRelatorio.casaId)?.media || 0}
-          totalDeposito={currentRelatorio.rows.reduce((sum, r) => sum + (r.deposito || 0) + (r.redeposito || 0), 0)}
-          totalSaque={currentRelatorio.rows.reduce((sum, r) => sum + r.saque, 0)}
-          totalBau={currentRelatorio.rows.reduce((sum, r) => sum + r.bau, 0)}
-          cooperacao={currentRelatorio.cooperacao}
-          rows={currentRelatorio.rows}
-        />
-      )}
-
-      {activeTab === "lixeira" && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-foreground dark:text-white">Lixeira</h2>
-            {relatoriosLixeira.length > 0 && (
-              <button
-                onClick={() => {
-                  if (confirm("Tem certeza que deseja esvaziar a lixeira completamente?")) {
-                    esvaziarLixeira();
-                    toast.success("Lixeira esvaziada!");
+                  linkContaFilha={getCasaLinks(currentRelatorio.casaId).linkContaFilha}
+                  media={state.casas.find((c) => c.id === currentRelatorio.casaId)?.media || 0}
+                  meta={state.casas.find((c) => c.id === currentRelatorio.casaId)?.meta || 0}
+                  rows={currentRelatorio.rows}
+                  onAddRow={(row) => handleAddRow(selectedRelatorioId, row)}
+                  onDeleteRow={(numero) => handleDeleteRow(selectedRelatorioId, numero)}
+                  onUpdateRow={(numero, row) =>
+                    handleUpdateRow(selectedRelatorioId, numero, row)
                   }
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
-              >
-                Esvaziar Lixeira
-              </button>
+                />
+                <button
+                  onClick={() => {
+                    if (selectedRelatorioId) {
+                      finalizarRelatorio(selectedRelatorioId);
+                      setSelectedRelatorioId("");
+                      toast.success("Relatório finalizado! Movido para Relatórios Finalizados.");
+                    }
+                  }}
+                  className="mt-6 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                >
+                  ✓ Finalizar Relatório
+                </button>
+              </>
+            )}
+
+            {/* Mensagem Vazia */}
+            {relatoriosAtivos.length === 0 && !showNewForm && (
+              <div className="bg-card backdrop-blur-sm border border-border/50 shadow-lg rounded-xl p-8 text-center">
+                <p className="text-muted-foreground text-lg">
+                  Nenhum relatório criado. Clique em "Criar Novo Relatório" para começar!
+                </p>
+              </div>
+            )}
+          </>
+        )}
+
+        {renderedTab === "progresso" && currentRelatorio && (
+          <AbaProgresso
+            meta={state.casas.find((c) => c.id === currentRelatorio.casaId)?.meta || 0}
+            media={state.casas.find((c) => c.id === currentRelatorio.casaId)?.media || 0}
+            totalDeposito={currentRelatorio.rows.reduce((sum, r) => sum + (r.deposito || 0) + (r.redeposito || 0), 0)}
+            totalSaque={currentRelatorio.rows.reduce((sum, r) => sum + r.saque, 0)}
+            totalBau={currentRelatorio.rows.reduce((sum, r) => sum + r.bau, 0)}
+            cooperacao={currentRelatorio.cooperacao}
+            rows={currentRelatorio.rows}
+          />
+        )}
+
+        {renderedTab === "lixeira" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-foreground dark:text-white">Lixeira</h2>
+              {relatoriosLixeira.length > 0 && (
+                <button
+                  onClick={() => {
+                    if (confirm("Tem certeza que deseja esvaziar a lixeira completamente?")) {
+                      esvaziarLixeira();
+                      toast.success("Lixeira esvaziada!");
+                    }
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
+                >
+                  Esvaziar Lixeira
+                </button>
+              )}
+            </div>
+            
+            {relatoriosLixeira.length === 0 ? (
+              <div className="bg-card backdrop-blur-sm border border-border/50 shadow-lg rounded-xl p-8 text-center">
+                <p className="text-muted-foreground text-lg">
+                  Nenhum relatorio na lixeira
+                </p>
+              </div>
+            ) : (
+              <div className="bg-card backdrop-blur-sm rounded-xl border border-border/50 shadow-lg overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border dark:border-slate-700 bg-gray-50 dark:bg-slate-700">
+                      <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Casa</th>
+                      <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Agente</th>
+                      <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Prazo</th>
+                      <th className="text-center py-3 px-4 font-semibold text-foreground dark:text-white">Acoes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {relatoriosLixeira.map((relatorio) => (
+                      <tr key={relatorio.id} className="border-b border-border dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700">
+                        <td className="py-3 px-4 text-foreground dark:text-white">
+                          {getCasaNome(relatorio.casaId)}
+                        </td>
+                        <td className="py-3 px-4 text-foreground dark:text-white">
+                          {relatorio.agente}
+                        </td>
+                        <td className="py-3 px-4 text-foreground dark:text-white">
+                          {relatorio.prazo ? new Date(relatorio.prazo).toLocaleDateString('pt-BR') : '-'}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <div className="flex gap-2 justify-center">
+                            <button
+                              onClick={() => handleRestoreRelatorio(relatorio.id)}
+                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                            >
+                              Restaurar
+                            </button>
+                            <button
+                              onClick={() => handlePermanentlyDeleteRelatorio(relatorio.id)}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium"
+                            >
+                              Deletar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
-          
-          {relatoriosLixeira.length === 0 ? (
-            <div className="bg-card backdrop-blur-sm border border-border/50 shadow-lg rounded-xl p-8 text-center">
-              <p className="text-muted-foreground text-lg">
-                Nenhum relatorio na lixeira
-              </p>
-            </div>
-          ) : (
-            <div className="bg-card backdrop-blur-sm rounded-xl border border-border/50 shadow-lg overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border dark:border-slate-700 bg-gray-50 dark:bg-slate-700">
-                    <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Casa</th>
-                    <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Agente</th>
-                    <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Prazo</th>
-                    <th className="text-center py-3 px-4 font-semibold text-foreground dark:text-white">Acoes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {relatoriosLixeira.map((relatorio) => (
-                    <tr key={relatorio.id} className="border-b border-border dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700">
-                      <td className="py-3 px-4 text-foreground dark:text-white">
-                        {getCasaNome(relatorio.casaId)}
-                      </td>
-                      <td className="py-3 px-4 text-foreground dark:text-white">
-                        {relatorio.agente}
-                      </td>
-                      <td className="py-3 px-4 text-foreground dark:text-white">
-                        {relatorio.prazo ? new Date(relatorio.prazo).toLocaleDateString('pt-BR') : '-'}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex gap-2 justify-center">
-                          <button
-                            onClick={() => handleRestoreRelatorio(relatorio.id)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
-                          >
-                            Restaurar
-                          </button>
-                          <button
-                            onClick={() => handlePermanentlyDeleteRelatorio(relatorio.id)}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium"
-                          >
-                            Deletar
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

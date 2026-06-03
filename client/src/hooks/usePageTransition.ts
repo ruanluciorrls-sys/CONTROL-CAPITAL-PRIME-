@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react';
 
-export function usePageTransition(dependency: string) {
+export function usePageTransition<T>(activeValue: T, delayMs: number = 150) {
+  const [renderedValue, setRenderedValue] = useState<T>(activeValue);
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    // Fade out
+    if (activeValue === renderedValue) return;
+
+    // Inicia o fade out
     setIsVisible(false);
     
-    // Pequeno delay para permitir fade out antes de mudar conteúdo
+    // Pequeno delay para permitir fade out antes de mudar o conteúdo renderizado
     const timer = setTimeout(() => {
+      setRenderedValue(activeValue);
       setIsVisible(true);
-    }, 40);
+    }, delayMs);
 
     return () => clearTimeout(timer);
-  }, [dependency]);
+  }, [activeValue, renderedValue, delayMs]);
 
-  return isVisible;
+  return { isVisible, renderedValue };
 }
+

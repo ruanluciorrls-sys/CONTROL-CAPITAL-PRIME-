@@ -105,10 +105,10 @@ function AppContent() {
     setNavigateFn(handleTabChange);
   }, []);
 
-  const isVisible = usePageTransition(activeTab);
+  const { isVisible, renderedValue: renderedTab } = usePageTransition(activeTab);
 
-  const renderContent = () => {
-    switch (activeTab) {
+  const renderContent = (tab: string) => {
+    switch (tab) {
       case "dashboard": return <Dashboard />;
       case "faturamento": return <Faturamento />;
       case "gasto-proxy": return <GastoProxy />;
@@ -321,7 +321,7 @@ function AppContent() {
             isVisible && !isRefreshing ? "page-transition-enter" : "page-transition-exit"
           }`}
         >
-          {renderContent()}
+          {renderContent(renderedTab)}
         </main>
       </div>
 
