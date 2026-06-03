@@ -250,33 +250,14 @@ function AppContent() {
             <span className="text-[10px] font-bold uppercase tracking-wider">Atualizar</span>
           </button>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleTheme}
-              className="flex-1 p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 hover:bg-white/10 hover:scale-102 bg-white/5 border border-white/10"
-              style={{
-                color: "rgba(255,255,255,0.85)",
-                borderColor: "rgba(255,255,255,0.08)",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
-              }}
-              title={`Alternar para modo ${theme === "light" ? "noturno" : "claro"}`}
-            >
-              {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
-              <span className="text-[10px] font-bold uppercase tracking-wider">Tema</span>
-            </button>
-
-            <button
-              onClick={logout}
-              className="p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center hover:bg-red-500/25 hover:scale-102 bg-red-500/10 border border-red-500/20"
-              style={{
-                color: "#ff6b6b",
-                boxShadow: "0 4px 12px rgba(229,62,62,0.05)"
-              }}
-              title="Fazer logout"
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
+          <button
+            onClick={logout}
+            className="w-full p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center hover:bg-red-500/25 hover:scale-102 bg-red-500/10 border border-red-500/20"
+            style={{ color: "#ff6b6b" }}
+            title="Fazer logout"
+          >
+            <LogOut size={16} />
+          </button>
         </div>
       </aside>
 
