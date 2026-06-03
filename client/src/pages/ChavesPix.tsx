@@ -40,6 +40,7 @@ export default function ChavesPix() {
   const [bankName, setBankName] = useState("");
   const [filterType, setFilterType] = useState<PixType | "TODOS">("TODOS");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImport = () => {
@@ -87,7 +88,37 @@ export default function ChavesPix() {
 
   const handleDelete = (id: string) => {
     setKeysList(prev => prev.filter(k => k.id !== id));
+    setSelectedIds(prev => { const s = new Set(prev); s.delete(id); return s; });
     toast.success("Chave removida!");
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id); else s.add(id);
+      return s;
+    });
+  };
+
+  const toggleSelectAll = (ids: string[]) => {
+    if (ids.every(id => selectedIds.has(id))) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(ids));
+    }
+  };
+
+  const handleCopySelected = () => {
+    const keys = keysList.filter(k => selectedIds.has(k.id)).map(k => k.key);
+    if (!keys.length) return;
+    navigator.clipboard.writeText(keys.join('\n'));
+    toast.success(`${keys.length} chave(s) copiada(s)!`);
+  };
+
+  const handleDeleteSelected = () => {
+    setKeysList(prev => prev.filter(k => !selectedIds.has(k.id)));
+    toast.success(`${selectedIds.size} chave(s) removida(s)!`);
+    setSelectedIds(new Set());
   };
 
   const handleCopyAllValid = () => {
@@ -320,7 +351,31 @@ export default function ChavesPix() {
               </div>
             </div>
 
-            <p className="text-[10px] text-white/25 uppercase font-bold tracking-widest">{filteredKeys.length} chave(s) encontrada(s)</p>
+            {/* Barra de seleção em massa */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <p className="text-[10px] text-white/25 uppercase font-bold tracking-widest">
+                {filteredKeys.length} chave(s) · {selectedIds.size > 0 ? `${selectedIds.size} selecionada(s)` : "nenhuma selecionada"}
+              </p>
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-2">
+                  <button onClick={handleCopySelected}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#050b18] transition-all hover:scale-[1.02]"
+                    style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                  >
+                    <Copy size={12} /> Copiar {selectedIds.size}
+                  </button>
+                  <button onClick={handleDeleteSelected}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-red-400 border border-red-500/25 hover:bg-red-500/10 transition-colors"
+                    style={{ background: "rgba(239,68,68,0.05)" }}
+                  >
+                    <Trash2 size={12} /> Apagar {selectedIds.size}
+                  </button>
+                  <button onClick={() => setSelectedIds(new Set())}
+                    className="px-2.5 py-1.5 rounded-xl text-xs text-white/30 border border-white/10 hover:bg-white/5 transition-colors"
+                  >✕</button>
+                </div>
+              )}
+            </div>
 
             {/* List Items */}
             <div className="space-y-2">
@@ -331,9 +386,15 @@ export default function ChavesPix() {
                   Nenhuma chave encontrada com os filtros atuais.
                 </div>
               ) : (
-                filteredKeys.map((item) => (
-                  <div key={item.id} className="rounded-xl p-4 flex items-center justify-between group transition-all border border-white/6 hover:border-white/12"
-                    style={{ background: "rgba(255,255,255,0.03)" }}
+                filteredKeys.map((item) => {
+                  const isSelected = selectedIds.has(item.id);
+                  return (
+                  <div key={item.id}
+                    className="rounded-xl p-4 flex items-center justify-between group transition-all border hover:border-white/12"
+                    style={{
+                      background: isSelected ? "rgba(212,160,23,0.06)" : "rgba(255,255,255,0.03)",
+                      borderColor: isSelected ? "rgba(212,160,23,0.3)" : "rgba(255,255,255,0.06)",
+                    }}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-white/8"
@@ -378,26 +439,47 @@ export default function ChavesPix() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-2">
+                      {/* Checkbox de seleção */}
                       <button
-                        onClick={() => handleCopy(item.key)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors border border-white/8 hover:border-[#d4a017]/40 text-white/40 hover:text-[#d4a017]"
-                        style={{ background: "rgba(255,255,255,0.04)" }}
-                        title="Copiar"
+                        onClick={() => toggleSelect(item.id)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center border transition-all shrink-0"
+                        style={isSelected ? {
+                          background: "rgba(212,160,23,0.2)",
+                          borderColor: "rgba(212,160,23,0.5)",
+                          color: "#d4a017",
+                        } : {
+                          background: "rgba(255,255,255,0.03)",
+                          borderColor: "rgba(255,255,255,0.1)",
+                          color: "rgba(255,255,255,0.2)",
+                        }}
+                        title={isSelected ? "Desmarcar" : "Selecionar"}
                       >
-                        <Copy size={13} />
+                        {isSelected ? <span className="text-xs font-black">✓</span> : <span className="text-xs">○</span>}
                       </button>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors border border-red-500/15 hover:border-red-500/40 text-red-400/50 hover:text-red-400"
-                        style={{ background: "rgba(239,68,68,0.05)" }}
-                        title="Excluir"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+
+                      <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleCopy(item.key)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors border border-white/8 hover:border-[#d4a017]/40 text-white/30 hover:text-[#d4a017]"
+                          style={{ background: "rgba(255,255,255,0.04)" }}
+                          title="Copiar"
+                        >
+                          <Copy size={12} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors border border-red-500/15 hover:border-red-500/40 text-red-400/40 hover:text-red-400"
+                          style={{ background: "rgba(239,68,68,0.04)" }}
+                          title="Excluir"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
 
