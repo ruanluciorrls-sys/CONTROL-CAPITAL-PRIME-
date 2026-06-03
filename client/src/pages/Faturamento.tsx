@@ -20,7 +20,7 @@ import {
   Percent,
 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 
 const HISTORICO_KEY = "faturamento-historico-v1";
 const META_KEY = "faturamento-meta-v1";
@@ -185,6 +185,136 @@ export default function Faturamento() {
     return sum;
   }, 0);
   const lucroRealPeriodo = lucroExibido - gastosNoPeriodo;
+
+  const formatCurrency = (value: number) =>
+    `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const formatDateInput = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const getCasaNome = (casaId: string) => state.casas.find((casa) => casa.id === casaId)?.nome || "Sem casa";
+  const getRede = (casaNome: string) => casaNome.trim().split(/\s+/)[0]?.replace(/[-_]/g, "").toUpperCase() || "GERAL";
+
+  const setQuickFinanceFilter = (quick: typeof financeFilterQuick) => {
+    setFinanceFilterQuick(quick);
+    if (quick === "custom") return;
+
+    const today = startOfDay(new Date());
+    const yesterday = startOfDay(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1));
+    const presets = {
+      hoje: [today, today],
+      ontem: [yesterday, yesterday],
+      "7dias": [startOfDay(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6)), today],
+      "30dias": [startOfDay(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29)), today],
+      todos: ["", ""],
+      custom: ["", ""],
+    } as const;
+
+    const [start, end] = presets[quick];
+    setFinanceStartDate(start instanceof Date ? formatDateInput(start) : "");
+    setFinanceEndDate(end instanceof Date ? formatDateInput(end) : "");
+  };
+
+  const financeStart = financeStartDate ? startOfDay(parseLocalDate(financeStartDate) || new Date(0)) : null;
+  const financeEnd = financeEndDate ? endOfDay(parseLocalDate(financeEndDate) || new Date()) : null;
+
+  const financialEntries = relatoriosFinalizados.flatMap((relatorio) => {
+    const data = getDataFaturamento(relatorio);
+    const casaNome = getCasaNome(relatorio.casaId);
+    const rede = getRede(casaNome);
+    const operador = relatorio.agente || "Sem operador";
+    const rows = relatorio.rows.length > 0 ? relatorio.rows : [{ numero: 1, deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 }];
+
+    return rows.map((row) => {
+      const deposito = (Number(row.deposito) || 0) + (Number(row.redeposito) || 0);
+      const saque = Number(row.saque) || 0;
+      const bau = Number(row.bau) || 0;
+      const resultado = Number(row.resultado) || 0;
+
+      return {
+        id: `${relatorio.id}-${row.numero}`,
+        relatorioId: relatorio.id,
+        data,
+        operador,
+        rede,
+        plataforma: casaNome,
+        deposito,
+        saque,
+        bau,
+        resultado,
+      };
+    });
+  });
+
+  const filteredFinancialEntries = financialEntries.filter((entry) => {
+    if (!entry.data) return false;
+    if (financeStart && entry.data < financeStart) return false;
+    if (financeEnd && entry.data > financeEnd) return false;
+    if (financeOperator !== "todos" && entry.operador !== financeOperator) return false;
+    if (financeNetwork !== "todos" && entry.rede !== financeNetwork) return false;
+    if (financeResultType === "lucro" && entry.resultado <= 0) return false;
+    if (financeResultType === "prejuizo" && entry.resultado >= 0) return false;
+    return true;
+  });
+
+  const operadoresDisponiveis = Array.from(new Set(financialEntries.map((entry) => entry.operador))).sort();
+  const redesDisponiveis = Array.from(new Set(financialEntries.map((entry) => entry.rede))).sort();
+
+  const getGroupKey = (date: Date) => {
+    if (financeGranularity === "mensal") {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    }
+    if (financeGranularity === "semanal") {
+      const weekStart = startOfDay(new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay()));
+      return formatDateInput(weekStart);
+    }
+    return formatDateInput(date);
+  };
+
+  const getGroupLabel = (key: string) => {
+    if (financeGranularity === "mensal") return getMesLabel(key);
+    const date = parseLocalDate(key);
+    return date ? date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : key;
+  };
+
+  const evolutionData = Object.values(
+    filteredFinancialEntries.reduce<Record<string, { key: string; label: string; lucro: number; prejuizo: number; resultado: number }>>(
+      (acc, entry) => {
+        if (!entry.data) return acc;
+        const key = getGroupKey(entry.data);
+        if (!acc[key]) acc[key] = { key, label: getGroupLabel(key), lucro: 0, prejuizo: 0, resultado: 0 };
+        if (entry.resultado >= 0) acc[key].lucro += entry.resultado;
+        if (entry.resultado < 0) acc[key].prejuizo += Math.abs(entry.resultado);
+        acc[key].resultado += entry.resultado;
+        return acc;
+      },
+      {}
+    )
+  ).sort((a, b) => a.key.localeCompare(b.key));
+
+  const monthlySummary = Object.values(
+    financialEntries.reduce<Record<string, { key: string; label: string; lucro: number; prejuizo: number; resultado: number; operacoes: number }>>(
+      (acc, entry) => {
+        if (!entry.data) return acc;
+        const key = `${entry.data.getFullYear()}-${String(entry.data.getMonth() + 1).padStart(2, "0")}`;
+        if (!acc[key]) acc[key] = { key, label: getMesLabel(key), lucro: 0, prejuizo: 0, resultado: 0, operacoes: 0 };
+        if (entry.resultado >= 0) acc[key].lucro += entry.resultado;
+        if (entry.resultado < 0) acc[key].prejuizo += Math.abs(entry.resultado);
+        acc[key].resultado += entry.resultado;
+        acc[key].operacoes += 1;
+        return acc;
+      },
+      {}
+    )
+  ).sort((a, b) => b.key.localeCompare(a.key));
+
+  const detailedHistoryRows = [...filteredFinancialEntries].sort(
+    (a, b) => (b.data?.getTime() || 0) - (a.data?.getTime() || 0)
+  );
 
   return (
     <div className="min-h-screen text-white p-4 md:p-6 font-sans">
@@ -545,6 +675,104 @@ export default function Faturamento() {
 
         {/* ===== EVOLUÇÃO ===== */}
         {activeTab === "evolucao" && (
+          <div className="space-y-5">
+            <FinanceFilters
+              quick={financeFilterQuick}
+              startDate={financeStartDate}
+              endDate={financeEndDate}
+              operator={financeOperator}
+              network={financeNetwork}
+              resultType={financeResultType}
+              operadores={operadoresDisponiveis}
+              redes={redesDisponiveis}
+              onQuickChange={setQuickFinanceFilter}
+              onStartDateChange={(value) => { setFinanceStartDate(value); setFinanceFilterQuick("custom"); }}
+              onEndDateChange={(value) => { setFinanceEndDate(value); setFinanceFilterQuick("custom"); }}
+              onOperatorChange={setFinanceOperator}
+              onNetworkChange={setFinanceNetwork}
+              onResultTypeChange={setFinanceResultType}
+            />
+
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-xl font-black text-white/95">Evolucao do faturamento</h2>
+                <p className="text-xs text-white/30">{filteredFinancialEntries.length} operacao(oes) no filtro atual</p>
+              </div>
+              <div className="flex w-fit gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+                {[
+                  { id: "diario", label: "Diario" },
+                  { id: "semanal", label: "Semanal" },
+                  { id: "mensal", label: "Mensal" },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setFinanceGranularity(item.id as typeof financeGranularity)}
+                    className={`rounded-lg px-4 py-2 text-[10px] font-black transition-all ${
+                      financeGranularity === item.id ? "text-[#050b18]" : "text-white/35 hover:text-white/70"
+                    }`}
+                    style={financeGranularity === item.id ? { background: "linear-gradient(135deg, #d4a017, #f59e0b)" } : {}}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.28)]"
+              style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+            >
+              {evolutionData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={320}>
+                  <AreaChart data={evolutionData} margin={{ top: 18, right: 20, left: 0, bottom: 8 }}>
+                    <defs>
+                      <linearGradient id="faturamentoResultado" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#d4a017" stopOpacity={0.45} />
+                        <stop offset="95%" stopColor="#d4a017" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" />
+                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: "rgba(168,188,232,0.55)" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: "rgba(168,188,232,0.55)" }} axisLine={false} tickLine={false}
+                      tickFormatter={(value) => `R$${Number(value).toLocaleString("pt-BR", { notation: "compact" })}`}
+                    />
+                    <Tooltip
+                      contentStyle={{ background: "#070e20", border: "1px solid rgba(212,160,23,0.35)", borderRadius: 12, color: "#fff", fontSize: 12 }}
+                      formatter={(value: any) => [formatCurrency(Number(value)), "Resultado"]}
+                    />
+                    <Area type="monotone" dataKey="resultado" stroke="#d4a017" strokeWidth={2} fill="url(#faturamentoResultado)" dot={{ r: 3, fill: "#d4a017" }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyFinanceState icon={<BarChart3 size={38} />} title="Nenhum dado para evolucao" subtitle="Ajuste os filtros ou finalize um relatorio." />
+              )}
+            </div>
+
+            <div className="rounded-3xl border border-white/10 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.28)]"
+              style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+            >
+              <h3 className="mb-4 text-sm font-black text-white/90">Comparativo lucro vs prejuizo</h3>
+              {evolutionData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={evolutionData} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" />
+                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: "rgba(168,188,232,0.55)" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: "rgba(168,188,232,0.55)" }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ background: "#070e20", border: "1px solid rgba(212,160,23,0.35)", borderRadius: 12, color: "#fff", fontSize: 12 }}
+                      formatter={(value: any, name: any) => [formatCurrency(Number(value)), name === "lucro" ? "Lucro" : "Prejuizo"]}
+                    />
+                    <Bar dataKey="lucro" radius={[6, 6, 0, 0]} fill="#4ade80" />
+                    <Bar dataKey="prejuizo" radius={[6, 6, 0, 0]} fill="#f87171" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyFinanceState icon={<TrendingUp size={38} />} title="Sem comparativo ainda" subtitle="Nao ha operacoes no periodo selecionado." />
+              )}
+            </div>
+          </div>
+        )}
+
+        {false && activeTab === "evolucao" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -667,6 +895,135 @@ export default function Faturamento() {
 
         {/* ===== HISTÓRICO ===== */}
         {activeTab === "historico" && (
+          <div className="space-y-5">
+            <FinanceFilters
+              quick={financeFilterQuick}
+              startDate={financeStartDate}
+              endDate={financeEndDate}
+              operator={financeOperator}
+              network={financeNetwork}
+              resultType={financeResultType}
+              operadores={operadoresDisponiveis}
+              redes={redesDisponiveis}
+              onQuickChange={setQuickFinanceFilter}
+              onStartDateChange={(value) => { setFinanceStartDate(value); setFinanceFilterQuick("custom"); }}
+              onEndDateChange={(value) => { setFinanceEndDate(value); setFinanceFilterQuick("custom"); }}
+              onOperatorChange={setFinanceOperator}
+              onNetworkChange={setFinanceNetwork}
+              onResultTypeChange={setFinanceResultType}
+            />
+
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 className="text-xl font-black text-white/95">Historico detalhado</h2>
+                <p className="text-xs text-white/30">Meses puxados automaticamente dos relatorios finalizados</p>
+              </div>
+              <span className="w-fit rounded-full border border-[#d4a017]/25 bg-[#d4a017]/10 px-3 py-1 text-[10px] font-black text-[#d4a017]">
+                {detailedHistoryRows.length} registros
+              </span>
+            </div>
+
+            {monthlySummary.length > 0 && (
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {monthlySummary.map((mes) => {
+                  const isGood = mes.resultado >= 0;
+                  return (
+                    <div key={mes.key} className="rounded-2xl border p-4 shadow-[0_12px_34px_rgba(0,0,0,0.22)]"
+                      style={{
+                        background: "linear-gradient(145deg, rgba(7,14,32,0.9), rgba(12,21,36,0.9))",
+                        borderColor: isGood ? "rgba(74,222,128,0.18)" : "rgba(248,113,113,0.18)",
+                      }}
+                    >
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-white/35">Mes</p>
+                          <h3 className="mt-1 text-lg font-black text-white">{mes.label}</h3>
+                        </div>
+                        <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase ${
+                          isGood
+                            ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-300"
+                            : "border-red-300/20 bg-red-300/10 text-red-300"
+                        }`}>
+                          {isGood ? "Bom" : "Ruim"}
+                        </span>
+                      </div>
+                      <p className={`font-mono text-2xl font-black ${isGood ? "text-emerald-300" : "text-red-300"}`}>
+                        {formatCurrency(mes.resultado)}
+                      </p>
+                      <div className="mt-4 grid grid-cols-3 gap-2">
+                        <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Lucro</p>
+                          <p className="mt-1 text-xs font-black text-emerald-300">{formatCurrency(mes.lucro)}</p>
+                        </div>
+                        <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Prejuizo</p>
+                          <p className="mt-1 text-xs font-black text-red-300">{formatCurrency(mes.prejuizo)}</p>
+                        </div>
+                        <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Ops</p>
+                          <p className="mt-1 text-xs font-black text-[#d4a017]">{mes.operacoes}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="overflow-hidden rounded-3xl border border-white/10 shadow-[0_18px_60px_rgba(0,0,0,0.28)]"
+              style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+            >
+              {detailedHistoryRows.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[900px] text-sm">
+                    <thead>
+                      <tr className="border-b border-white/10 bg-white/[0.025]">
+                        {["Operador", "Rede", "Plataforma", "Deposito", "Saque", "Bau", "Resultado", "Data"].map((heading) => (
+                          <th key={heading} className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-white/35">
+                            {heading}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detailedHistoryRows.map((row) => (
+                        <tr key={row.id} className="border-b border-white/7 transition-colors hover:bg-white/[0.03]">
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] text-[10px] font-black text-white/70">
+                                {row.operador.slice(0, 2).toUpperCase()}
+                              </div>
+                              <span className="font-bold text-white/80">{row.operador}</span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-4">
+                            <span className="rounded-full border border-[#d4a017]/25 bg-[#d4a017]/10 px-3 py-1 text-[10px] font-black text-[#d4a017]">
+                              {row.rede}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 text-white/55">{row.plataforma}</td>
+                          <td className="px-5 py-4 font-mono text-white/70">{formatCurrency(row.deposito)}</td>
+                          <td className="px-5 py-4 font-mono text-white/70">{formatCurrency(row.saque)}</td>
+                          <td className="px-5 py-4 font-mono text-white/50">{formatCurrency(row.bau)}</td>
+                          <td className={`px-5 py-4 font-mono font-black ${row.resultado >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+                            {row.resultado >= 0 ? "+" : "-"}{formatCurrency(Math.abs(row.resultado))}
+                          </td>
+                          <td className="px-5 py-4 text-white/45">
+                            {row.data ? row.data.toLocaleDateString("pt-BR") : "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <EmptyFinanceState icon={<Clock size={38} />} title="Nenhum registro encontrado" subtitle="Ajuste os filtros ou finalize relatorios para alimentar o historico." />
+              )}
+            </div>
+          </div>
+        )}
+
+        {false && activeTab === "historico" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -926,5 +1283,96 @@ function CheckCircleIcon() {
       <circle cx="12" cy="12" r="10" />
       <path d="M9 12l2 2 4-4" />
     </svg>
+  );
+}
+
+function FinanceFilters({
+  quick,
+  startDate,
+  endDate,
+  operator,
+  network,
+  resultType,
+  operadores,
+  redes,
+  onQuickChange,
+  onStartDateChange,
+  onEndDateChange,
+  onOperatorChange,
+  onNetworkChange,
+  onResultTypeChange,
+}: {
+  quick: "hoje" | "ontem" | "7dias" | "30dias" | "todos" | "custom";
+  startDate: string;
+  endDate: string;
+  operator: string;
+  network: string;
+  resultType: "todos" | "lucro" | "prejuizo";
+  operadores: string[];
+  redes: string[];
+  onQuickChange: (value: "hoje" | "ontem" | "7dias" | "30dias" | "todos" | "custom") => void;
+  onStartDateChange: (value: string) => void;
+  onEndDateChange: (value: string) => void;
+  onOperatorChange: (value: string) => void;
+  onNetworkChange: (value: string) => void;
+  onResultTypeChange: (value: "todos" | "lucro" | "prejuizo") => void;
+}) {
+  const inputClass = "h-10 rounded-xl border border-white/10 bg-black/25 px-3 text-xs font-bold text-white/75 outline-none transition-colors focus:border-[#d4a017]/70";
+  const selectClass = `${inputClass} min-w-[150px]`;
+
+  return (
+    <div className="rounded-2xl border border-white/10 p-3 shadow-[0_14px_42px_rgba(0,0,0,0.22)]"
+      style={{ background: "rgba(255,255,255,0.03)" }}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 pr-3">
+          <Filter size={14} className="text-[#d4a017]" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Filtros</span>
+        </div>
+        {[
+          { id: "hoje", label: "Hoje" },
+          { id: "ontem", label: "Ontem" },
+          { id: "7dias", label: "7 dias" },
+          { id: "30dias", label: "30 dias" },
+          { id: "todos", label: "Todos" },
+        ].map((item) => (
+          <button
+            key={item.id}
+            onClick={() => onQuickChange(item.id as typeof quick)}
+            className={`h-10 rounded-xl px-4 text-xs font-black transition-all ${
+              quick === item.id ? "text-[#050b18]" : "border border-white/10 bg-black/25 text-white/45 hover:text-white/75"
+            }`}
+            style={quick === item.id ? { background: "linear-gradient(135deg, #d4a017, #f59e0b)" } : {}}
+          >
+            {item.label}
+          </button>
+        ))}
+        <input type="date" value={startDate} onChange={(e) => onStartDateChange(e.target.value)} className={inputClass} />
+        <input type="date" value={endDate} onChange={(e) => onEndDateChange(e.target.value)} className={inputClass} />
+        <select value={operator} onChange={(e) => onOperatorChange(e.target.value)} className={selectClass}>
+          <option value="todos">Todos operadores</option>
+          {operadores.map((item) => <option key={item} value={item}>{item}</option>)}
+        </select>
+        <select value={network} onChange={(e) => onNetworkChange(e.target.value)} className={selectClass}>
+          <option value="todos">Todas redes</option>
+          {redes.map((item) => <option key={item} value={item}>{item}</option>)}
+        </select>
+        <select value={resultType} onChange={(e) => onResultTypeChange(e.target.value as "todos" | "lucro" | "prejuizo")} className={selectClass}>
+          <option value="todos">Lucro + Prejuizo</option>
+          <option value="lucro">Somente lucro</option>
+          <option value="prejuizo">Somente prejuizo</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+function EmptyFinanceState({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
+  return (
+    <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-white/8 bg-white/[0.02] p-8 text-center">
+      <div className="mb-3 text-white/20">{icon}</div>
+      <p className="text-sm font-bold text-white/45">{title}</p>
+      <p className="mt-1 text-xs text-white/25">{subtitle}</p>
+    </div>
   );
 }
