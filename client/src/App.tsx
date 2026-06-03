@@ -148,15 +148,13 @@ function AppContent() {
     <div
       className="min-h-screen bg-background flex flex-col md:flex-row w-full"
       style={{
-        backgroundImage: state.fundoUrl ? `url(${state.fundoUrl})` : undefined,
+        backgroundImage: `url(${state.fundoUrl || "/fundo.png"})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundAttachment: "fixed",
       }}
     >
-      {state.fundoUrl && (
-        <div className="fixed inset-0 bg-black/30 pointer-events-none z-0" />
-      )}
+      <div className="fixed inset-0 bg-black/40 pointer-events-none z-0" />
 
       {/* ── MOBILE HEADER (ONLY VISIBLE ON MOBILE SCREENS) ── */}
       <div className="md:hidden w-full sticky top-0 z-20">

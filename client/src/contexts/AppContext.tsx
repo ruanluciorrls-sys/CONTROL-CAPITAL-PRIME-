@@ -37,7 +37,7 @@ const initialState: AppState = {
   totalLucros: 0,
   nomeApp: "RUAN DARK CPA",
   corPrimaria: "#2563EB",
-  fundoUrl: "",
+  fundoUrl: "/fundo.png",
   logoUrl: "",
 };
 
