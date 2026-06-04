@@ -104,10 +104,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      const currentDataStr = JSON.stringify(plataformasQuery.data);
-      if (savedStr !== currentDataStr) {
-        localStorage.setItem("plataformas-calendario-v2", currentDataStr);
-        window.dispatchEvent(new CustomEvent("plataformas-updated", { detail: plataformasQuery.data }));
+      // Wait for any missing local platforms to be migrated first to prevent race-condition overwrite
+      let isMigrating = false;
+      if (savedStr) {
+        try {
+          const localPlats = JSON.parse(savedStr);
+          if (Array.isArray(localPlats)) {
+            const dbIds = new Set(plataformasQuery.data.map((p) => p.id));
+            isMigrating = localPlats.some((p: any) => p && p.id && !dbIds.has(p.id));
+          }
+        } catch {}
+      }
+
+      if (!isMigrating) {
+        const currentDataStr = JSON.stringify(plataformasQuery.data);
+        if (savedStr !== currentDataStr) {
+          localStorage.setItem("plataformas-calendario-v2", currentDataStr);
+          window.dispatchEvent(new CustomEvent("plataformas-updated", { detail: plataformasQuery.data }));
+        }
       }
     }
   }, [plataformasQuery.data]);
