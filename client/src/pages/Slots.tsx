@@ -15,6 +15,7 @@ interface SlotGame {
 
 export default function Slots() {
   const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [activeTab, setActiveTab] = useState<"catalogo" | "favoritos">("catalogo");
   const [search, setSearch] = useState("");
   const [selectedProvider, setSelectedProvider] = useState("TODOS");
@@ -241,13 +242,15 @@ export default function Slots() {
               </button>
             </div>
 
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="px-4 py-2.5 rounded-lg text-xs font-black bg-[#d4a017]/10 text-[#d4a017] hover:bg-[#d4a017] hover:text-[#050b18] border border-[#d4a017]/20 transition-all flex items-center gap-1.5 shrink-0"
-            >
-              <Plus size={13} />
-              Adicionar Jogo
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="px-4 py-2.5 rounded-lg text-xs font-black bg-[#d4a017]/10 text-[#d4a017] hover:bg-[#d4a017] hover:text-[#050b18] border border-[#d4a017]/20 transition-all flex items-center gap-1.5 shrink-0"
+              >
+                <Plus size={13} />
+                Adicionar Jogo
+              </button>
+            )}
           </div>
 
           {/* Search bar & performance selector */}

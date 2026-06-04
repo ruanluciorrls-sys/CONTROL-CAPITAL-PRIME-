@@ -383,12 +383,12 @@ export const appRouter = router({
       }),
   }),
 
-  // Slots router
+  // Slots router (catálogo GLOBAL — admin controla, todos visualizam)
   slots: router({
     list: protectedProcedure.query(async () => {
       return getSlots();
     }),
-    create: protectedProcedure
+    create: adminProcedure
       .input(z.object({
         provider: z.string(),
         performance: z.string(),
