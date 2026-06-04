@@ -70,9 +70,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     refetchOnWindowFocus: false,
   });
 
+  const createPlataformaMutation = trpc.plataformas.create.useMutation();
+
   useEffect(() => {
     if (plataformasQuery.data) {
       const savedStr = localStorage.getItem("plataformas-calendario-v2");
+      
+      // Auto-migrate local platforms to the database if they are not present yet
+      if (savedStr) {
+        try {
+          const localPlats = JSON.parse(savedStr);
+          if (Array.isArray(localPlats) && localPlats.length > 0) {
+            const dbIds = new Set(plataformasQuery.data.map((p) => p.id));
+            const missing = localPlats.filter((p: any) => p && p.id && !dbIds.has(p.id));
+            if (missing.length > 0) {
+              console.log("Migrating local platforms to database:", missing);
+              Promise.all(missing.map(plat => 
+                createPlataformaMutation.mutateAsync({
+                  id: plat.id,
+                  nome: plat.nome,
+                  diasPrazo: plat.diasPrazo,
+                  dia: plat.dia,
+                })
+              )).then(() => {
+                plataformasQuery.refetch();
+              }).catch(err => {
+                console.error("Error migrating platforms:", err);
+              });
+            }
+          }
+        } catch (e) {
+          console.error("Failed to parse local platforms for migration:", e);
+        }
+      }
+
       const currentDataStr = JSON.stringify(plataformasQuery.data);
       if (savedStr !== currentDataStr) {
         localStorage.setItem("plataformas-calendario-v2", currentDataStr);
@@ -80,6 +111,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }, [plataformasQuery.data]);
+
 
 
   // Mutations tRPC
