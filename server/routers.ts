@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById } from "./db";
+import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma } from "./db";
 import { supabaseUploadJSON } from "./storage";
 import { InsertRelatorio } from "../drizzle/schema";
 import { nanoid } from "nanoid";
@@ -380,6 +380,59 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await deleteGastoProxy(input.id);
         return { success: true };
+      }),
+  }),
+
+  // Slots router
+  slots: router({
+    list: protectedProcedure.query(async () => {
+      return getSlots();
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        provider: z.string(),
+        performance: z.string(),
+        name: z.string(),
+        tag: z.string().optional().default(""),
+        image: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return createSlot(input);
+      }),
+  }),
+
+  // Plataformas (Calendário) router
+  plataformas: router({
+    list: protectedProcedure.query(async () => {
+      return getPlataformas();
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        id: z.string(),
+        nome: z.string(),
+        diasPrazo: z.number(),
+        dia: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        return createPlataforma(input);
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.string(),
+        nome: z.string().optional(),
+        diasPrazo: z.number().optional(),
+        dia: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return updatePlataforma(id, data);
+      }),
+    delete: protectedProcedure
+      .input(z.object({
+        id: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        return deletePlataforma(input.id);
       }),
   }),
 });

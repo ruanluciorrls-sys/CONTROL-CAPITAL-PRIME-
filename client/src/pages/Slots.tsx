@@ -3,6 +3,7 @@ import { Search, Flame, Award, Heart, Check, Copy, RefreshCw, Layers, Plus, X } 
 import { toast } from "sonner";
 import { useAuth } from "../_core/hooks/useAuth";
 import slotsData from "./slots_data.json";
+import { trpc } from "@/lib/trpc";
 
 interface SlotGame {
   provider: string;
@@ -19,22 +20,28 @@ export default function Slots() {
   const [selectedProvider, setSelectedProvider] = useState("TODOS");
   const [selectedPerformance, setSelectedPerformance] = useState("TODOS");
   
-  // Custom slots state with localStorage persistence
-  const [games, setGames] = useState<SlotGame[]>(() => {
-    try {
-      const saved = localStorage.getItem("slots-custom-v1");
-      const customGames = saved ? JSON.parse(saved) : [];
-      const allGames = [...slotsData];
-      customGames.forEach((cg: SlotGame) => {
-        if (!allGames.some(g => g.name.toLowerCase() === cg.name.toLowerCase())) {
-          allGames.push(cg);
-        }
-      });
-      return allGames;
-    } catch {
-      return slotsData;
-    }
+  // Load custom slots from the database (refetching every 5 seconds to sync all users in real-time)
+  const slotsQuery = trpc.slots.list.useQuery(undefined, {
+    refetchInterval: 5000,
   });
+
+  // Combine static slots with DB-stored slots
+  const dbGames = slotsQuery.data || [];
+  const games = React.useMemo(() => {
+    const allGames = [...slotsData];
+    dbGames.forEach((cg) => {
+      if (!allGames.some(g => g.name.toLowerCase() === cg.name.toLowerCase())) {
+        allGames.push({
+          provider: cg.provider,
+          performance: cg.performance,
+          name: cg.name,
+          tag: cg.tag ?? "",
+          image: cg.image ?? "",
+        });
+      }
+    });
+    return allGames;
+  }, [dbGames]);
 
   const [favoritos, setFavoritos] = useState<string[]>(() => {
     try {
@@ -84,6 +91,24 @@ export default function Slots() {
     toast.success(`Nome "${name}" copiado para o teclado!`);
   };
 
+  const addGameMutation = trpc.slots.create.useMutation({
+    onSuccess: () => {
+      toast.success("Novo jogo adicionado com sucesso!");
+      slotsQuery.refetch();
+      setIsAddModalOpen(false);
+      setNewGame({
+        name: "",
+        provider: "PG",
+        performance: "ALTA",
+        tag: "",
+        image: ""
+      });
+    },
+    onError: (err) => {
+      toast.error(err.message || "Erro ao adicionar o jogo");
+    }
+  });
+
   const handleAddGame = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGame.name.trim()) {
@@ -96,27 +121,12 @@ export default function Slots() {
       return;
     }
 
-    const updatedGames = [newGame, ...games];
-    setGames(updatedGames);
-
-    // Save custom games to localStorage
-    try {
-      const saved = localStorage.getItem("slots-custom-v1");
-      const customGames = saved ? JSON.parse(saved) : [];
-      customGames.unshift(newGame);
-      localStorage.setItem("slots-custom-v1", JSON.stringify(customGames));
-    } catch {
-      // Fail silently
-    }
-
-    toast.success("Novo jogo adicionado com sucesso!");
-    setIsAddModalOpen(false);
-    setNewGame({
-      name: "",
-      provider: "PG",
-      performance: "ALTA",
-      tag: "",
-      image: ""
+    addGameMutation.mutate({
+      name: newGame.name.trim(),
+      provider: newGame.provider,
+      performance: newGame.performance,
+      tag: newGame.tag.trim(),
+      image: newGame.image?.trim() || undefined,
     });
   };
 

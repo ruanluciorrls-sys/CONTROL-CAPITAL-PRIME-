@@ -166,3 +166,29 @@ export const usersRelationsFull = relations(users, ({ many }) => ({
   contas: many(contas),
   gastosProxy: many(gastosProxy),
 }));
+
+// Tabela de slots / jogos adicionados
+export const slots = pgTable("slots", {
+  id: serial("id").primaryKey(),
+  provider: text("provider").notNull(),
+  performance: text("performance").notNull(),
+  name: text("name").notNull().unique(),
+  tag: text("tag").default("").notNull(),
+  image: text("image"),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+});
+
+export type Slot = typeof slots.$inferSelect;
+export type InsertSlot = typeof slots.$inferInsert;
+
+// Tabela de plataformas para regras do calendário
+export const plataformas = pgTable("plataformas", {
+  id: text("id").primaryKey(),
+  nome: text("nome").notNull(),
+  diasPrazo: integer("diasPrazo").notNull(),
+  dia: text("dia").notNull(),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+});
+
+export type PlataformaDb = typeof plataformas.$inferSelect;
+export type InsertPlataforma = typeof plataformas.$inferInsert;

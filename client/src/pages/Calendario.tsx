@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Trash2, Edit2, X, Check, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 
 interface Plataforma {
   id: string;
@@ -88,49 +89,101 @@ export default function Calendario() {
   const [showForm, setShowForm] = useState(false);
   const [novaPlat, setNovaPlat] = useState({ nome: "", diasPrazo: 3, dia: "SEGUNDA-FEIRA" });
 
+  const utils = trpc.useUtils();
+
+  const createMutation = trpc.plataformas.create.useMutation({
+    onSuccess: () => {
+      utils.plataformas.list.invalidate();
+    }
+  });
+
+  const updateMutation = trpc.plataformas.update.useMutation({
+    onSuccess: () => {
+      utils.plataformas.list.invalidate();
+    }
+  });
+
+  const deleteMutation = trpc.plataformas.delete.useMutation({
+    onSuccess: () => {
+      utils.plataformas.list.invalidate();
+    }
+  });
+
+  // Listen to background query updates
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(plataformas));
-    window.dispatchEvent(new CustomEvent("plataformas-updated", { detail: plataformas }));
-  }, [plataformas]);
+    const handleUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (Array.isArray(detail)) {
+        setPlataformas(detail);
+      }
+    };
+    window.addEventListener("plataformas-updated", handleUpdate);
+    return () => window.removeEventListener("plataformas-updated", handleUpdate);
+  }, []);
 
-  const salvar = (lista: Plataforma[]) => {
-    setPlataformas(lista);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
-    // Notifica outros componentes (Dashboard, Relatorios) que as plataformas mudaram
-    window.dispatchEvent(new CustomEvent("plataformas-updated", { detail: lista }));
-  };
-
-  const handleAdicionar = () => {
+  const handleAdicionar = async () => {
     if (!novaPlat.nome.trim()) {
       toast.error("Nome da plataforma é obrigatório");
       return;
     }
-    const nova: Plataforma = {
-      id: Date.now().toString(),
-      nome: novaPlat.nome.trim().toUpperCase(),
-      diasPrazo: novaPlat.diasPrazo,
-      dia: novaPlat.dia,
-    };
-    salvar([...plataformas, nova]);
+    const id = Date.now().toString();
+    const nome = novaPlat.nome.trim().toUpperCase();
+    const diasPrazo = novaPlat.diasPrazo;
+    const dia = novaPlat.dia;
+
+    // Eager update to keep UI fast
+    const nova: Plataforma = { id, nome, diasPrazo, dia };
+    setPlataformas([...plataformas, nova]);
     setNovaPlat({ nome: "", diasPrazo: 3, dia: "SEGUNDA-FEIRA" });
     setShowForm(false);
-    toast.success(`${nova.nome} adicionada com sucesso!`);
+
+    try {
+      await createMutation.mutateAsync({ id, nome, diasPrazo, dia });
+      toast.success(`${nome} adicionada com sucesso!`);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao adicionar plataforma");
+      // Rollback
+      setPlataformas(plataformas);
+    }
   };
 
-  const handleDeletar = (id: string) => {
+  const handleDeletar = async (id: string) => {
     const plat = plataformas.find((p) => p.id === id);
     if (!plat) return;
     setLixeira([...lixeira, plat]);
-    salvar(plataformas.filter((p) => p.id !== id));
-    toast.success(`${plat.nome} movida para lixeira`);
+    setPlataformas(plataformas.filter((p) => p.id !== id));
+
+    try {
+      await deleteMutation.mutateAsync({ id });
+      toast.success(`${plat.nome} movida para lixeira`);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao deletar plataforma");
+      // Rollback
+      setPlataformas(plataformas);
+      setLixeira(lixeira.filter((p) => p.id !== id));
+    }
   };
 
-  const handleRestaurar = (id: string) => {
+  const handleRestaurar = async (id: string) => {
     const plat = lixeira.find((p) => p.id === id);
     if (!plat) return;
-    salvar([...plataformas, plat]);
+    setPlataformas([...plataformas, plat]);
     setLixeira(lixeira.filter((p) => p.id !== id));
-    toast.success(`${plat.nome} restaurada!`);
+
+    try {
+      await createMutation.mutateAsync({
+        id: plat.id,
+        nome: plat.nome,
+        diasPrazo: plat.diasPrazo,
+        dia: plat.dia
+      });
+      toast.success(`${plat.nome} restaurada!`);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao restaurar plataforma");
+      // Rollback
+      setPlataformas(plataformas.filter((p) => p.id !== id));
+      setLixeira([...lixeira, plat]);
+    }
   };
 
   const handleDeletarPermanente = (id: string) => {
@@ -138,12 +191,25 @@ export default function Calendario() {
     toast.success("Removida permanentemente");
   };
 
-  const handleEditarSalvar = () => {
+  const handleEditarSalvar = async () => {
     if (!editData) return;
-    salvar(plataformas.map((p) => (p.id === editData.id ? editData : p)));
+    const oldPlataformas = plataformas;
+    setPlataformas(plataformas.map((p) => (p.id === editData.id ? editData : p)));
     setEditandoId(null);
     setEditData(null);
-    toast.success("Salvo!");
+
+    try {
+      await updateMutation.mutateAsync({
+        id: editData.id,
+        nome: editData.nome,
+        diasPrazo: editData.diasPrazo,
+        dia: editData.dia
+      });
+      toast.success("Salvo!");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao salvar alterações");
+      setPlataformas(oldPlataformas);
+    }
   };
 
   const plataformasPorDia = DIAS_SEMANA.map((dia) => ({

@@ -1,7 +1,7 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, casas, relatorios, contas, userSettings, gastosProxy, Casa, Relatorio, InsertCasa, InsertRelatorio, Conta, InsertConta, UserSettings, GastoProxy, InsertGastoProxy } from "../drizzle/schema";
+import { InsertUser, users, casas, relatorios, contas, userSettings, gastosProxy, Casa, Relatorio, InsertCasa, InsertRelatorio, Conta, InsertConta, UserSettings, GastoProxy, InsertGastoProxy, slots, Slot, InsertSlot, plataformas, PlataformaDb, InsertPlataforma } from "../drizzle/schema";
 import bcrypt from "bcryptjs";
 import { ENV } from './_core/env';
 
@@ -13,6 +13,69 @@ export async function getDb() {
     try {
       const client = postgres(process.env.DATABASE_URL, { ssl: "require" });
       _db = drizzle(client);
+      
+      // Auto-create slots table if it does not exist
+      _db.execute(sql`
+        CREATE TABLE IF NOT EXISTS slots (
+          id SERIAL PRIMARY KEY,
+          provider TEXT NOT NULL,
+          performance TEXT NOT NULL,
+          name TEXT NOT NULL UNIQUE,
+          tag TEXT NOT NULL DEFAULT '',
+          image TEXT,
+          "criadoEm" TIMESTAMP NOT NULL DEFAULT NOW()
+        )
+      `).catch(err => console.error("[Database] Failed to auto-create slots table:", err));
+
+      // Auto-create plataformas table if it does not exist
+      _db.execute(sql`
+        CREATE TABLE IF NOT EXISTS plataformas (
+          id TEXT PRIMARY KEY,
+          nome TEXT NOT NULL,
+          "diasPrazo" INTEGER NOT NULL,
+          dia TEXT NOT NULL,
+          "criadoEm" TIMESTAMP NOT NULL DEFAULT NOW()
+        )
+      `).then(async () => {
+        // Seed with default platforms if empty
+        const countResult = await _db!.execute(sql`SELECT count(*) FROM plataformas`);
+        const count = parseInt(countResult[0]?.count?.toString() || "0");
+        if (count === 0) {
+          console.log("[Database] Seeding default platforms...");
+          const defaultPlats = [
+            { id: "1",  nome: "WE",      diasPrazo: 4, dia: "SEGUNDA-FEIRA" },
+            { id: "2",  nome: "777CLUBE",diasPrazo: 3, dia: "SEGUNDA-FEIRA" },
+            { id: "3",  nome: "EK",      diasPrazo: 4, dia: "TERÇA-FEIRA" },
+            { id: "4",  nome: "VOY",     diasPrazo: 4, dia: "TERÇA-FEIRA" },
+            { id: "5",  nome: "888",     diasPrazo: 3, dia: "TERÇA-FEIRA" },
+            { id: "6",  nome: "MANGA",   diasPrazo: 3, dia: "TERÇA-FEIRA" },
+            { id: "7",  nome: "ANJO",    diasPrazo: 3, dia: "TERÇA-FEIRA" },
+            { id: "8",  nome: "GAME",    diasPrazo: 6, dia: "TERÇA-FEIRA" },
+            { id: "9",  nome: "91",      diasPrazo: 3, dia: "QUARTA-FEIRA" },
+            { id: "10", nome: "OKOK",    diasPrazo: 3, dia: "QUARTA-FEIRA" },
+            { id: "11", nome: "A8",      diasPrazo: 7, dia: "QUARTA-FEIRA" },
+            { id: "12", nome: "DY",      diasPrazo: 4, dia: "QUARTA-FEIRA" },
+            { id: "13", nome: "MK",      diasPrazo: 4, dia: "QUARTA-FEIRA" },
+            { id: "14", nome: "WP",      diasPrazo: 7, dia: "QUARTA-FEIRA" },
+            { id: "15", nome: "W1",      diasPrazo: 3, dia: "QUINTA-FEIRA" },
+            { id: "16", nome: "DZ",      diasPrazo: 0, dia: "QUINTA-FEIRA" },
+            { id: "17", nome: "777CLUBE",diasPrazo: 4, dia: "QUINTA-FEIRA" },
+            { id: "18", nome: "WE",      diasPrazo: 3, dia: "SEXTA-FEIRA" },
+            { id: "19", nome: "MANGA",   diasPrazo: 4, dia: "SEXTA-FEIRA" },
+            { id: "20", nome: "ANJO",    diasPrazo: 4, dia: "SEXTA-FEIRA" },
+            { id: "21", nome: "888",     diasPrazo: 4, dia: "SEXTA-FEIRA" },
+            { id: "22", nome: "VOY",     diasPrazo: 3, dia: "SÁBADO" },
+            { id: "23", nome: "91",      diasPrazo: 4, dia: "SÁBADO" },
+            { id: "24", nome: "EK",      diasPrazo: 3, dia: "SÁBADO" },
+            { id: "25", nome: "W1",      diasPrazo: 4, dia: "DOMINGO" },
+            { id: "26", nome: "DY",      diasPrazo: 3, dia: "DOMINGO" },
+            { id: "27", nome: "MK",      diasPrazo: 3, dia: "DOMINGO" },
+          ];
+          for (const plat of defaultPlats) {
+            await _db!.insert(plataformas).values(plat);
+          }
+        }
+      }).catch(err => console.error("[Database] Failed to auto-create / seed plataformas table:", err));
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -311,6 +374,46 @@ export async function getTotalGastosProxy(userId: number): Promise<number> {
   if (!db) return 0;
   const result = await db.select().from(gastosProxy).where(eq(gastosProxy.userId, userId));
   return result.reduce((sum, gasto) => sum + parseFloat(gasto.valor.toString()), 0);
+}
+
+// Queries para slots
+export async function getSlots(): Promise<Slot[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(slots).orderBy(desc(slots.criadoEm));
+}
+
+export async function createSlot(slot: InsertSlot): Promise<Slot | null> {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(slots).values(slot);
+  return db.select().from(slots).where(eq(slots.name, slot.name)).limit(1).then(r => r[0] || null);
+}
+
+// Queries para plataformas
+export async function getPlataformas(): Promise<PlataformaDb[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(plataformas);
+}
+
+export async function createPlataforma(plat: InsertPlataforma): Promise<PlataformaDb | null> {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(plataformas).values(plat);
+  return db.select().from(plataformas).where(eq(plataformas.id, plat.id)).limit(1).then(r => r[0] || null);
+}
+
+export async function updatePlataforma(id: string, data: Partial<InsertPlataforma>): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(plataformas).set(data).where(eq(plataformas.id, id));
+}
+
+export async function deletePlataforma(id: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(plataformas).where(eq(plataformas.id, id));
 }
 
 // TODO: add feature queries here as your schema grows.

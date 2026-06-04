@@ -64,6 +64,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     refetchOnWindowFocus: false,
   });
 
+  // Poll platforms from DB every 5 seconds to sync calendar for all users in real-time
+  const plataformasQuery = trpc.plataformas.list.useQuery(undefined, {
+    refetchInterval: 5000,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    if (plataformasQuery.data) {
+      const savedStr = localStorage.getItem("plataformas-calendario-v2");
+      const currentDataStr = JSON.stringify(plataformasQuery.data);
+      if (savedStr !== currentDataStr) {
+        localStorage.setItem("plataformas-calendario-v2", currentDataStr);
+        window.dispatchEvent(new CustomEvent("plataformas-updated", { detail: plataformasQuery.data }));
+      }
+    }
+  }, [plataformasQuery.data]);
+
+
   // Mutations tRPC
   const createCasaMutation = trpc.casas.create.useMutation();
   const updateCasaMutation = trpc.casas.update.useMutation();
