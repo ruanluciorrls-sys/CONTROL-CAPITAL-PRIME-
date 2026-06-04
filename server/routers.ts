@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma } from "./db";
+import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma, seedPlataformasIfEmpty } from "./db";
 import { supabaseUploadJSON } from "./storage";
 import { InsertRelatorio } from "../drizzle/schema";
 import { nanoid } from "nanoid";
@@ -406,7 +406,20 @@ export const appRouter = router({
     list: protectedProcedure.query(async () => {
       return getPlataformas();
     }),
-    create: protectedProcedure
+    seed: protectedProcedure
+      .input(z.object({
+        defaults: z.array(z.object({
+          id: z.string(),
+          nome: z.string(),
+          diasPrazo: z.number(),
+          dia: z.string(),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        return seedPlataformasIfEmpty(input.defaults);
+      }),
+    // Edição restrita ao admin — apenas o admin controla a lista global; todos visualizam
+    create: adminProcedure
       .input(z.object({
         id: z.string(),
         nome: z.string(),
@@ -416,7 +429,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return createPlataforma(input);
       }),
-    update: protectedProcedure
+    update: adminProcedure
       .input(z.object({
         id: z.string(),
         nome: z.string().optional(),
@@ -427,7 +440,7 @@ export const appRouter = router({
         const { id, ...data } = input;
         return updatePlataforma(id, data);
       }),
-    delete: protectedProcedure
+    delete: adminProcedure
       .input(z.object({
         id: z.string(),
       }))

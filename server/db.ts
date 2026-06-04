@@ -427,4 +427,16 @@ export async function deletePlataforma(id: string): Promise<void> {
   await db.delete(plataformas).where(eq(plataformas.id, id));
 }
 
+/** Insere as plataformas padrão somente se a tabela estiver vazia (primeira inicialização global). */
+export async function seedPlataformasIfEmpty(defaults: InsertPlataforma[]): Promise<PlataformaDb[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const existing = await db.select().from(plataformas);
+  if (existing.length > 0) return existing;
+  if (defaults.length > 0) {
+    await db.insert(plataformas).values(defaults);
+  }
+  return db.select().from(plataformas);
+}
+
 // TODO: add feature queries here as your schema grows.

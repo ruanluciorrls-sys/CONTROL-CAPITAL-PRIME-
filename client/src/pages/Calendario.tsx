@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Edit2, X, Check, Calendar } from "lucide-react";
+import { Plus, Trash2, Edit2, X, Check, Calendar, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 interface Plataforma {
   id: string;
@@ -81,7 +82,7 @@ function carregarPlataformas(): Plataforma[] {
 }
 
 export default function Calendario() {
-  const [plataformas, setPlataformas] = useState<Plataforma[]>(carregarPlataformas);
+  const [plataformas, setPlataformas] = useState<Plataforma[]>([]);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Plataforma | null>(null);
   const [lixeira, setLixeira] = useState<Plataforma[]>([]);
@@ -90,36 +91,41 @@ export default function Calendario() {
   const [novaPlat, setNovaPlat] = useState({ nome: "", diasPrazo: 3, dia: "SEGUNDA-FEIRA" });
 
   const utils = trpc.useUtils();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  // ── Fonte de dados GLOBAL: banco de dados (compartilhado por todos os usuários) ──
+  const listQuery = trpc.plataformas.list.useQuery();
+  const seedMutation = trpc.plataformas.seed.useMutation({
+    onSuccess: () => utils.plataformas.list.invalidate(),
+  });
+
+  // Sincroniza o estado local com os dados do banco
+  useEffect(() => {
+    if (listQuery.data) {
+      // Cache local para o Dashboard/Relatorios lerem instantaneamente
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(listQuery.data)); } catch {}
+      window.dispatchEvent(new CustomEvent("plataformas-updated", { detail: listQuery.data }));
+      setPlataformas(listQuery.data as Plataforma[]);
+    }
+  }, [listQuery.data]);
+
+  // Na primeira vez (banco vazio), insere as plataformas padrão globalmente — apenas uma vez
+  useEffect(() => {
+    if (listQuery.isSuccess && Array.isArray(listQuery.data) && listQuery.data.length === 0 && !seedMutation.isPending) {
+      seedMutation.mutate({ defaults: PLATAFORMAS_PADRAO });
+    }
+  }, [listQuery.isSuccess, listQuery.data]);
 
   const createMutation = trpc.plataformas.create.useMutation({
-    onSuccess: () => {
-      utils.plataformas.list.invalidate();
-    }
+    onSuccess: () => utils.plataformas.list.invalidate(),
   });
-
   const updateMutation = trpc.plataformas.update.useMutation({
-    onSuccess: () => {
-      utils.plataformas.list.invalidate();
-    }
+    onSuccess: () => utils.plataformas.list.invalidate(),
   });
-
   const deleteMutation = trpc.plataformas.delete.useMutation({
-    onSuccess: () => {
-      utils.plataformas.list.invalidate();
-    }
+    onSuccess: () => utils.plataformas.list.invalidate(),
   });
-
-  // Listen to background query updates
-  useEffect(() => {
-    const handleUpdate = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (Array.isArray(detail)) {
-        setPlataformas(detail);
-      }
-    };
-    window.addEventListener("plataformas-updated", handleUpdate);
-    return () => window.removeEventListener("plataformas-updated", handleUpdate);
-  }, []);
 
   const handleAdicionar = async () => {
     if (!novaPlat.nome.trim()) {
@@ -229,18 +235,26 @@ export default function Calendario() {
         <div>
           <h2 className="text-xl font-black text-white/95 dark:text-white">Gerenciamento de Plataformas</h2>
           <p className="text-[10px] text-white/60 dark:text-white/35 uppercase tracking-widest mt-0.5">
-            Calendário de lançamentos — prazos contam a partir do dia seguinte
+            Calendário GLOBAL — compartilhado com todos os usuários · prazos contam a partir do dia seguinte
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs text-[#050b18] transition-all hover:scale-[1.02]"
-            style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
-          >
-            <Plus size={14} />
-            Nova Plataforma
-          </button>
+          {isAdmin ? (
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs text-[#050b18] transition-all hover:scale-[1.02]"
+              style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+            >
+              <Plus size={14} />
+              Nova Plataforma
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider text-white/40 border border-white/10"
+              style={{ background: "rgba(255,255,255,0.03)" }}
+            >
+              <Lock size={12} /> Somente leitura
+            </div>
+          )}
         </div>
       </div>
 
@@ -381,23 +395,25 @@ export default function Calendario() {
                           </p>
                         </div>
 
-                        {/* Ações — aparecem no hover */}
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                          <button
-                            onClick={() => { setEditandoId(plat.id); setEditData({ ...plat }); }}
-                            className="w-6 h-6 rounded-lg flex items-center justify-center text-white/30 hover:text-[#d4a017] hover:bg-[#d4a01710] transition-colors"
-                            title="Editar"
-                          >
-                            <Edit2 size={11} />
-                          </button>
-                          <button
-                            onClick={() => handleDeletar(plat.id)}
-                            className="w-6 h-6 rounded-lg flex items-center justify-center text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                            title="Mover para lixeira"
-                          >
-                            <Trash2 size={11} />
-                          </button>
-                        </div>
+                        {/* Ações — aparecem no hover (somente admin) */}
+                        {isAdmin && (
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                            <button
+                              onClick={() => { setEditandoId(plat.id); setEditData({ ...plat }); }}
+                              className="w-6 h-6 rounded-lg flex items-center justify-center text-white/30 hover:text-[#d4a017] hover:bg-[#d4a01710] transition-colors"
+                              title="Editar"
+                            >
+                              <Edit2 size={11} />
+                            </button>
+                            <button
+                              onClick={() => handleDeletar(plat.id)}
+                              className="w-6 h-6 rounded-lg flex items-center justify-center text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                              title="Mover para lixeira"
+                            >
+                              <Trash2 size={11} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))
                   )}
@@ -481,22 +497,26 @@ export default function Calendario() {
                         </span>
                       </td>
                       <td className="px-5 py-3">
-                        <div className="flex gap-2 justify-end">
-                          <button
-                            onClick={() => { setEditandoId(plat.id); setEditData({ ...plat }); }}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center border border-white/8 text-white/30 hover:text-[#d4a017] hover:border-[#d4a017]/30 transition-colors"
-                            style={{ background: "rgba(255,255,255,0.03)" }}
-                          >
-                            <Edit2 size={12} />
-                          </button>
-                          <button
-                            onClick={() => handleDeletar(plat.id)}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center border border-red-500/12 text-red-400/40 hover:text-red-400 hover:border-red-500/30 transition-colors"
-                            style={{ background: "rgba(239,68,68,0.03)" }}
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
+                        {isAdmin ? (
+                          <div className="flex gap-2 justify-end">
+                            <button
+                              onClick={() => { setEditandoId(plat.id); setEditData({ ...plat }); }}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center border border-white/8 text-white/30 hover:text-[#d4a017] hover:border-[#d4a017]/30 transition-colors"
+                              style={{ background: "rgba(255,255,255,0.03)" }}
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                            <button
+                              onClick={() => handleDeletar(plat.id)}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center border border-red-500/12 text-red-400/40 hover:text-red-400 hover:border-red-500/30 transition-colors"
+                              style={{ background: "rgba(239,68,68,0.03)" }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex justify-end"><Lock size={12} className="text-white/15" /></div>
+                        )}
                       </td>
                     </tr>
                   ))}

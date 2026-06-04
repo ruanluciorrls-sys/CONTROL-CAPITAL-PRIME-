@@ -5,6 +5,17 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato baseia-se em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.4.0] - 2026-06-04
+
+### Adicionado
+- **Calendário de Plataformas GLOBAL e compartilhado**: O Gerenciamento de Plataformas (casas + prazos por dia) agora é salvo no banco de dados e **compartilhado entre TODOS os usuários** — atuais e futuros. Quando o admin adiciona, edita ou remove uma plataforma, a mudança aparece automaticamente para todos. Dashboard e Operação CPA leem dessa mesma fonte global.
+- **Seed automático**: Na primeira inicialização (banco vazio), as 27 plataformas padrão são inseridas globalmente uma única vez.
+- **Controle restrito ao admin**: Apenas o administrador pode adicionar/editar/remover plataformas globais (protegido no servidor via `adminProcedure`). Demais usuários visualizam em modo "Somente leitura".
+
+### Notas sobre compartilhamento (importante)
+- **Código / UI / layouts / funcionalidades**: Já são automaticamente globais — todos os usuários carregam o mesmo aplicativo. Qualquer melhoria publicada chega a 100% dos usuários no deploy, sem painel pessoal separado.
+- **Dados financeiros (Faturamento, metas, lucros)**: Permanecem **privados por usuário** — cada operador vê apenas os próprios números.
+
 ## [1.3.0] - 2026-06-03
 
 ### Adicionado

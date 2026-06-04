@@ -1,16 +1,9 @@
 import { useApp } from "@/contexts/AppContext";
 import { trpc } from "@/lib/trpc";
 import { Calendar, Home, FileText, DollarSign, Wallet, TrendingUp, Clock, Zap, ArrowRight } from "lucide-react";
-import { useState, useEffect } from "react";
 import DashboardCalendar from "@/components/DashboardCalendar";
 import { navigateToTab } from "@/lib/navigate";
-
-interface Plataforma {
-  id: string;
-  nome: string;
-  diasPrazo: number;
-  dia: string;
-}
+import { PLATAFORMAS_PADRAO, type Plataforma } from "@/lib/plataformas";
 
 export default function Dashboard() {
   const { state } = useApp();
@@ -18,57 +11,11 @@ export default function Dashboard() {
   const { data: gastosProxyList = [] } = trpc.gastosProxy.list.useQuery();
   const { data: contasData = [] } = trpc.contas.list.useQuery();
 
-  const lerPlataformas = (): Plataforma[] => {
-    try {
-      const saved = localStorage.getItem("plataformas-calendario-v2");
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return [
-      { id: "1", nome: "WE", diasPrazo: 4, dia: "SEGUNDA-FEIRA" },
-      { id: "2", nome: "777CLUBE", diasPrazo: 3, dia: "SEGUNDA-FEIRA" },
-      { id: "3", nome: "EK", diasPrazo: 4, dia: "TERÇA-FEIRA" },
-      { id: "4", nome: "VOY", diasPrazo: 4, dia: "TERÇA-FEIRA" },
-      { id: "5", nome: "888", diasPrazo: 3, dia: "TERÇA-FEIRA" },
-      { id: "6", nome: "MANGA", diasPrazo: 3, dia: "TERÇA-FEIRA" },
-      { id: "7", nome: "ANJO", diasPrazo: 3, dia: "TERÇA-FEIRA" },
-      { id: "8", nome: "GAME", diasPrazo: 6, dia: "TERÇA-FEIRA" },
-      { id: "9", nome: "91", diasPrazo: 3, dia: "QUARTA-FEIRA" },
-      { id: "10", nome: "OKOK", diasPrazo: 3, dia: "QUARTA-FEIRA" },
-      { id: "11", nome: "A8", diasPrazo: 7, dia: "QUARTA-FEIRA" },
-      { id: "12", nome: "DY", diasPrazo: 4, dia: "QUARTA-FEIRA" },
-      { id: "13", nome: "MK", diasPrazo: 4, dia: "QUARTA-FEIRA" },
-      { id: "14", nome: "WP", diasPrazo: 7, dia: "QUARTA-FEIRA" },
-      { id: "15", nome: "W1", diasPrazo: 3, dia: "QUINTA-FEIRA" },
-      { id: "16", nome: "DZ", diasPrazo: 0, dia: "QUINTA-FEIRA" },
-      { id: "17", nome: "777CLUBE", diasPrazo: 4, dia: "QUINTA-FEIRA" },
-      { id: "18", nome: "WE", diasPrazo: 3, dia: "SEXTA-FEIRA" },
-      { id: "19", nome: "MANGA", diasPrazo: 4, dia: "SEXTA-FEIRA" },
-      { id: "20", nome: "ANJO", diasPrazo: 4, dia: "SEXTA-FEIRA" },
-      { id: "21", nome: "888", diasPrazo: 4, dia: "SEXTA-FEIRA" },
-      { id: "22", nome: "VOY", diasPrazo: 3, dia: "SÁBADO" },
-      { id: "23", nome: "91", diasPrazo: 4, dia: "SÁBADO" },
-      { id: "24", nome: "EK", diasPrazo: 3, dia: "SÁBADO" },
-      { id: "25", nome: "W1", diasPrazo: 4, dia: "DOMINGO" },
-      { id: "26", nome: "DY", diasPrazo: 3, dia: "DOMINGO" },
-      { id: "27", nome: "MK", diasPrazo: 3, dia: "DOMINGO" },
-    ];
-  };
-
-  const [plataformas, setPlataformas] = useState<Plataforma[]>(lerPlataformas);
-
-  // Atualiza quando o Gerenciamento de Plataformas salvar algo novo
-  useEffect(() => {
-    const handleUpdate = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (Array.isArray(detail)) {
-        setPlataformas(detail);
-      } else {
-        setPlataformas(lerPlataformas());
-      }
-    };
-    window.addEventListener("plataformas-updated", handleUpdate);
-    return () => window.removeEventListener("plataformas-updated", handleUpdate);
-  }, []);
+  // Plataformas GLOBAIS (banco de dados, compartilhadas por todos os usuários)
+  const { data: plataformasDb } = trpc.plataformas.list.useQuery();
+  const plataformas: Plataforma[] = (plataformasDb && plataformasDb.length > 0)
+    ? (plataformasDb as Plataforma[])
+    : PLATAFORMAS_PADRAO;
 
   // Dados
   const relatoriosFinalizados = state.relatorios.filter((r) => r.status === "finalizado");
