@@ -1,10 +1,153 @@
 import { useApp } from "@/contexts/AppContext";
-import { Plus, Trash2, Copy, Clock, ChevronDown, X } from "lucide-react";
+import { Plus, Trash2, Copy, Clock, ChevronDown, X, Check } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import RelatorioSpreadsheet from "@/components/RelatorioSpreadsheet";
 import AbaProgresso from "@/components/AbaProgresso";
 import { usePageTransition } from "@/hooks/usePageTransition";
+
+// ----- Sub-component: card individual de relatório -----
+interface RelatorioCardProps {
+  rel: any;
+  accent: string;
+  isSelected: boolean;
+  nome: string;
+  loginCasa: string;
+  lucroTotal: number;
+  prazoDate: string | null;
+  isVencido: boolean;
+  countdown: string;
+  onSelect: () => void;
+  onDuplicate: (e: React.MouseEvent) => void;
+  onDelete: (e: React.MouseEvent) => void;
+}
+
+function RelatorioCard({
+  rel, accent, isSelected, nome, loginCasa, lucroTotal,
+  prazoDate, isVencido, countdown, onSelect, onDuplicate, onDelete,
+}: RelatorioCardProps) {
+  const [loginCopiado, setLoginCopiado] = useState(false);
+
+  const copyLogin = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!loginCasa) return;
+    navigator.clipboard.writeText(loginCasa);
+    setLoginCopiado(true);
+    setTimeout(() => setLoginCopiado(false), 2000);
+  };
+
+  return (
+    <div
+      onClick={onSelect}
+      className="group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
+      style={{
+        background: isSelected
+          ? `linear-gradient(145deg, ${accent}18, ${accent}06)`
+          : "linear-gradient(145deg, #070e20, #0c1524)",
+        border: `1px solid ${isSelected ? accent + "50" : "rgba(255,255,255,0.08)"}`,
+        boxShadow: isSelected ? `0 0 24px ${accent}20` : "none",
+      }}
+    >
+      {/* Barra de cor no topo */}
+      <div className="h-[2px] w-full" style={{ background: accent }} />
+
+      <div className="p-5">
+        {/* Nome */}
+        <p className="font-black text-base text-white/90 truncate mb-1" title={nome}>
+          {nome}
+        </p>
+
+        {/* Login */}
+        {loginCasa && (
+          <div className="flex items-center gap-1.5 mb-3">
+            <span className="text-[9px] font-bold text-white/35 uppercase tracking-widest">Login:</span>
+            <span className="text-[10px] font-mono text-[#d4a017]/80 truncate flex-1">{loginCasa}</span>
+            <button
+              onClick={copyLogin}
+              title={loginCopiado ? "Copiado!" : "Copiar login"}
+              className="flex items-center justify-center w-4 h-4 rounded transition-all shrink-0"
+              style={{
+                background: loginCopiado ? "rgba(212,160,23,0.25)" : "rgba(212,160,23,0.08)",
+                border: "1px solid rgba(212,160,23,0.2)",
+                color: loginCopiado ? "#d4a017" : "rgba(212,160,23,0.5)",
+              }}
+            >
+              {loginCopiado ? <Check size={8} /> : <Copy size={8} />}
+            </button>
+          </div>
+        )}
+
+        {/* Stats — 3 colunas maiores */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          {/* Linhas */}
+          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(0,0,0,0.3)" }}>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-1">Linhas</p>
+            <p className="font-black text-xl" style={{ color: accent }}>{rel.rows.length}</p>
+          </div>
+
+          {/* Prazo + Countdown */}
+          <div className="rounded-xl p-3 text-center col-span-2" style={{ background: "rgba(0,0,0,0.3)" }}>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-1">Prazo</p>
+            {prazoDate ? (
+              <>
+                <p className="font-black text-base" style={{ color: isVencido ? "#f87171" : accent }}>
+                  {prazoDate}
+                </p>
+                <p className="text-[9px] font-bold mt-0.5" style={{ color: isVencido ? "#f87171" : "rgba(255,255,255,0.35)" }}>
+                  {isVencido ? "⚠ Vencido" : countdown}
+                </p>
+              </>
+            ) : (
+              <p className="font-black text-base text-white/20">—</p>
+            )}
+          </div>
+        </div>
+
+        {/* Lucro */}
+        <div className="rounded-xl py-4 px-4 flex flex-col items-center justify-center mb-3 relative overflow-hidden"
+          style={{
+            background: lucroTotal >= 0
+              ? "linear-gradient(145deg, rgba(74,222,128,0.08), rgba(74,222,128,0.04))"
+              : "linear-gradient(145deg, rgba(248,113,113,0.08), rgba(248,113,113,0.04))",
+            border: `1px solid ${lucroTotal >= 0 ? "rgba(74,222,128,0.2)" : "rgba(248,113,113,0.2)"}`,
+          }}
+        >
+          <p className="text-[9px] font-black uppercase tracking-widest mb-1.5"
+            style={{ color: lucroTotal >= 0 ? "rgba(74,222,128,0.5)" : "rgba(248,113,113,0.5)" }}
+          >Lucro</p>
+          <p className="font-black text-2xl tracking-tight"
+            style={{
+              color: lucroTotal >= 0 ? "#4ade80" : "#f87171",
+              textShadow: lucroTotal >= 0 ? "0 0 20px rgba(74,222,128,0.3)" : "0 0 20px rgba(248,113,113,0.3)",
+            }}
+          >
+            {lucroTotal >= 0 ? "+" : ""}R$ {lucroTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+        </div>
+
+        {/* Ações */}
+        <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={onDuplicate}
+            className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-white/8 text-white/30 hover:text-[#60a5fa] hover:border-[#60a5fa]/30"
+            style={{ background: "rgba(255,255,255,0.04)" }}
+            title="Duplicar"
+          >
+            <Copy size={14} />
+          </button>
+          <button
+            onClick={onDelete}
+            className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-red-500/15 text-red-400/40 hover:text-red-400 hover:border-red-500/30"
+            style={{ background: "rgba(239,68,68,0.04)" }}
+            title="Lixeira"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Plataformas do calendário (espelhando Calendario.tsx)
 const PLATAFORMAS_CALENDARIO = [
@@ -306,6 +449,10 @@ export default function Relatorios() {
     };
   };
 
+  const getCasaLogin = (casaId: string) => {
+    return state.casas.find((c) => c.id === casaId)?.login || "";
+  };
+
   const getCasaPrazo = (casaId: string) => {
     return state.casas.find((c) => c.id === casaId)?.prazo || "";
   };
@@ -506,9 +653,7 @@ export default function Relatorios() {
               <div className="rounded-2xl p-5 border border-white/8" style={{ background: "rgba(255,255,255,0.02)" }}>
                 <div className="flex items-center justify-between mb-5">
                   <h3 className="text-sm font-black text-white/70 uppercase tracking-wider">Relatórios Criados</h3>
-                  <span className="text-[10px] font-bold text-white/25">{relatoriosAtivos.length} ativo(s)</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <span className="text-[10px] font-bold text-white/25">{relatoriosAtivos                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {(() => {
                     const accentColors = [
                       "#60a5fa", "#34d399", "#a78bfa", "#f472b6",
@@ -527,100 +672,26 @@ export default function Relatorios() {
                       const isVencido = rel.prazo ? new Date(rel.prazo + "T23:59:59") < new Date() : false;
 
                       return (
-                        <div
+                        <RelatorioCard
                           key={rel.id}
-                          onClick={() => setSelectedRelatorioId(rel.id)}
-                          className="group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
-                          style={{
-                            background: isSelected
-                              ? `linear-gradient(145deg, ${accent}18, ${accent}06)`
-                              : "linear-gradient(145deg, #070e20, #0c1524)",
-                            border: `1px solid ${isSelected ? accent + "50" : "rgba(255,255,255,0.08)"}`,
-                            boxShadow: isSelected ? `0 0 24px ${accent}20` : "none",
-                          }}
-                        >
-                          {/* Barra de cor no topo */}
-                          <div className="h-[2px] w-full" style={{ background: accent }} />
-
-                          <div className="p-5">
-                            {/* Nome */}
-                            <p className="font-black text-base text-white/90 truncate mb-4" title={nome}>
-                              {nome}
-                            </p>
-
-                            {/* Stats — 3 colunas maiores */}
-                            <div className="grid grid-cols-3 gap-3 mb-4">
-                              {/* Linhas */}
-                              <div className="rounded-xl p-3 text-center" style={{ background: "rgba(0,0,0,0.3)" }}>
-                                <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-1">Linhas</p>
-                                <p className="font-black text-xl" style={{ color: accent }}>{rel.rows.length}</p>
-                              </div>
-
-                              {/* Prazo + Countdown */}
-                              <div className="rounded-xl p-3 text-center col-span-2" style={{ background: "rgba(0,0,0,0.3)" }}>
-                                <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-1">Prazo</p>
-                                {prazoDate ? (
-                                  <>
-                                    <p className="font-black text-base" style={{ color: isVencido ? "#f87171" : accent }}>
-                                      {prazoDate}
-                                    </p>
-                                    <p className="text-[9px] font-bold mt-0.5" style={{ color: isVencido ? "#f87171" : "rgba(255,255,255,0.35)" }}>
-                                      {isVencido ? "⚠ Vencido" : countdown}
-                                    </p>
-                                  </>
-                                ) : (
-                                  <p className="font-black text-base text-white/20">—</p>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Lucro — centralizado e chamativo */}
-                            <div className="rounded-xl py-4 px-4 flex flex-col items-center justify-center mb-3 relative overflow-hidden"
-                              style={{
-                                background: lucroTotal >= 0
-                                  ? "linear-gradient(145deg, rgba(74,222,128,0.08), rgba(74,222,128,0.04))"
-                                  : "linear-gradient(145deg, rgba(248,113,113,0.08), rgba(248,113,113,0.04))",
-                                border: `1px solid ${lucroTotal >= 0 ? "rgba(74,222,128,0.2)" : "rgba(248,113,113,0.2)"}`,
-                              }}
-                            >
-                              <div className="absolute top-0 left-0 w-full h-[1px]"
-                                style={{ background: `linear-gradient(to right, transparent, lucroTotal >= 0 ? "rgba(74,222,128,0.4)" : "rgba(248,113,113,0.4)", transparent)` }}
-                              />
-                              <p className="text-[9px] font-black uppercase tracking-widest mb-1.5"
-                                style={{ color: lucroTotal >= 0 ? "rgba(74,222,128,0.5)" : "rgba(248,113,113,0.5)" }}
-                              >Lucro</p>
-                              <p className="font-black text-2xl tracking-tight"
-                                style={{
-                                  color: lucroTotal >= 0 ? "#4ade80" : "#f87171",
-                                  textShadow: lucroTotal >= 0 ? "0 0 20px rgba(74,222,128,0.3)" : "0 0 20px rgba(248,113,113,0.3)",
-                                }}
-                              >
-                                {lucroTotal >= 0 ? "+" : ""}R$ {lucroTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </p>
-                            </div>
-
-                            {/* Ações */}
-                            <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); duplicarRelatorio(rel.id); }}
-                                className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-white/8 text-white/30 hover:text-[#60a5fa] hover:border-[#60a5fa]/30"
-                                style={{ background: "rgba(255,255,255,0.04)" }}
-                                title="Duplicar"
-                              >
-                                <Copy size={14} />
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleDeleteRelatorio(rel.id); }}
-                                className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-red-500/15 text-red-400/40 hover:text-red-400 hover:border-red-500/30"
-                                style={{ background: "rgba(239,68,68,0.04)" }}
-                                title="Lixeira"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                          rel={rel}
+                          accent={accent}
+                          isSelected={isSelected}
+                          nome={nome}
+                          loginCasa={getCasaLogin(rel.casaId)}
+                          lucroTotal={lucroTotal}
+                          prazoDate={prazoDate}
+                          isVencido={isVencido}
+                          countdown={countdown}
+                          onSelect={() => setSelectedRelatorioId(rel.id)}
+                          onDuplicate={(e) => { e.stopPropagation(); duplicarRelatorio(rel.id); }}
+                          onDelete={(e) => { e.stopPropagation(); handleDeleteRelatorio(rel.id); }}
+                        />
                       );
+                    });
+                  })()}div>
+                        );
+                      })()
                     });
                   })()}
                 </div>
@@ -635,6 +706,7 @@ export default function Relatorios() {
                   casaNome={getCasaNome(currentRelatorio.casaId)}
                   agente={currentRelatorio.agente}
                   prazo={currentRelatorio.prazo || ""}
+                  login={getCasaLogin(currentRelatorio.casaId)}
 
                   cooperacao={currentRelatorio.cooperacao}
                   onCooperacaoChange={(valor) =>

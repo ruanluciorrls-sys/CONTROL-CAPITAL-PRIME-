@@ -19,6 +19,7 @@ interface RelatorioSpreadsheetProps {
   casaNome: string;
   agente: string;
   prazo: string;
+  login?: string;
   cooperacao: number;
   onCooperacaoChange: (valor: number) => void;
   linkContaFilha?: string;
@@ -36,7 +37,7 @@ const fmt = (v: number) =>
 const inputStyle = "w-full px-2 py-1.5 rounded-lg text-right text-sm text-white font-mono bg-transparent border border-white/20 focus:outline-none focus:border-[#d4a017] focus:bg-white/5";
 
 export default function RelatorioSpreadsheet({
-  casaNome, agente, prazo, cooperacao, onCooperacaoChange,
+  casaNome, agente, prazo, login, cooperacao, onCooperacaoChange,
   linkContaFilha, media = 0, meta = 0, rows, onAddRow, onDeleteRow, onUpdateRow,
 }: RelatorioSpreadsheetProps) {
   const [newRow, setNewRow] = useState<RelatorioRow>({ numero: rows.length + 1, deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 });
@@ -45,6 +46,14 @@ export default function RelatorioSpreadsheet({
   const [cooperacaoInput, setCooperacaoInput] = useState(isNaN(cooperacao) ? "0" : cooperacao.toString());
   const [isSaving, setIsSaving] = useState(false);
   const [linkCopiado, setLinkCopiado] = useState(false);
+  const [loginCopiado, setLoginCopiado] = useState(false);
+
+  const copyLogin = () => {
+    if (!login) return;
+    navigator.clipboard.writeText(login);
+    setLoginCopiado(true);
+    setTimeout(() => setLoginCopiado(false), 2000);
+  };
 
   const { triggerSave } = useAutoSave({
     onSave: async () => {
@@ -136,8 +145,27 @@ export default function RelatorioSpreadsheet({
           <div className="absolute left-0 top-0 h-full w-[3px] rounded-l-2xl" style={{ background: "#d4a017" }} />
           <p className="text-[9px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 mb-3">Agente & Prazo</p>
           <p className="font-black text-lg text-white/90 dark:text-white truncate">{agente || "—"}</p>
+          {/* Login da conta */}
+          {login && (
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Login:</span>
+              <span className="text-[11px] font-mono text-[#d4a017]/90 truncate flex-1">{login}</span>
+              <button
+                onClick={copyLogin}
+                title={loginCopiado ? "Copiado!" : "Copiar login"}
+                className="flex items-center justify-center w-5 h-5 rounded-md transition-all shrink-0"
+                style={{
+                  background: loginCopiado ? "rgba(212,160,23,0.25)" : "rgba(212,160,23,0.1)",
+                  border: "1px solid rgba(212,160,23,0.25)",
+                  color: loginCopiado ? "#d4a017" : "rgba(212,160,23,0.6)",
+                }}
+              >
+                {loginCopiado ? <Check size={9} /> : <Copy size={9} />}
+              </button>
+            </div>
+          )}
           {prazoFmt && (
-            <p className="text-sm font-bold mt-1" style={{ color: "#d4a017" }}>{prazoFmt}</p>
+            <p className="text-sm font-bold mt-2" style={{ color: "#d4a017" }}>{prazoFmt}</p>
           )}
         </div>
 
