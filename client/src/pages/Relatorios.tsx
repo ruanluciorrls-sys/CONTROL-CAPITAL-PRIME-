@@ -181,22 +181,16 @@ const PLATAFORMAS_CALENDARIO = [
   { id: "27", nome: "MK", diasPrazo: 3, dia: "DOMINGO" },
 ];
 
-const DIAS_SEMANA_MAP: Record<string, number> = {
-  "DOMINGO": 0, "SEGUNDA-FEIRA": 1, "TERÇA-FEIRA": 2,
-  "QUARTA-FEIRA": 3, "QUINTA-FEIRA": 4, "SEXTA-FEIRA": 5, "SÁBADO": 6,
-};
-
-function calcularPrazo(diaSemana: string, diasPrazo: number): string {
-  const hoje = new Date();
-  const divoAlvo = DIAS_SEMANA_MAP[diaSemana] ?? 0;
-  const diaAtual = hoje.getDay();
-  let diff = divoAlvo - diaAtual;
-  if (diff < 0) diff += 7;
-  if (diff === 0) diff = 0; // mesmo dia, conta hoje
-  const diaBase = new Date(hoje);
-  diaBase.setDate(diaBase.getDate() + diff);
-  diaBase.setDate(diaBase.getDate() + diasPrazo);
-  return diaBase.toISOString().split("T")[0];
+function calcularPrazo(_diaSemana: string, diasPrazo: number): string {
+  // Prazo = hoje + diasPrazo (os dias contam a partir do dia seguinte ao lançamento).
+  // Usa data local (meio-dia) para evitar erro de fuso horário do toISOString.
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);
+  d.setDate(d.getDate() + diasPrazo);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 function calcCountdown(prazoStr: string): string {

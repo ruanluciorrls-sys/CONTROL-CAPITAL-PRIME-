@@ -357,7 +357,21 @@ export default function GerenciarCasas() {
                       }}
                     />
                     <div className="min-w-0">
-                      <h3 className="font-bold text-sm md:text-base text-foreground truncate">{casa.nome}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-sm md:text-base text-foreground truncate">{casa.nome}</h3>
+                        {state.relatorios.some((r) => r.casaId === casa.id && r.status === "finalizado") && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shrink-0"
+                            style={{
+                              background: "rgba(74,222,128,0.15)",
+                              color: "#4ade80",
+                              border: "1px solid rgba(74,222,128,0.35)",
+                              boxShadow: "0 0 10px rgba(74,222,128,0.15)",
+                            }}
+                          >
+                            ✓ Sacada
+                          </span>
+                        )}
+                      </div>
                       {casa.prazo && <p className="text-xs text-muted-foreground">Prazo: {casa.prazo}</p>}
                     </div>
                   </div>
