@@ -653,7 +653,9 @@ export default function Relatorios() {
               <div className="rounded-2xl p-5 border border-white/8" style={{ background: "rgba(255,255,255,0.02)" }}>
                 <div className="flex items-center justify-between mb-5">
                   <h3 className="text-sm font-black text-white/70 uppercase tracking-wider">Relatórios Criados</h3>
-                  <span className="text-[10px] font-bold text-white/25">{relatoriosAtivos                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <span className="text-[10px] font-bold text-white/25">{relatoriosAtivos.length} ativo(s)</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {(() => {
                     const accentColors = [
                       "#60a5fa", "#34d399", "#a78bfa", "#f472b6",
@@ -688,10 +690,6 @@ export default function Relatorios() {
                           onDelete={(e) => { e.stopPropagation(); handleDeleteRelatorio(rel.id); }}
                         />
                       );
-                    });
-                  })()}div>
-                        );
-                      })()
                     });
                   })()}
                 </div>
