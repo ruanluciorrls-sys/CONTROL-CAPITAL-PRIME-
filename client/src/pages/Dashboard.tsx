@@ -123,20 +123,38 @@ export default function Dashboard() {
               </p>
               <p className="text-xs text-white/25">Soma de todos os relatórios finalizados</p>
 
-              {/* Proxy + Lucro Real */}
+              {/* Gasto/Despesa + Lucro Real */}
               {gastosDoMes > 0 && (
-                <div className="flex flex-wrap items-center gap-5 mt-4 pt-4 border-t border-white/5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-red-400/50" />
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-white/25">Proxy (mês)</span>
-                    <span className="text-xs font-bold text-red-400/60">– R$ {gastosDoMes.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                <div className="grid grid-cols-2 gap-3 mt-5 pt-5 border-t border-white/5">
+                  {/* Gasto/Despesa */}
+                  <div className="rounded-xl px-4 py-3 border border-red-500/15"
+                    style={{ background: "rgba(248,113,113,0.05)" }}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-red-400/60">Gasto / Despesa (mês)</span>
+                    </div>
+                    <p className="text-lg font-black text-red-400">
+                      – R$ {gastosDoMes.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1 h-1 rounded-full" style={{ background: lucroRealMes >= 0 ? "#4ade8060" : "#f8717160" }} />
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-white/25">Lucro Real</span>
-                    <span className="text-xs font-bold" style={{ color: lucroRealMes >= 0 ? "#4ade8090" : "#f8717190" }}>
+
+                  {/* Lucro Real */}
+                  <div className="rounded-xl px-4 py-3 border"
+                    style={{
+                      background: lucroRealMes >= 0 ? "rgba(74,222,128,0.05)" : "rgba(248,113,113,0.05)",
+                      borderColor: lucroRealMes >= 0 ? "rgba(74,222,128,0.15)" : "rgba(248,113,113,0.15)",
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: lucroRealMes >= 0 ? "#4ade80" : "#f87171" }} />
+                      <span className="text-[10px] font-black uppercase tracking-widest"
+                        style={{ color: lucroRealMes >= 0 ? "rgba(74,222,128,0.6)" : "rgba(248,113,113,0.6)" }}
+                      >Lucro Real</span>
+                    </div>
+                    <p className="text-lg font-black" style={{ color: lucroRealMes >= 0 ? "#4ade80" : "#f87171" }}>
                       R$ {lucroRealMes.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </span>
+                    </p>
                   </div>
                 </div>
               )}
