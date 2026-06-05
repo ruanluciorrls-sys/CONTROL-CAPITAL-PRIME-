@@ -181,12 +181,26 @@ const PLATAFORMAS_CALENDARIO = [
   { id: "27", nome: "MK", diasPrazo: 3, dia: "DOMINGO" },
 ];
 
-function calcularPrazo(_diaSemana: string, diasPrazo: number): string {
-  // Prazo = hoje + diasPrazo (os dias contam a partir do dia seguinte ao lançamento).
-  // Usa data local (meio-dia) para evitar erro de fuso horário do toISOString.
-  const d = new Date();
-  d.setHours(12, 0, 0, 0);
-  d.setDate(d.getDate() + diasPrazo);
+const DIAS_SEMANA_MAP: Record<string, number> = {
+  "DOMINGO": 0, "SEGUNDA-FEIRA": 1, "TERÇA-FEIRA": 2,
+  "QUARTA-FEIRA": 3, "QUINTA-FEIRA": 4, "SEXTA-FEIRA": 5, "SÁBADO": 6,
+};
+
+function calcularPrazo(diaSemana: string, diasPrazo: number): string {
+  // Prazo = próximo dia de lançamento da plataforma + dias de prazo.
+  // Ex: plataforma lança na QUARTA com +7 dias -> acha a próxima quarta e soma 7.
+  // Usa data local (meio-dia) para evitar erro de fuso horário.
+  const hoje = new Date();
+  hoje.setHours(12, 0, 0, 0);
+  const alvo = DIAS_SEMANA_MAP[diaSemana] ?? hoje.getDay();
+  const atual = hoje.getDay();
+  let diff = alvo - atual;
+  if (diff < 0) diff += 7; // próxima ocorrência do dia de lançamento (hoje conta se for o mesmo dia)
+
+  const d = new Date(hoje);
+  d.setDate(d.getDate() + diff);        // dia do lançamento
+  d.setDate(d.getDate() + diasPrazo);   // + dias de prazo de entrega
+
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
