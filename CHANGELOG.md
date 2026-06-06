@@ -5,6 +5,22 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato baseia-se em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.5.0] - 2026-06-06
+
+### Adicionado
+- **Atualização em tempo real**: O site agora busca dados novos sozinho (a cada ~7s com a aba aberta, ao voltar para a aba e ao reconectar). Edições no calendário global, relatórios finalizados e o selo "Finalizado" aparecem automaticamente, sem clicar em "Atualizar".
+- **Seletor de Rede na Criação de Meta**: Ao adicionar uma casa, escolhe-se a Rede (plataforma do calendário) ao lado de "Nome da Casa". O prazo é calculado na hora (data + contagem regressiva) e salvo na casa. Na Operação CPA, ao escolher a Meta, o prazo vem automaticamente — o seletor de Rede foi removido de lá.
+- **Selo "Finalizado" na Meta**: Casa com relatório finalizado mostra um selo verde "✓ Finalizado" (a casa permanece na lista, apenas para referência).
+
+### Alterado
+- **Dashboard — Gasto/Despesa**: "Proxy (mês)" renomeado para "Gasto / Despesa (mês)" (soma geral). A linha de Gasto + Lucro Real virou dois mini-cards maiores e mais elegantes.
+- **Footer da sidebar**: Card de usuário com avatar + botões Atualizar/Logout reorganizados.
+
+### Corrigido
+- **Cálculo de prazo**: Agora conta a partir do dia de lançamento real da plataforma (ocorrência mais próxima do dia da semana) + dias de prazo. Ex: VOY lança sábado; mesmo marcando no domingo, conta a partir do sábado. Corrigido também erro de fuso horário (off-by-one).
+- **Dropdown de Redes bugado**: A lista aparecia atrás dos cards / com os cards vazando por trás. Reescrita em portal (camada acima de tudo) com fundo 100% sólido.
+- Removido o traço final automático nos nomes de Meta.
+
 ## [1.4.0] - 2026-06-04
 
 ### Adicionado
