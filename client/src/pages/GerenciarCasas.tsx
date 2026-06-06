@@ -580,16 +580,22 @@ export default function GerenciarCasas() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <input
                       type="text"
-                      placeholder="Login"
+                      placeholder="Login da casa"
                       value={formData.login}
+                      name="login-casa-edit"
+                      autoComplete="off"
+                      data-lpignore="true"
                       onChange={(e) => setFormData({ ...formData, login: e.target.value })}
                       className="px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
                     />
                     <div className="relative">
                       <input
                         type={showPassword["single"] ? "text" : "password"}
-                        placeholder="Senha"
+                        placeholder="Senha da casa"
                         value={formData.senha}
+                        name="senha-casa-edit"
+                        autoComplete="new-password"
+                        data-lpignore="true"
                         onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
                         className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary pr-10 bg-background text-foreground"
                       />
@@ -720,21 +726,27 @@ export default function GerenciarCasas() {
                         </div>
                       )}
 
-                      {/* 2. Login | Senha */}
+                      {/* 2. Login da Casa | Senha da Casa */}
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Login</label>
-                          <input type="text" placeholder="Usuário" value={form.login}
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Login da Casa</label>
+                          <input type="text" placeholder="Login da casa" value={form.login}
+                            name={`login-casa-${form.id}`}
+                            autoComplete="off"
+                            data-lpignore="true"
                             onChange={(e) => handleFormChange(form.id, "login", e.target.value)}
                             className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Senha</label>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Senha da Casa</label>
                           <div className="relative">
                             <input
                               type={showPassword[form.id] ? "text" : "password"}
-                              placeholder="Senha" value={form.senha}
+                              placeholder="Senha da casa" value={form.senha}
+                              name={`senha-casa-${form.id}`}
+                              autoComplete="new-password"
+                              data-lpignore="true"
                               onChange={(e) => handleFormChange(form.id, "senha", e.target.value)}
                               className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] pr-8"
                             />
