@@ -475,7 +475,7 @@ export default function Faturamento() {
                   <div className="relative z-10 mt-3 pt-3 border-t border-white/5 flex flex-wrap items-center gap-5">
                     <div className="flex items-center gap-1.5">
                       <span className="w-1 h-1 rounded-full bg-red-400/50"></span>
-                      <span className="text-[9px] font-semibold uppercase tracking-widest text-white/25">Proxy</span>
+                      <span className="text-[9px] font-semibold uppercase tracking-widest text-white/25">Gasto/Despesas</span>
                       <span className="text-[11px] font-bold text-red-400/60">
                         – R$ {gastosNoPeriodo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </span>
