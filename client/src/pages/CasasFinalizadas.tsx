@@ -254,14 +254,14 @@ export default function CasasFinalizadas() {
               >
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-300/45 to-transparent" />
                 <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-orange-300/55">
-                  Lucro Real (desconto proxy)
+                  Lucro Real (desconto gasto/despesas)
                 </p>
                 <p className="font-mono text-4xl font-black tracking-tighter text-orange-300 sm:text-5xl">
                   R$ {((totalLucrosTodosFiltrados || 0) - totalGastosProxy).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
                 <p className="mt-4 flex items-center gap-2 text-xs text-orange-200/45">
                   <span className="h-1.5 w-1.5 rounded-full bg-orange-300 animate-pulse" />
-                  Proxy: - R$ {totalGastosProxy.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  Gasto/Despesas: - R$ {totalGastosProxy.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
             )}
