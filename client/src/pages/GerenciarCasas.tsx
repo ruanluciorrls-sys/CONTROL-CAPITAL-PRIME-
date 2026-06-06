@@ -368,7 +368,7 @@ export default function GerenciarCasas() {
                               boxShadow: "0 0 10px rgba(74,222,128,0.15)",
                             }}
                           >
-                            ✓ Sacada
+                            ✓ Finalizado
                           </span>
                         )}
                       </div>
