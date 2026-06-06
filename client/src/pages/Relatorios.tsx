@@ -521,12 +521,6 @@ export default function Relatorios() {
 
   const currentRelatorio = selectedRelatorioId ? relatoriosAtivos.find((r) => r.id === selectedRelatorioId) : null;
 
-  // Plataformas GLOBAIS (banco de dados, compartilhadas por todos os usuários)
-  const { data: plataformasDb } = trpc.plataformas.list.useQuery();
-  const plataformasCalendario = (plataformasDb && plataformasDb.length > 0)
-    ? plataformasDb
-    : PLATAFORMAS_CALENDARIO;
-
   return (
     <div className="space-y-4 md:space-y-8">
       {/* Abas de Navegação */}
@@ -598,46 +592,28 @@ export default function Relatorios() {
                   </select>
                 </div>
 
-                {/* 2. Nome do Agente | Redes */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
-                      Nome do Agente
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Nome do agente..."
-                      value={newRelatorioData.agente}
-                      onChange={(e) => setNewRelatorioData({ ...newRelatorioData, agente: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-background text-foreground text-sm"
-                    />
-                    {newRelatorioData.casaId && (
-                      <p className="text-[10px] text-white/30 mt-1">
-                        Exibido como: <span className="text-[#d4a017] font-bold">
-                          {getCasaNome(newRelatorioData.casaId)}{newRelatorioData.agente ? `-${newRelatorioData.agente}` : ""}
-                        </span>
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
-                      Redes
-                    </label>
-                    <RedesDropdown
-                      plataformas={plataformasCalendario}
-                      onSelect={(dia, diasPrazo) => {
-                        const prazoCalc = calcularPrazo(dia, diasPrazo);
-                        setNewRelatorioData((prev) => ({ ...prev, prazo: prazoCalc }));
-                      }}
-                    />
-                    <p className="text-[10px] text-white/25 mt-1">
-                      Selecionar preenche o prazo automaticamente
+                {/* 2. Nome do Agente */}
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">
+                    Nome do Agente
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Nome do agente..."
+                    value={newRelatorioData.agente}
+                    onChange={(e) => setNewRelatorioData({ ...newRelatorioData, agente: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-background text-foreground text-sm"
+                  />
+                  {newRelatorioData.casaId && (
+                    <p className="text-[10px] text-white/30 mt-1">
+                      Exibido como: <span className="text-[#d4a017] font-bold">
+                        {getCasaNome(newRelatorioData.casaId)}{newRelatorioData.agente ? `-${newRelatorioData.agente}` : ""}
+                      </span>
                     </p>
-                  </div>
+                  )}
                 </div>
 
-                {/* 3. Prazo + Countdown */}
+                {/* 3. Prazo + Countdown (vem da rede escolhida na Meta) */}
                 {newRelatorioData.prazo ? (
                   <div className="rounded-xl p-4 border border-[#d4a017]/20 flex items-center gap-4"
                     style={{ background: "rgba(212,160,23,0.06)" }}
@@ -655,7 +631,7 @@ export default function Relatorios() {
                   </div>
                 ) : (
                   <div className="rounded-xl p-3 border border-white/8 text-center text-xs text-white/20">
-                    Selecione uma rede para preencher o prazo automaticamente
+                    O prazo vem da rede escolhida ao criar a Meta (em Criação de Meta)
                   </div>
                 )}
 

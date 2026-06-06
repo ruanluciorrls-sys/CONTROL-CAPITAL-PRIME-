@@ -3,7 +3,11 @@ import { useApp } from "@/contexts/AppContext";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { validations } from "@/lib/validations";
 import { toast } from "sonner";
-import { Plus, Trash2, Eye, EyeOff, X, Copy, Check } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, X, Copy, Check, Clock } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import RedesDropdown from "@/components/RedesDropdown";
+import { calcularPrazo, calcCountdown } from "@/lib/prazo";
+import { PLATAFORMAS_PADRAO } from "@/lib/plataformas";
 
 export default function GerenciarCasas() {
   const { state, addCasa, updateCasa, deleteCasa, finalizarCasa, restaurarCasa, esvaziarLixeiraCasas, deletePermanentementeCasa } = useApp();
@@ -39,6 +43,9 @@ export default function GerenciarCasas() {
     prazo: string;
     linkCasa: string;
     linkContaFilha: string;
+    redeNome?: string;
+    redeDia?: string;
+    redeDiasPrazo?: number;
   }>>([]);
   
   const [formData, setFormData] = useState({
@@ -54,6 +61,10 @@ export default function GerenciarCasas() {
 
   const casasAtivas = state.casas.filter((c) => c.status === "ativa");
   const casasLixeira = state.casas.filter((c) => c.status === "lixeira");
+
+  // Plataformas GLOBAIS (calendário) — para o seletor de Rede
+  const { data: plataformasDb } = trpc.plataformas.list.useQuery();
+  const plataformasRede = (plataformasDb && plataformasDb.length > 0) ? plataformasDb : PLATAFORMAS_PADRAO;
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -662,21 +673,52 @@ export default function GerenciarCasas() {
                         </button>
                       </div>
 
-                      {/* 1. Nome da Casa */}
-                      <div>
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Nome da Casa *</label>
-                        <input
-                          type="text"
-                          placeholder="Ex: Casa 1, VOY, W1"
-                          value={form.nome}
-                          onChange={(e) => handleFormChange(form.id, "nome", e.target.value)}
-                          className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] ${
-                            errorsMultiple[form.id]?.nome ? "border-red-500" : "border-white/15"
-                          }`}
-                          required
-                        />
-                        {errorsMultiple[form.id]?.nome && <p className="text-red-400 text-xs mt-1">{errorsMultiple[form.id].nome}</p>}
+                      {/* 1. Nome da Casa | Rede */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Nome da Casa *</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: Casa 1, VOY, W1"
+                            value={form.nome}
+                            onChange={(e) => handleFormChange(form.id, "nome", e.target.value)}
+                            className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] ${
+                              errorsMultiple[form.id]?.nome ? "border-red-500" : "border-white/15"
+                            }`}
+                            required
+                          />
+                          {errorsMultiple[form.id]?.nome && <p className="text-red-400 text-xs mt-1">{errorsMultiple[form.id].nome}</p>}
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Rede (calendário)</label>
+                          <RedesDropdown
+                            plataformas={plataformasRede}
+                            value={form.redeNome ? { nome: form.redeNome, dia: form.redeDia || "", diasPrazo: form.redeDiasPrazo || 0 } : null}
+                            onSelect={(dia, diasPrazo, nome) => {
+                              const prazo = calcularPrazo(dia, diasPrazo);
+                              setFormDataList((prev) => prev.map((f) =>
+                                f.id === form.id ? { ...f, redeNome: nome, redeDia: dia, redeDiasPrazo: diasPrazo, prazo } : f
+                              ));
+                            }}
+                          />
+                        </div>
                       </div>
+
+                      {/* Prazo calculado da rede */}
+                      {form.prazo && (
+                        <div className="rounded-lg px-3 py-2 border border-[#d4a017]/20 flex items-center gap-2"
+                          style={{ background: "rgba(212,160,23,0.06)" }}
+                        >
+                          <Clock size={13} className="text-[#d4a017] shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#d4a017]/60">Prazo: </span>
+                            <span className="text-xs font-black text-[#d4a017]">
+                              {new Date(form.prazo + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" })}
+                            </span>
+                            <span className="text-[10px] text-white/40 ml-2">{calcCountdown(form.prazo)}</span>
+                          </div>
+                        </div>
+                      )}
 
                       {/* 2. Login | Senha */}
                       <div className="grid grid-cols-2 gap-2">
