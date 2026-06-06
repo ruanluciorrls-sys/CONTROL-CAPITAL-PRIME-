@@ -187,19 +187,24 @@ const DIAS_SEMANA_MAP: Record<string, number> = {
 };
 
 function calcularPrazo(diaSemana: string, diasPrazo: number): string {
-  // Prazo = próximo dia de lançamento da plataforma + dias de prazo.
-  // Ex: plataforma lança na QUARTA com +7 dias -> acha a próxima quarta e soma 7.
+  // Prazo conta a partir do DIA DE LANÇAMENTO real da plataforma (o dia da semana dela),
+  // usando a ocorrência mais próxima de hoje (a que acabou de passar OU a que está chegando).
+  // Ex: hoje é DOMINGO, VOY lança no SÁBADO -> conta a partir do sábado (ontem) + diasPrazo.
   // Usa data local (meio-dia) para evitar erro de fuso horário.
   const hoje = new Date();
   hoje.setHours(12, 0, 0, 0);
-  const alvo = DIAS_SEMANA_MAP[diaSemana] ?? hoje.getDay();
-  const atual = hoje.getDay();
-  let diff = alvo - atual;
-  if (diff < 0) diff += 7; // próxima ocorrência do dia de lançamento (hoje conta se for o mesmo dia)
+  const alvo = DIAS_SEMANA_MAP[diaSemana];
 
   const d = new Date(hoje);
-  d.setDate(d.getDate() + diff);        // dia do lançamento
-  d.setDate(d.getDate() + diasPrazo);   // + dias de prazo de entrega
+  if (alvo !== undefined) {
+    const atual = hoje.getDay();
+    const paraFrente = (alvo - atual + 7) % 7;  // dias até a próxima ocorrência do lançamento
+    const paraTras = (atual - alvo + 7) % 7;    // dias desde a ocorrência anterior do lançamento
+    // pega a ocorrência mais próxima (passada ou futura) = o dia de lançamento real
+    const offset = paraFrente <= paraTras ? paraFrente : -paraTras;
+    d.setDate(d.getDate() + offset);            // vai até o dia de lançamento
+  }
+  d.setDate(d.getDate() + diasPrazo);           // soma os dias de prazo a partir do lançamento
 
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
