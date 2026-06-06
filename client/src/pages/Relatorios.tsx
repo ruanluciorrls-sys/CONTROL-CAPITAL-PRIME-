@@ -2,6 +2,7 @@ import { useApp } from "@/contexts/AppContext";
 import { trpc } from "@/lib/trpc";
 import { Plus, Trash2, Copy, Clock, ChevronDown, X, Check } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import RelatorioSpreadsheet from "@/components/RelatorioSpreadsheet";
 import AbaProgresso from "@/components/AbaProgresso";
@@ -245,15 +246,37 @@ interface RedesDropdownProps {
 function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<{ id?: string; nome: string; diasPrazo: number; dia: string } | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const atualizarPosicao = () => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setCoords({ top: r.bottom + 6, left: r.left, width: r.width });
+  };
+
+  const abrir = () => { atualizarPosicao(); setOpen(true); };
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    if (!open) return;
+    const onScrollResize = () => atualizarPosicao();
+    const onClickFora = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (triggerRef.current?.contains(t)) return;
+      if (panelRef.current?.contains(t)) return;
+      setOpen(false);
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+    window.addEventListener("scroll", onScrollResize, true);
+    window.addEventListener("resize", onScrollResize);
+    document.addEventListener("mousedown", onClickFora);
+    return () => {
+      window.removeEventListener("scroll", onScrollResize, true);
+      window.removeEventListener("resize", onScrollResize);
+      document.removeEventListener("mousedown", onClickFora);
+    };
+  }, [open]);
 
   const handleSelect = (p: any) => {
     setSelected(p);
@@ -262,11 +285,12 @@ function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
   };
 
   return (
-    <div ref={ref} className="relative">
+    <>
       {/* Trigger */}
       <button
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => (open ? setOpen(false) : abrir())}
         className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-border text-sm transition-all focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-background text-foreground"
         style={open ? { borderColor: "rgba(212,160,23,0.5)" } : {}}
       >
@@ -284,14 +308,21 @@ function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
         <ChevronDown size={14} className={`text-white/40 transition-transform shrink-0 ml-2 ${open ? "rotate-180" : ""}`} />
       </button>
 
-      {/* Dropdown Panel */}
-      {open && (
+      {/* Dropdown Panel — renderizado em portal acima de tudo */}
+      {open && coords && createPortal(
         <div
-          className="absolute z-50 top-full mt-1 left-0 w-full rounded-2xl overflow-hidden shadow-2xl border border-white/12"
+          ref={panelRef}
+          className="rounded-2xl overflow-hidden shadow-2xl border border-white/12"
           style={{
-            background: "linear-gradient(145deg, #070e20, #0f1e45)",
+            position: "fixed",
+            top: coords.top,
+            left: coords.left,
+            width: coords.width,
+            zIndex: 9999,
+            background: "#070e20",
             maxHeight: 320,
             overflowY: "auto",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
           }}
         >
           <div className="absolute top-0 left-0 w-full h-[1px]"
@@ -305,7 +336,7 @@ function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
               <div key={dia}>
                 {/* Cabeçalho do dia */}
                 <div className="px-4 py-2 flex items-center gap-2 border-b border-white/5 sticky top-0"
-                  style={{ background: `${cor}12`, backdropFilter: "blur(8px)" }}
+                  style={{ background: "#0a1428" }}
                 >
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: cor }} />
                   <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: cor }}>
@@ -321,11 +352,9 @@ function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
                       type="button"
                       onClick={() => handleSelect(p)}
                       className="w-full flex items-center justify-between px-5 py-2.5 text-left transition-all"
-                      style={{
-                        background: isSelected ? `${cor}18` : "transparent",
-                      }}
-                      onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
-                      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
+                      style={{ background: isSelected ? `${cor}22` : "#070e20" }}
+                      onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = "#070e20"; }}
                     >
                       <span className="font-black text-sm text-white/85">{p.nome}</span>
                       <span className="text-xs font-bold px-2 py-0.5 rounded-lg"
@@ -342,9 +371,10 @@ function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
               </div>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
 
