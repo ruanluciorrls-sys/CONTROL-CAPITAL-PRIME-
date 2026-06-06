@@ -537,8 +537,8 @@ export default function Relatorios() {
 
             {/* Formulário de Novo Relatório */}
             {showNewForm && (
-              <div className="rounded-2xl p-5 border border-white/8 space-y-4"
-                style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(8px)" }}
+              <div className="rounded-2xl p-5 border border-white/8 space-y-4 relative z-30"
+                style={{ background: "linear-gradient(145deg, rgba(7,14,32,0.95), rgba(12,21,36,0.95))" }}
               >
                 <h3 className="text-base font-black text-foreground">Novo Relatório</h3>
 
