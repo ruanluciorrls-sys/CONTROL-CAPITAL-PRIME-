@@ -67,14 +67,15 @@ export default function RelatorioSpreadsheet({
   useEffect(() => { triggerSave(); }, [cooperacaoInput, triggerSave]);
   useEffect(() => { triggerSave(); }, [rows, triggerSave]);
   useEffect(() => { setCooperacaoInput(isNaN(cooperacao) ? "0" : cooperacao.toString()); }, [cooperacao]);
-  useEffect(() => { setNewRow({ numero: rows.length + 1, deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 }); }, [rows.length]);
+  const proximoNumero = () => (rows.length ? Math.max(...rows.map((r) => r.numero || 0)) : 0) + 1;
+  useEffect(() => { setNewRow({ numero: proximoNumero(), deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 }); }, [rows.length]);
 
   const calc = (d: number, r: number, s: number, b: number) => s - d - r + b;
 
   const handleAddRow = () => {
     const resultado = calc(newRow.deposito, newRow.redeposito, newRow.saque, newRow.bau);
-    onAddRow({ ...newRow, resultado });
-    setNewRow({ numero: rows.length + 2, deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 });
+    onAddRow({ ...newRow, numero: proximoNumero(), resultado });
+    setNewRow({ numero: proximoNumero() + 1, deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 });
   };
 
   const handleEditSave = () => {
@@ -283,9 +284,9 @@ export default function RelatorioSpreadsheet({
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) =>
+              {rows.map((row, idx) =>
                 editingId === row.numero ? (
-                  <tr key={row.numero} style={{ background: "rgba(212,160,23,0.06)", borderBottom: "1px solid rgba(212,160,23,0.15)" }}>
+                  <tr key={idx} style={{ background: "rgba(212,160,23,0.06)", borderBottom: "1px solid rgba(212,160,23,0.15)" }}>
                     <td className="px-4 py-2 text-[#d4a017] font-black text-sm">
                       <div className="flex items-center gap-1.5"><Edit2 size={12} className="animate-pulse" />{row.numero}</div>
                     </td>
@@ -317,7 +318,7 @@ export default function RelatorioSpreadsheet({
                     </td>
                   </tr>
                 ) : (
-                  <tr key={row.numero} className={tdBorder}
+                  <tr key={idx} className={tdBorder}
                     style={{
                       background: row.resultado < 0 ? "rgba(248,113,113,0.04)" : row.resultado > 0 ? "rgba(74,222,128,0.04)" : "transparent",
                       cursor: "pointer",
