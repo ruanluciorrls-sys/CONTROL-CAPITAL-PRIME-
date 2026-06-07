@@ -13,6 +13,7 @@ export default function GerenciarCasas() {
   const { state, addCasa, updateCasa, deleteCasa, finalizarCasa, restaurarCasa, esvaziarLixeiraCasas, deletePermanentementeCasa } = useApp();
   const [activeTab, setActiveTab] = useState<"ativa" | "lixeira">("ativa");
   const [showModal, setShowModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -147,7 +148,10 @@ export default function GerenciarCasas() {
 
   const handleSubmitMultiple = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Proteção contra clique duplo / envio duplicado
+    if (isSaving) return;
+
     const newErrors: Record<string, Record<string, string>> = {};
     let hasErrors = false;
 
@@ -165,8 +169,14 @@ export default function GerenciarCasas() {
       return;
     }
 
+    setIsSaving(true);
+    // Fecha o modal imediatamente para impedir reenvio
+    const casasParaSalvar = [...formDataList];
+    setFormDataList([]);
+    setShowModal(false);
+
     try {
-      for (const form of formDataList) {
+      for (const form of casasParaSalvar) {
         await addCasa({
           nome: form.nome,
           login: form.login,
@@ -179,13 +189,13 @@ export default function GerenciarCasas() {
           status: "ativa",
         } as any);
       }
-      
-      toast.success(`${formDataList.length} casa(s) adicionada(s) com sucesso!`);
-      setFormDataList([]);
-      setShowModal(false);
+
+      toast.success(`${casasParaSalvar.length} casa(s) adicionada(s) com sucesso!`);
     } catch (error) {
       toast.error("Erro ao adicionar casas");
       console.error(error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -816,9 +826,10 @@ export default function GerenciarCasas() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
+                  disabled={isSaving}
+                  className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingId ? "Salvar" : `Salvar ${formDataList.length} Casa${formDataList.length !== 1 ? "s" : ""}`}
+                  {isSaving ? "Salvando..." : editingId ? "Salvar" : `Salvar ${formDataList.length} Casa${formDataList.length !== 1 ? "s" : ""}`}
                 </button>
               </div>
             </form>
