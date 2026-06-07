@@ -8,19 +8,16 @@ import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
 
-// Atualização em tempo real: o site busca dados novos automaticamente.
+// Atualização automática SEM atrapalhar edição:
+// - Atualiza ao voltar para a aba e ao reconectar (sensação de tempo real)
+// - NÃO faz polling a cada poucos segundos (isso bagunçava a tabela durante a edição)
+// - Cada ação (criar/editar/finalizar) já atualiza os dados via refetch após a mutação
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Re-busca dados a cada 7s enquanto a aba está aberta (sensação de tempo real)
-      refetchInterval: 7000,
-      // Não fica buscando quando a aba está em segundo plano (economiza recursos)
-      refetchIntervalInBackground: false,
-      // Atualiza assim que o usuário volta para a aba ou reconecta à internet
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
-      // Considera os dados "frescos" por 4s para evitar buscas duplicadas
-      staleTime: 4000,
+      staleTime: 5000,
     },
   },
 });
