@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Clock, AlertTriangle, CheckCircle2, X } from "lucide-react";
+import { Bell, Clock, AlertTriangle, CheckCircle2, X, Trophy } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 
 const LIDAS_KEY = "notificacoes-lidas-v1";
@@ -10,8 +10,8 @@ interface Notificacao {
   titulo: string;
   msg: string;
   cor: string;
-  ordem: number; // menor = mais urgente
-  icone: "vencido" | "hoje" | "proximo";
+  ordem: number; // menor = mais urgente / mais recente
+  icone: "vencido" | "hoje" | "proximo" | "finalizada";
 }
 
 function carregarLidas(): Set<string> {
@@ -33,27 +33,52 @@ export default function NotificationCenter() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Gera notificações a partir dos prazos das casas ativas
+  // Gera notificações: metas finalizadas (com lucro) + prazos vencendo
   const notificacoes = useMemo<Notificacao[]>(() => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    const lista: Notificacao[] = [];
+    const finalizadas: Notificacao[] = [];
+    const prazos: Notificacao[] = [];
+    const SETE_DIAS = 7 * 86400000;
 
+    const getCasaNome = (casaId: string) =>
+      (state.casas.find((c) => c.id === casaId)?.nome || "Meta").replace(/[\s-]+$/, "").trim();
+
+    // 1) Metas finalizadas recentemente (últimos 7 dias) — mostra o lucro
+    for (const rel of state.relatorios.filter((r) => r.status === "finalizado")) {
+      const fimMs = rel.finalizadoEm ? new Date(rel.finalizadoEm).getTime() : 0;
+      if (!fimMs || (Date.now() - fimMs) > SETE_DIAS) continue; // só recentes
+      const lucro = (Array.isArray(rel.rows) ? rel.rows.reduce((s, row) => s + (Number(row.resultado) || 0), 0) : 0) + (Number(rel.cooperacao) || 0);
+      const nome = `${getCasaNome(rel.casaId)}${rel.agente ? `-${rel.agente}` : ""}`;
+      finalizadas.push({
+        id: `meta-fim-${rel.id}`,
+        titulo: nome,
+        msg: `Meta finalizada · Lucro ${lucro >= 0 ? "+" : ""}R$ ${lucro.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+        cor: lucro >= 0 ? "#4ade80" : "#f87171",
+        ordem: -fimMs, // mais recente primeiro
+        icone: "finalizada",
+      });
+    }
+    finalizadas.sort((a, b) => a.ordem - b.ordem);
+
+    // 2) Prazos das casas ativas (vencido / hoje / próximos)
     for (const casa of state.casas.filter((c) => c.status === "ativa" && c.prazo)) {
       const prazo = new Date(casa.prazo + "T00:00:00");
       if (isNaN(prazo.getTime())) continue;
       const diff = Math.round((prazo.getTime() - hoje.getTime()) / 86400000);
-
       if (diff < 0) {
-        lista.push({ id: `casa-${casa.id}-${casa.prazo}`, titulo: casa.nome, msg: `Prazo vencido há ${Math.abs(diff)} dia${Math.abs(diff) > 1 ? "s" : ""}`, cor: "#f87171", ordem: diff, icone: "vencido" });
+        prazos.push({ id: `casa-${casa.id}-${casa.prazo}`, titulo: casa.nome, msg: `Prazo vencido há ${Math.abs(diff)} dia${Math.abs(diff) > 1 ? "s" : ""}`, cor: "#f87171", ordem: diff, icone: "vencido" });
       } else if (diff === 0) {
-        lista.push({ id: `casa-${casa.id}-${casa.prazo}`, titulo: casa.nome, msg: "Vence HOJE!", cor: "#fb923c", ordem: diff, icone: "hoje" });
+        prazos.push({ id: `casa-${casa.id}-${casa.prazo}`, titulo: casa.nome, msg: "Vence HOJE!", cor: "#fb923c", ordem: diff, icone: "hoje" });
       } else if (diff <= 2) {
-        lista.push({ id: `casa-${casa.id}-${casa.prazo}`, titulo: casa.nome, msg: `Vence em ${diff} dia${diff > 1 ? "s" : ""}`, cor: "#f59e0b", ordem: diff, icone: "proximo" });
+        prazos.push({ id: `casa-${casa.id}-${casa.prazo}`, titulo: casa.nome, msg: `Vence em ${diff} dia${diff > 1 ? "s" : ""}`, cor: "#f59e0b", ordem: diff, icone: "proximo" });
       }
     }
-    return lista.sort((a, b) => a.ordem - b.ordem);
-  }, [state.casas]);
+    prazos.sort((a, b) => a.ordem - b.ordem);
+
+    // Finalizadas (boas notícias) no topo, depois os prazos
+    return [...finalizadas, ...prazos];
+  }, [state.casas, state.relatorios]);
 
   const naoLidas = notificacoes.filter((n) => !lidas.has(n.id));
   const totalNaoLidas = naoLidas.length;
@@ -94,8 +119,8 @@ export default function NotificationCenter() {
   };
 
   const Icone = ({ tipo }: { tipo: Notificacao["icone"] }) => {
+    if (tipo === "finalizada") return <Trophy size={14} />;
     if (tipo === "vencido") return <AlertTriangle size={14} />;
-    if (tipo === "hoje") return <Clock size={14} />;
     return <Clock size={14} />;
   };
 
@@ -172,7 +197,7 @@ export default function NotificationCenter() {
               <div className="flex flex-col items-center gap-2 py-10 px-4 text-center">
                 <CheckCircle2 size={28} className="text-emerald-400/50" />
                 <p className="text-xs text-white/40">Tudo em dia!</p>
-                <p className="text-[10px] text-white/20">Nenhum prazo vencendo no momento</p>
+                <p className="text-[10px] text-white/20">Nenhum aviso no momento</p>
               </div>
             ) : (
               notificacoes.map((n) => {
