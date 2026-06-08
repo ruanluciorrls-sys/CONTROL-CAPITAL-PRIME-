@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { setNavigateFn } from "@/lib/navigate";
+import NotificationCenter from "@/components/NotificationCenter";
 import { usePageTransition } from "@/hooks/usePageTransition";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
@@ -301,6 +302,8 @@ function AppContent() {
               Atualizar
             </button>
 
+            <NotificationCenter />
+
             <button
               onClick={logout}
               className="w-11 shrink-0 flex items-center justify-center rounded-xl transition-all duration-300 hover:scale-[1.05] border border-red-500/20 text-red-400 hover:text-red-300 hover:border-red-500/40"
@@ -546,6 +549,8 @@ function HeaderWithThemeToggle({
               <Key size={18} />
             </button>
           )}
+
+          <NotificationCenter />
 
           <button
             onClick={onRefresh}

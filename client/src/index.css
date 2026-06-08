@@ -755,3 +755,28 @@
   filter: blur(4px);
   transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), filter 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* ── Melhorias para Mobile ── */
+@media (max-width: 767px) {
+  /* Evita zoom automático do iOS ao focar inputs (precisa >= 16px) */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  /* Rolagem suave por toque em tabelas/containers com overflow */
+  .overflow-x-auto, .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Tabela de relatório: largura mínima para rolar bem no celular */
+  table {
+    min-width: 520px;
+  }
+}
+
+/* Esconde scrollbar mantendo a rolagem */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

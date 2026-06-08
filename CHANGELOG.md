@@ -5,6 +5,19 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato baseia-se em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.6.0] - 2026-06-09
+
+### Adicionado
+- **Sistema de Notificações**: Sino no topo (desktop e mobile) com contador de avisos. Mostra alertas de prazos das casas ativas — **vencidos**, que **vencem hoje** ou nos **próximos 2 dias** — com cores de urgência. Inclui "Marcar como lidas" e estado salvo (não fica avisando o que já foi visto).
+
+### Alterado
+- **Mobile**: Menu lateral (hambúrguer) redesenhado no tema navy+gold, com cabeçalho e itens maiores para toque. Inputs com fonte 16px (evita o zoom automático do iPhone). Rolagem suave por toque em tabelas. Tabela de relatório com largura mínima para rolar bem no celular.
+
+### Corrigido
+- **Duplicação de casas**: Adicionada proteção contra clique/envio duplo ao salvar casas.
+- **Tabela de relatório bugando durante a edição**: Removido o auto-refresh de 7s que atrapalhava a digitação; numeração de linhas mais robusta. A atualização automática continua ao voltar para a aba e após cada ação.
+- **Login/Senha da Casa**: Renomeados e com bloqueio de preenchimento automático do navegador.
+
 ## [1.5.0] - 2026-06-06
 
 ### Adicionado

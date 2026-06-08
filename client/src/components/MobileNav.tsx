@@ -47,14 +47,15 @@ export default function MobileNav({
 
   return (
     <>
-      {/* Mobile Menu Button - Fixed position no header */}
+      {/* Mobile Menu Button */}
       <button
         onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="md:hidden p-2.5 rounded-lg hover:bg-secondary transition-colors text-foreground"
+        className="md:hidden p-2 rounded-xl transition-all min-h-[42px] min-w-[42px] flex items-center justify-center hover:scale-105 active:scale-95"
+        style={{ color: "#d4a017", background: "rgba(212,160,23,0.08)", border: "1px solid rgba(212,160,23,0.2)" }}
         aria-label={isMobileOpen ? "Fechar menu" : "Abrir menu"}
         aria-expanded={isMobileOpen}
       >
-        {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
+        {isMobileOpen ? <X size={22} /> : <Menu size={22} />}
       </button>
 
       {/* Mobile Menu Overlay */}
@@ -62,29 +63,58 @@ export default function MobileNav({
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            className="fixed inset-0 z-40 md:hidden"
+            style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
             onClick={() => setIsMobileOpen(false)}
             aria-hidden="true"
           />
 
           {/* Menu Panel */}
-          <div className="fixed left-0 right-0 top-16 z-50 bg-white dark:bg-slate-900 md:hidden border-b border-border shadow-lg max-h-[calc(100vh-64px)] overflow-y-auto">
-            <nav className="flex flex-col">
-              {tabs.map((tab, index) => (
-                <button
-                  key={tab.id}
-                  onClick={() => onTabChange(tab.id)}
-                  className={`flex items-center gap-3 px-6 py-4 font-medium transition-all text-left border-l-4 min-h-[56px] ${
-                    activeTab === tab.id
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-                  } ${index !== tabs.length - 1 ? "border-b border-border/50" : ""}`}
-                  aria-current={activeTab === tab.id ? "page" : undefined}
-                >
-                  <span className="flex-shrink-0">{tab.icon}</span>
-                  <span className="flex-1">{tab.label}</span>
-                </button>
-              ))}
+          <div className="fixed left-0 right-0 top-0 z-50 md:hidden overflow-y-auto max-h-screen"
+            style={{
+              background: "linear-gradient(180deg, #070e20, #0a1628)",
+              borderBottom: "2px solid rgba(212,160,23,0.35)",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+            }}
+          >
+            {/* Header do menu */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/8"
+              style={{ background: "rgba(212,160,23,0.05)" }}
+            >
+              <span className="text-sm font-black tracking-widest uppercase"
+                style={{ background: "linear-gradient(135deg, #ffffff, #f3d078)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
+              >Menu</span>
+              <button onClick={() => setIsMobileOpen(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/10 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <nav className="flex flex-col p-2 gap-1">
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => onTabChange(tab.id)}
+                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all text-left min-h-[52px]"
+                    style={isActive ? {
+                      background: "rgba(212,160,23,0.12)",
+                      color: "#d4a017",
+                      borderLeft: "3px solid #d4a017",
+                    } : {
+                      color: "rgba(255,255,255,0.6)",
+                      borderLeft: "3px solid transparent",
+                    }}
+                    aria-current={isActive ? "page" : undefined}
+                  >
+                    <span className="flex-shrink-0" style={{ color: isActive ? "#d4a017" : "rgba(255,255,255,0.4)" }}>{tab.icon}</span>
+                    <span className="flex-1">{tab.label}</span>
+                    {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#d4a017]" />}
+                  </button>
+                );
+              })}
             </nav>
           </div>
         </>
