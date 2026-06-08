@@ -297,20 +297,40 @@ export default function Faturamento() {
   ).sort((a, b) => a.key.localeCompare(b.key));
 
   const monthlySummary = Object.values(
-    financialEntries.reduce<Record<string, { key: string; label: string; lucro: number; prejuizo: number; resultado: number; operacoes: number }>>(
+    filteredFinancialEntries.reduce<Record<string, { key: string; label: string; lucro: number; prejuizo: number; resultado: number; operacoes: number; deposito: number; saque: number; acertos: number }>>(
       (acc, entry) => {
         if (!entry.data) return acc;
         const key = `${entry.data.getFullYear()}-${String(entry.data.getMonth() + 1).padStart(2, "0")}`;
-        if (!acc[key]) acc[key] = { key, label: getMesLabel(key), lucro: 0, prejuizo: 0, resultado: 0, operacoes: 0 };
+        if (!acc[key]) acc[key] = { key, label: getMesLabel(key), lucro: 0, prejuizo: 0, resultado: 0, operacoes: 0, deposito: 0, saque: 0, acertos: 0 };
         if (entry.resultado >= 0) acc[key].lucro += entry.resultado;
         if (entry.resultado < 0) acc[key].prejuizo += Math.abs(entry.resultado);
         acc[key].resultado += entry.resultado;
         acc[key].operacoes += 1;
+        acc[key].deposito += entry.deposito;
+        acc[key].saque += entry.saque;
+        if (entry.resultado > 0) acc[key].acertos += 1;
         return acc;
       },
       {}
     )
   ).sort((a, b) => b.key.localeCompare(a.key));
+
+  // Resumo geral (respeitando os filtros) — para um card de visão geral
+  const resumoGeral = filteredFinancialEntries.reduce(
+    (acc, entry) => {
+      acc.resultado += entry.resultado;
+      acc.deposito += entry.deposito;
+      acc.saque += entry.saque;
+      acc.bau += entry.bau;
+      if (entry.resultado >= 0) acc.lucro += entry.resultado;
+      else acc.prejuizo += Math.abs(entry.resultado);
+      acc.operacoes += 1;
+      if (entry.resultado > 0) acc.acertos += 1;
+      return acc;
+    },
+    { resultado: 0, deposito: 0, saque: 0, bau: 0, lucro: 0, prejuizo: 0, operacoes: 0, acertos: 0 }
+  );
+  const taxaAcerto = resumoGeral.operacoes > 0 ? (resumoGeral.acertos / resumoGeral.operacoes) * 100 : 0;
 
   const detailedHistoryRows = [...filteredFinancialEntries].sort(
     (a, b) => (b.data?.getTime() || 0) - (a.data?.getTime() || 0)
@@ -923,6 +943,45 @@ export default function Faturamento() {
               </span>
             </div>
 
+            {/* Resumo Geral (respeita os filtros) */}
+            {detailedHistoryRows.length > 0 && (
+              <div className="rounded-2xl border border-white/10 p-5"
+                style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)" }}
+              >
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/35">Resultado no período</p>
+                    <p className={`mt-1 font-mono text-3xl font-black ${resumoGeral.resultado >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+                      {resumoGeral.resultado >= 0 ? "+" : "-"}{formatCurrency(Math.abs(resumoGeral.resultado))}
+                    </p>
+                  </div>
+                  <span className="rounded-full border px-3 py-1 text-[10px] font-black uppercase"
+                    style={resumoGeral.resultado >= 0
+                      ? { borderColor: "rgba(74,222,128,0.25)", background: "rgba(74,222,128,0.1)", color: "#86efac" }
+                      : { borderColor: "rgba(248,113,113,0.25)", background: "rgba(248,113,113,0.1)", color: "#fca5a5" }}
+                  >
+                    {resumoGeral.resultado >= 0 ? "Lucro" : "Prejuízo"}
+                  </span>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+                  {[
+                    { label: "Lucro bruto", value: formatCurrency(resumoGeral.lucro), color: "#4ade80" },
+                    { label: "Prejuízo", value: formatCurrency(resumoGeral.prejuizo), color: "#f87171" },
+                    { label: "Depósitos", value: formatCurrency(resumoGeral.deposito), color: "#60a5fa" },
+                    { label: "Saques", value: formatCurrency(resumoGeral.saque), color: "#fb923c" },
+                    { label: "Taxa acerto", value: `${taxaAcerto.toFixed(0)}%`, color: "#d4a017" },
+                    { label: "Operações", value: String(resumoGeral.operacoes), color: "#a78bfa" },
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">{s.label}</p>
+                      <p className="mt-1 text-sm font-black" style={{ color: s.color }}>{s.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {monthlySummary.length > 0 && (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {monthlySummary.map((mes) => {
@@ -950,7 +1009,7 @@ export default function Faturamento() {
                       <p className={`font-mono text-2xl font-black ${isGood ? "text-emerald-300" : "text-red-300"}`}>
                         {formatCurrency(mes.resultado)}
                       </p>
-                      <div className="mt-4 grid grid-cols-3 gap-2">
+                      <div className="mt-4 grid grid-cols-2 gap-2">
                         <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
                           <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Lucro</p>
                           <p className="mt-1 text-xs font-black text-emerald-300">{formatCurrency(mes.lucro)}</p>
@@ -960,8 +1019,14 @@ export default function Faturamento() {
                           <p className="mt-1 text-xs font-black text-red-300">{formatCurrency(mes.prejuizo)}</p>
                         </div>
                         <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Ops</p>
-                          <p className="mt-1 text-xs font-black text-[#d4a017]">{mes.operacoes}</p>
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Taxa acerto</p>
+                          <p className="mt-1 text-xs font-black text-[#d4a017]">
+                            {mes.operacoes > 0 ? Math.round((mes.acertos / mes.operacoes) * 100) : 0}%
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Operações</p>
+                          <p className="mt-1 text-xs font-black text-[#a78bfa]">{mes.operacoes}</p>
                         </div>
                       </div>
                     </div>
