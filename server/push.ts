@@ -109,8 +109,8 @@ export function iniciarAgendadorPush(): void {
   const tick = async () => {
     try {
       const agora = new Date();
-      // envia entre 9h e 10h (horário do servidor); a trava diária evita repetição
-      if (agora.getHours() >= 9) {
+      // servidor usa UTC; 12h UTC ≈ 9h no Brasil (UTC-3). Trava diária evita repetição.
+      if (agora.getUTCHours() >= 12) {
         await checarPrazosEEnviar();
       }
     } catch (e) {
