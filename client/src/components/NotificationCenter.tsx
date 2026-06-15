@@ -31,7 +31,7 @@ function salvarLidas(set: Set<string>) {
 export default function NotificationCenter() {
   const { state } = useApp();
   const [open, setOpen] = useState(false);
-  const [coords, setCoords] = useState<{ top?: number; bottom?: number; right: number } | null>(null);
+  const [coords, setCoords] = useState<{ top?: number; bottom?: number; left?: number; right?: number } | null>(null);
   const [lidas, setLidas] = useState<Set<string>>(carregarLidas);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -137,15 +137,21 @@ export default function NotificationCenter() {
     if (!el) return;
     const r = el.getBoundingClientRect();
     const PAINEL_ALTURA = 420; // altura estimada do painel
-    const right = Math.max(window.innerWidth - r.right, 8);
+
+    // Horizontal: sino na metade esquerda -> abre para a DIREITA; senão para a ESQUERDA
+    const horiz: { left?: number; right?: number } =
+      r.left < window.innerWidth / 2
+        ? { left: Math.max(r.left, 8) }
+        : { right: Math.max(window.innerWidth - r.right, 8) };
+
+    // Vertical: pouco espaço abaixo (sino no rodapé) -> abre para CIMA
     const espacoAbaixo = window.innerHeight - r.bottom;
-    if (espacoAbaixo < PAINEL_ALTURA && r.top > espacoAbaixo) {
-      // Pouco espaço abaixo (sino no rodapé) -> abre para CIMA
-      setCoords({ bottom: window.innerHeight - r.top + 8, right });
-    } else {
-      // Abre para baixo (padrão)
-      setCoords({ top: r.bottom + 8, right });
-    }
+    const vert: { top?: number; bottom?: number } =
+      espacoAbaixo < PAINEL_ALTURA && r.top > espacoAbaixo
+        ? { bottom: window.innerHeight - r.top + 8 }
+        : { top: r.bottom + 8 };
+
+    setCoords({ ...horiz, ...vert });
   };
 
   const abrir = () => { atualizarPosicao(); setOpen(true); };
@@ -214,7 +220,7 @@ export default function NotificationCenter() {
           style={{
             position: "fixed",
             ...(coords.top !== undefined ? { top: coords.top } : { bottom: coords.bottom }),
-            right: Math.max(coords.right, 8),
+            ...(coords.left !== undefined ? { left: coords.left } : { right: coords.right }),
             width: 320,
             maxWidth: "calc(100vw - 16px)",
             zIndex: 9999,
