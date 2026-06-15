@@ -361,6 +361,7 @@ export default function RelatorioSpreadsheet({
                       value={newRow[f] || ""}
                       onChange={(e) => setNewRow({ ...newRow, [f]: parseFloat(e.target.value) || 0 })}
                       onBlur={(e) => { if (!e.target.value) setNewRow({ ...newRow, [f]: 0 }); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddRow(); } }}
                       className={inputStyle} placeholder=""
                     />
                   </td>

@@ -28,7 +28,7 @@ function salvarLidas(set: Set<string>) {
 export default function NotificationCenter() {
   const { state } = useApp();
   const [open, setOpen] = useState(false);
-  const [coords, setCoords] = useState<{ top: number; right: number } | null>(null);
+  const [coords, setCoords] = useState<{ top?: number; bottom?: number; right: number } | null>(null);
   const [lidas, setLidas] = useState<Set<string>>(carregarLidas);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -87,7 +87,16 @@ export default function NotificationCenter() {
     const el = triggerRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    setCoords({ top: r.bottom + 8, right: window.innerWidth - r.right });
+    const PAINEL_ALTURA = 420; // altura estimada do painel
+    const right = Math.max(window.innerWidth - r.right, 8);
+    const espacoAbaixo = window.innerHeight - r.bottom;
+    if (espacoAbaixo < PAINEL_ALTURA && r.top > espacoAbaixo) {
+      // Pouco espaço abaixo (sino no rodapé) -> abre para CIMA
+      setCoords({ bottom: window.innerHeight - r.top + 8, right });
+    } else {
+      // Abre para baixo (padrão)
+      setCoords({ top: r.bottom + 8, right });
+    }
   };
 
   const abrir = () => { atualizarPosicao(); setOpen(true); };
@@ -155,7 +164,7 @@ export default function NotificationCenter() {
           className="rounded-2xl overflow-hidden shadow-2xl border border-white/12"
           style={{
             position: "fixed",
-            top: coords.top,
+            ...(coords.top !== undefined ? { top: coords.top } : { bottom: coords.bottom }),
             right: Math.max(coords.right, 8),
             width: 320,
             maxWidth: "calc(100vw - 16px)",
