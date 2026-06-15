@@ -741,19 +741,25 @@
   }
 }
 
-/* Page Transitions */
+/* Page Transitions — suaves, sem blur agressivo */
 .page-transition-enter {
   opacity: 1;
-  transform: translateY(0) scale(1);
-  filter: blur(0);
-  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), filter 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(0);
+  transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
 .page-transition-exit {
   opacity: 0;
-  transform: translateY(8px) scale(0.995);
-  filter: blur(4px);
-  transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), filter 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(4px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+/* Respeita preferência de movimento reduzido */
+@media (prefers-reduced-motion: reduce) {
+  .page-transition-enter, .page-transition-exit {
+    transition: opacity 0.2s ease;
+    transform: none;
+  }
 }
 
 /* ── Melhorias para Mobile ── */

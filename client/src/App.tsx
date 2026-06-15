@@ -26,6 +26,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { setNavigateFn } from "@/lib/navigate";
 import NotificationCenter from "@/components/NotificationCenter";
+import InstallButton from "@/components/InstallButton";
 import { usePageTransition } from "@/hooks/usePageTransition";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
@@ -183,30 +184,30 @@ function AppContent() {
           
           <div className="relative group cursor-pointer mb-4">
             {/* Glow externo pulsante */}
-            <div className="absolute -inset-2 rounded-2xl blur-xl opacity-30 group-hover:opacity-60 transition duration-700 animate-pulse"
-              style={{ background: "linear-gradient(135deg, #d4a017, #f97316)" }}
+            <div className="absolute -inset-2 rounded-2xl blur-xl opacity-50 group-hover:opacity-80 transition duration-700 animate-pulse"
+              style={{ background: "linear-gradient(135deg, #f3d078, #f97316)" }}
             />
             {/* Anel decorativo */}
-            <div className="absolute -inset-1 rounded-2xl opacity-40 group-hover:opacity-70 transition duration-500"
-              style={{ background: "conic-gradient(from 0deg, #d4a017, #f97316, #d4a017)", padding: "1px", borderRadius: 16 }}
+            <div className="absolute -inset-1 rounded-2xl opacity-60 group-hover:opacity-90 transition duration-500"
+              style={{ background: "conic-gradient(from 0deg, #f3d078, #f97316, #f3d078)", padding: "1px", borderRadius: 16 }}
             />
             {/* Corpo do logo */}
             <div className="relative flex items-center justify-center"
               style={{
                 width: 56, height: 56,
-                background: "linear-gradient(145deg, #1a0a00, #0d0500)",
+                background: "linear-gradient(145deg, #241400, #0d0500)",
                 borderRadius: 16,
-                border: "1.5px solid rgba(212,160,23,0.5)",
-                boxShadow: "0 0 20px rgba(212,160,23,0.2), inset 0 1px 0 rgba(255,255,255,0.1)",
+                border: "1.5px solid rgba(243,208,120,0.65)",
+                boxShadow: "0 0 28px rgba(212,160,23,0.45), inset 0 1px 0 rgba(255,255,255,0.15)",
               }}
             >
               {/* Brilho interno */}
               <div className="absolute top-1 left-3 right-3 h-[1px]"
-                style={{ background: "linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent)" }}
+                style={{ background: "linear-gradient(to right, transparent, rgba(255,255,255,0.45), transparent)" }}
               />
               <Crown style={{
-                color: "#f3d078",
-                filter: "drop-shadow(0 0 8px rgba(212,160,23,0.8))",
+                color: "#ffe9a8",
+                filter: "drop-shadow(0 0 14px rgba(243,208,120,0.95)) drop-shadow(0 0 4px rgba(255,255,255,0.5))",
               }} size={26} strokeWidth={2} className="group-hover:scale-110 transition duration-300" />
             </div>
           </div>
@@ -289,6 +290,9 @@ function AppContent() {
               </button>
             </div>
           )}
+
+          {/* Botão de instalar o app (aparece quando instalável) */}
+          <InstallButton />
 
           <div className="flex gap-2">
             <button
@@ -473,14 +477,14 @@ function HeaderWithThemeToggle({
             <div className="relative flex items-center justify-center"
               style={{
                 width: 42, height: 42,
-                background: "linear-gradient(145deg, #1a0a00, #0d0500)",
+                background: "linear-gradient(145deg, #241400, #0d0500)",
                 borderRadius: 12,
-                border: "1.5px solid rgba(212,160,23,0.5)",
-                boxShadow: "0 0 14px rgba(212,160,23,0.2)",
+                border: "1.5px solid rgba(243,208,120,0.65)",
+                boxShadow: "0 0 20px rgba(212,160,23,0.45)",
                 flexShrink: 0,
               }}
             >
-              <Crown style={{ color: "#f3d078", filter: "drop-shadow(0 0 6px rgba(212,160,23,0.7))" }}
+              <Crown style={{ color: "#ffe9a8", filter: "drop-shadow(0 0 12px rgba(243,208,120,0.95))" }}
                 size={20} strokeWidth={2} className="group-hover:scale-110 transition duration-300"
               />
             </div>

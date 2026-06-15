@@ -6,15 +6,19 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
+import { isEditingActive } from "./lib/syncLock";
 import "./index.css";
 
-// Atualização automática SEM atrapalhar edição:
-// - Atualiza ao voltar para a aba e ao reconectar (sensação de tempo real)
-// - NÃO faz polling a cada poucos segundos (isso bagunçava a tabela durante a edição)
-// - Cada ação (criar/editar/finalizar) já atualiza os dados via refetch após a mutação
+// Sincronização automática entre dispositivos, SEM atrapalhar a edição:
+// - Atualiza a cada 12s (sincroniza dados entre computadores/celular)
+// - PAUSA o polling enquanto o usuário está digitando/editando (trava de edição)
+// - Atualiza ao voltar para a aba e ao reconectar
+// - Cada ação (criar/editar/finalizar) já atualiza via refetch após a mutação
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      refetchInterval: () => (isEditingActive() ? false : 12000),
+      refetchIntervalInBackground: false,
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
       staleTime: 5000,
@@ -78,3 +82,10 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").catch(() => {});
   });
 }
+
+// Captura o evento de instalação do app (PWA) para o botão "Instalar app"
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  (window as any).__deferredInstallPrompt = e;
+  window.dispatchEvent(new Event("pwa-installable"));
+});

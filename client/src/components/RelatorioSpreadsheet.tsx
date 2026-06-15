@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { Plus, Trash2, Edit2, Check, X, ExternalLink, Copy, TrendingUp, TrendingDown } from "lucide-react";
+import { setEditingActive } from "@/lib/syncLock";
 
 interface RelatorioRow {
   numero: number;
@@ -125,7 +126,10 @@ export default function RelatorioSpreadsheet({
   const tdBorder = "border-b border-white/5";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5"
+      onFocusCapture={() => setEditingActive(true)}
+      onBlurCapture={() => setEditingActive(false)}
+    >
 
       {/* Auto-save indicator */}
       {isSaving && (

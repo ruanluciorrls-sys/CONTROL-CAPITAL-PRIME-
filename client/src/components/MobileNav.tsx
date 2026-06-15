@@ -1,6 +1,7 @@
 import React from "react";
 import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
+import InstallButton from "@/components/InstallButton";
 
 interface Tab {
   id: string;
@@ -89,6 +90,11 @@ export default function MobileNav({
               >
                 <X size={18} />
               </button>
+            </div>
+
+            {/* Instalar app (celular) */}
+            <div className="px-3 pt-3">
+              <InstallButton />
             </div>
 
             <nav className="flex flex-col p-2 gap-1">
