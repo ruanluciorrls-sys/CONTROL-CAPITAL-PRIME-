@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Clock, AlertTriangle, CheckCircle2, X, Trophy } from "lucide-react";
+import { Bell, Clock, AlertTriangle, CheckCircle2, X, Trophy, Smartphone, BellRing } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { pushSuportado, assinarPush, desassinarPush, getInscricaoAtual, permissaoAtual } from "@/lib/push";
 
 const LIDAS_KEY = "notificacoes-lidas-v1";
 
@@ -32,6 +35,52 @@ export default function NotificationCenter() {
   const [lidas, setLidas] = useState<Set<string>>(carregarLidas);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // ── Push (celular) ──
+  const [pushAtivo, setPushAtivo] = useState(false);
+  const [pushCarregando, setPushCarregando] = useState(false);
+  const publicKeyQuery = trpc.push.publicKey.useQuery(undefined, { retry: false });
+  const subscribeMut = trpc.push.subscribe.useMutation();
+  const unsubscribeMut = trpc.push.unsubscribe.useMutation();
+  const testMut = trpc.push.test.useMutation();
+
+  useEffect(() => {
+    getInscricaoAtual().then((s) => setPushAtivo(!!s && permissaoAtual() === "granted"));
+  }, []);
+
+  const handleAtivarPush = async () => {
+    const publicKey = publicKeyQuery.data?.publicKey;
+    if (!publicKey) {
+      toast.error("Notificações push ainda não configuradas no servidor.");
+      return;
+    }
+    setPushCarregando(true);
+    try {
+      const subscription = await assinarPush(publicKey);
+      await subscribeMut.mutateAsync({ subscription });
+      setPushAtivo(true);
+      toast.success("Notificações ativadas neste aparelho!");
+      try { await testMut.mutateAsync(); } catch {}
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível ativar as notificações.");
+    } finally {
+      setPushCarregando(false);
+    }
+  };
+
+  const handleDesativarPush = async () => {
+    setPushCarregando(true);
+    try {
+      const endpoint = await desassinarPush();
+      if (endpoint) await unsubscribeMut.mutateAsync({ endpoint });
+      setPushAtivo(false);
+      toast.success("Notificações desativadas neste aparelho.");
+    } catch (e: any) {
+      toast.error("Não foi possível desativar.");
+    } finally {
+      setPushCarregando(false);
+    }
+  };
 
   // Gera notificações: metas finalizadas (com lucro) + prazos vencendo
   const notificacoes = useMemo<Notificacao[]>(() => {
@@ -233,6 +282,32 @@ export default function NotificationCenter() {
               })
             )}
           </div>
+
+          {/* Rodapé: ativar notificações no celular */}
+          {pushSuportado() && (
+            <div className="px-4 py-3 border-t border-white/8" style={{ background: "rgba(255,255,255,0.02)" }}>
+              {pushAtivo ? (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
+                    <BellRing size={13} /> Avisos no celular ativos
+                  </span>
+                  <button onClick={handleDesativarPush} disabled={pushCarregando}
+                    className="text-[10px] font-bold text-white/30 hover:text-white/60 transition-colors disabled:opacity-50"
+                  >
+                    Desativar
+                  </button>
+                </div>
+              ) : (
+                <button onClick={handleAtivarPush} disabled={pushCarregando}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black text-[#050b18] transition-all hover:scale-[1.01] disabled:opacity-60"
+                  style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                >
+                  <Smartphone size={14} />
+                  {pushCarregando ? "Ativando..." : "Ativar notificações no celular"}
+                </button>
+              )}
+            </div>
+          )}
         </div>,
         document.body
       )}

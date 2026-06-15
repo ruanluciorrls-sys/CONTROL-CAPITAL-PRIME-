@@ -192,3 +192,22 @@ export const plataformas = pgTable("plataformas", {
 
 export type PlataformaDb = typeof plataformas.$inferSelect;
 export type InsertPlataforma = typeof plataformas.$inferInsert;
+
+// Config de push (chaves VAPID) — uma linha global
+export const pushConfig = pgTable("push_config", {
+  id: integer("id").primaryKey().default(1),
+  publicKey: text("public_key").notNull(),
+  privateKey: text("private_key").notNull(),
+});
+export type PushConfig = typeof pushConfig.$inferSelect;
+
+// Inscrições de push por usuário (cada aparelho gera uma)
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  endpoint: text("endpoint").notNull().unique(),
+  subscription: jsonb("subscription").$type<Record<string, unknown>>().notNull(),
+  criadoEm: timestamp("criado_em").defaultNow().notNull(),
+});
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;

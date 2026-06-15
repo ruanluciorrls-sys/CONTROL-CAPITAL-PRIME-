@@ -4,6 +4,8 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma, seedPlataformasIfEmpty } from "./db";
+import { savePushSubscription, deletePushSubscription } from "./db";
+import { getPushPublicKey, sendPushToUser } from "./push";
 import { supabaseUploadJSON } from "./storage";
 import { InsertRelatorio } from "../drizzle/schema";
 import { nanoid } from "nanoid";
@@ -447,6 +449,34 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return deletePlataforma(input.id);
       }),
+  }),
+
+  // Notificações Push (celular)
+  push: router({
+    publicKey: protectedProcedure.query(async () => {
+      const key = await getPushPublicKey();
+      return { publicKey: key };
+    }),
+    subscribe: protectedProcedure
+      .input(z.object({ subscription: z.any() }))
+      .mutation(async ({ ctx, input }) => {
+        await savePushSubscription(ctx.user.id, input.subscription);
+        return { success: true };
+      }),
+    unsubscribe: protectedProcedure
+      .input(z.object({ endpoint: z.string() }))
+      .mutation(async ({ input }) => {
+        await deletePushSubscription(input.endpoint);
+        return { success: true };
+      }),
+    test: protectedProcedure.mutation(async ({ ctx }) => {
+      await sendPushToUser(ctx.user.id, {
+        title: "✅ Notificações ativadas!",
+        body: "Você vai receber avisos de prazos das suas metas aqui no celular.",
+        url: "/",
+      });
+      return { success: true };
+    }),
   }),
 });
 

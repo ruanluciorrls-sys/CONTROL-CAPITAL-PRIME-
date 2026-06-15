@@ -1,7 +1,7 @@
 import { eq, desc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, casas, relatorios, contas, userSettings, gastosProxy, Casa, Relatorio, InsertCasa, InsertRelatorio, Conta, InsertConta, UserSettings, GastoProxy, InsertGastoProxy, slots, Slot, InsertSlot, plataformas, PlataformaDb, InsertPlataforma } from "../drizzle/schema";
+import { InsertUser, users, casas, relatorios, contas, userSettings, gastosProxy, Casa, Relatorio, InsertCasa, InsertRelatorio, Conta, InsertConta, UserSettings, GastoProxy, InsertGastoProxy, slots, Slot, InsertSlot, plataformas, PlataformaDb, InsertPlataforma, pushConfig, PushConfig, pushSubscriptions, PushSubscriptionRow, InsertPushSubscription } from "../drizzle/schema";
 import bcrypt from "bcryptjs";
 import { ENV } from './_core/env';
 
@@ -437,6 +437,48 @@ export async function seedPlataformasIfEmpty(defaults: InsertPlataforma[]): Prom
     await db.insert(plataformas).values(defaults);
   }
   return db.select().from(plataformas);
+}
+
+// ── Push Notifications ──
+export async function getPushConfig(): Promise<PushConfig | null> {
+  const db = await getDb();
+  if (!db) return null;
+  try {
+    const r = await db.select().from(pushConfig).limit(1);
+    return r[0] || null;
+  } catch { return null; }
+}
+
+export async function savePushSubscription(userId: number, sub: any): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const endpoint = sub?.endpoint;
+  if (!endpoint) return;
+  try {
+    await db.insert(pushSubscriptions)
+      .values({ userId, endpoint, subscription: sub } as InsertPushSubscription)
+      .onConflictDoUpdate({ target: pushSubscriptions.endpoint, set: { userId, subscription: sub } });
+  } catch (e) {
+    console.error("[Push] Falha ao salvar inscrição:", e);
+  }
+}
+
+export async function deletePushSubscription(endpoint: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try { await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint)); } catch {}
+}
+
+export async function getPushSubscriptionsByUser(userId: number): Promise<PushSubscriptionRow[]> {
+  const db = await getDb();
+  if (!db) return [];
+  try { return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId)); } catch { return []; }
+}
+
+export async function getAllPushSubscriptions(): Promise<PushSubscriptionRow[]> {
+  const db = await getDb();
+  if (!db) return [];
+  try { return db.select().from(pushSubscriptions); } catch { return []; }
 }
 
 // TODO: add feature queries here as your schema grows.
