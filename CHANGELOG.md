@@ -5,6 +5,18 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato baseia-se em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.7.0] - 2026-06-15
+
+### Adicionado
+- **Notificações Push no celular (PWA)**: O site agora pode ser instalado como app no celular e enviar notificações **mesmo com o app fechado** (Web Push). Avisos automáticos de prazos das metas (vence hoje / vencidas) enviados diariamente pelo servidor. Botão "Ativar notificações no celular" no sino + notificação de teste.
+- **Enter adiciona linha**: Na tabela do relatório, apertar Enter em qualquer campo da nova linha adiciona (igual ao botão Adicionar), com o foco mantido para entrada rápida.
+
+### Corrigido
+- **Sino de notificações sumindo**: O painel agora abre para cima quando o sino está no rodapé (antes abria para baixo e sumia fora da tela).
+
+### Requer (uma vez)
+- Rodar o SQL de configuração no Supabase (cria as tabelas de push e grava as chaves de segurança).
+
 ## [1.6.0] - 2026-06-09
 
 ### Adicionado
