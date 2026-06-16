@@ -8,6 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { iniciarAgendadorPush } from "../push";
+import { ensurePushTable } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -62,8 +63,11 @@ async function startServer() {
     console.log(`Server running on http://localhost:${port}/`);
   });
 
-  // Agendador de notificações push (avisos de prazo)
-  try { iniciarAgendadorPush(); } catch (e) { console.error("[Push] Falha ao iniciar agendador:", e); }
+  // Push: cria a tabela automaticamente e inicia o agendador de avisos de prazo
+  try {
+    await ensurePushTable();
+    iniciarAgendadorPush();
+  } catch (e) { console.error("[Push] Falha ao iniciar push:", e); }
 }
 
 startServer().catch(console.error);

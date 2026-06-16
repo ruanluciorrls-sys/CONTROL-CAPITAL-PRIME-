@@ -67,3 +67,11 @@ export function permissaoAtual(): NotificationPermission | "indisponivel" {
   if (!pushSuportado()) return "indisponivel";
   return Notification.permission;
 }
+
+/** No iPhone, o push só funciona com o app instalado na tela inicial (modo standalone). */
+export function precisaInstalarIOS(): boolean {
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !(window as any).MSStream;
+  const standalone =
+    window.matchMedia?.("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+  return ios && !standalone;
+}

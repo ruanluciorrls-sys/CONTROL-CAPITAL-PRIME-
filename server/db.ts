@@ -440,6 +440,24 @@ export async function seedPlataformasIfEmpty(defaults: InsertPlataforma[]): Prom
 }
 
 // ── Push Notifications ──
+/** Cria a tabela de inscrições de push automaticamente (sem precisar de SQL manual). */
+export async function ensurePushTable(): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id serial PRIMARY KEY,
+      user_id integer NOT NULL,
+      endpoint text NOT NULL UNIQUE,
+      subscription jsonb NOT NULL,
+      criado_em timestamp DEFAULT now() NOT NULL
+    )`);
+    console.log("[Push] Tabela push_subscriptions pronta.");
+  } catch (e) {
+    console.error("[Push] Falha ao criar tabela push_subscriptions:", e);
+  }
+}
+
 export async function getPushConfig(): Promise<PushConfig | null> {
   const db = await getDb();
   if (!db) return null;

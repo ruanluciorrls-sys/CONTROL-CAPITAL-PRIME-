@@ -4,7 +4,7 @@ import { Bell, Clock, AlertTriangle, CheckCircle2, X, Trophy, Smartphone, BellRi
 import { useApp } from "@/contexts/AppContext";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { pushSuportado, assinarPush, desassinarPush, getInscricaoAtual, permissaoAtual } from "@/lib/push";
+import { pushSuportado, assinarPush, desassinarPush, getInscricaoAtual, permissaoAtual, precisaInstalarIOS } from "@/lib/push";
 
 const LIDAS_KEY = "notificacoes-lidas-v1";
 
@@ -49,9 +49,14 @@ export default function NotificationCenter() {
   }, []);
 
   const handleAtivarPush = async () => {
+    if (precisaInstalarIOS()) {
+      toast.error("No iPhone, primeiro instale o app: toque em 'Instalar app' (ou Compartilhar → Adicionar à Tela de Início), abra pelo ícone e ative aqui.", { duration: 8000 });
+      return;
+    }
     const publicKey = publicKeyQuery.data?.publicKey;
     if (!publicKey) {
-      toast.error("Notificações push ainda não configuradas no servidor.");
+      toast.error("Servidor atualizando as notificações. Aguarde 1-2 min e tente de novo.");
+      publicKeyQuery.refetch();
       return;
     }
     setPushCarregando(true);

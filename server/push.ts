@@ -1,18 +1,20 @@
 // @ts-ignore - web-push não tem tipos embutidos
 import webpush from "web-push";
-import { getPushConfig, getPushSubscriptionsByUser, getAllPushSubscriptions, deletePushSubscription, getCasasByUserId, listAllUsers } from "./db";
+import { getPushSubscriptionsByUser, getAllPushSubscriptions, deletePushSubscription, getCasasByUserId } from "./db";
+
+// Chaves VAPID — usa variáveis de ambiente (Fly secrets) se existirem,
+// senão usa as chaves padrão (geradas para este app).
+const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY || "BKkNJlVPzuoYdnk4vYBWBnVPZ5idLEvXF6YrRTBprWC5miJn5V7pmgX3IQdlJyXWqxgD96aBe7538eE9adVBR0g";
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || "1Mg0jsh1eEN8ZptSU2zdY3kFZNkqw9gPgTTx43gVCws";
 
 let vapidConfigurado = false;
-let publicKeyCache: string | null = null;
 
-/** Garante que o web-push está configurado com as chaves VAPID do banco. */
+/** Garante que o web-push está configurado com as chaves VAPID. */
 async function garantirVapid(): Promise<boolean> {
   if (vapidConfigurado) return true;
-  const cfg = await getPushConfig();
-  if (!cfg?.publicKey || !cfg?.privateKey) return false;
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return false;
   try {
-    webpush.setVapidDetails("mailto:admin@capitalprime.com", cfg.publicKey, cfg.privateKey);
-    publicKeyCache = cfg.publicKey;
+    webpush.setVapidDetails("mailto:admin@capitalprime.com", VAPID_PUBLIC, VAPID_PRIVATE);
     vapidConfigurado = true;
     return true;
   } catch (e) {
@@ -22,10 +24,7 @@ async function garantirVapid(): Promise<boolean> {
 }
 
 export async function getPushPublicKey(): Promise<string | null> {
-  if (publicKeyCache) return publicKeyCache;
-  const cfg = await getPushConfig();
-  publicKeyCache = cfg?.publicKey || null;
-  return publicKeyCache;
+  return VAPID_PUBLIC || null;
 }
 
 interface PushPayload {
