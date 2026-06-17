@@ -528,7 +528,7 @@ function HeaderWithThemeToggle({
         </div>
 
         {/* Right Side: Account and Utility Actions */}
-        <div className="flex items-center gap-2 w-full md:w-1/4 justify-center md:justify-end">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full md:w-1/4 justify-center md:justify-end">
           {user && (
             <div className="hidden sm:flex flex-col text-right mr-1">
               <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Logado como</span>

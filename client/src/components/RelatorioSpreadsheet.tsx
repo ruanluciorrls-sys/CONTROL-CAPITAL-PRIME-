@@ -277,6 +277,7 @@ export default function RelatorioSpreadsheet({
         <div className="lg:col-span-3 rounded-2xl border overflow-hidden"
           style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)" }}
         >
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(212,160,23,0.2)", background: "rgba(212,160,23,0.05)" }}>
@@ -396,7 +397,8 @@ export default function RelatorioSpreadsheet({
               </tr>
             </tbody>
           </table>
-          <p className="text-[9px] text-white/45 dark:text-white/30 px-4 py-2">Dica: clique em uma linha para editar</p>
+          </div>
+          <p className="text-[9px] text-white/45 dark:text-white/30 px-4 py-2">Dica: clique numa linha para editar · arraste a tabela para o lado no celular</p>
         </div>
 
         {/* Painel Lateral */}
