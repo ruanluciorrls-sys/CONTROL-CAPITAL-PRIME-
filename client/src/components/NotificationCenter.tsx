@@ -31,7 +31,7 @@ function salvarLidas(set: Set<string>) {
 export default function NotificationCenter() {
   const { state } = useApp();
   const [open, setOpen] = useState(false);
-  const [coords, setCoords] = useState<{ top?: number; bottom?: number; left?: number; right?: number; maxH?: number } | null>(null);
+  const [coords, setCoords] = useState<{ top?: number; bottom?: number; left: number; width: number; maxH?: number } | null>(null);
   const [lidas, setLidas] = useState<Set<string>>(carregarLidas);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -153,13 +153,14 @@ export default function NotificationCenter() {
     if (!el) return;
     const r = el.getBoundingClientRect();
     const PAINEL_ALTURA = 420; // altura estimada do painel
-    const MARGEM = 12;
+    const MARGEM = 8;
+    const VW = window.innerWidth;
 
-    // Horizontal: sino na metade esquerda -> abre para a DIREITA; senão para a ESQUERDA
-    const horiz: { left?: number; right?: number } =
-      r.left < window.innerWidth / 2
-        ? { left: Math.max(r.left, 8) }
-        : { right: Math.max(window.innerWidth - r.right, 8) };
+    // Horizontal: largura que cabe na tela + posição travada dentro das bordas (nunca corta)
+    const width = Math.min(320, VW - MARGEM * 2);
+    // Tenta alinhar pelo lado do sino; se passar da borda, encosta na borda
+    let left = r.left < VW / 2 ? r.left : r.right - width;
+    left = Math.max(MARGEM, Math.min(left, VW - width - MARGEM));
 
     // Vertical: escolhe o lado com mais espaço e limita a altura para nunca cortar
     const espacoAbaixo = window.innerHeight - r.bottom - MARGEM;
@@ -170,7 +171,7 @@ export default function NotificationCenter() {
       : { top: r.bottom + 8 };
     const maxH = Math.max(240, Math.floor(abreParaCima ? espacoAcima : espacoAbaixo));
 
-    setCoords({ ...horiz, ...vert, maxH });
+    setCoords({ left, width, ...vert, maxH });
   };
 
   const abrir = () => { atualizarPosicao(); setOpen(true); };
@@ -239,9 +240,8 @@ export default function NotificationCenter() {
           style={{
             position: "fixed",
             ...(coords.top !== undefined ? { top: coords.top } : { bottom: coords.bottom }),
-            ...(coords.left !== undefined ? { left: coords.left } : { right: coords.right }),
-            width: 320,
-            maxWidth: "calc(100vw - 16px)",
+            left: coords.left,
+            width: coords.width,
             maxHeight: coords.maxH,
             display: "flex",
             flexDirection: "column",
