@@ -86,7 +86,12 @@ npm test         # vitest — ⚠ alguns testes falham por env/setup
 ```
 Variáveis de ambiente (Fly secrets / `.env`): `DATABASE_URL`/Supabase, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`. Há fallback embutido para as chaves VAPID.
 
-**Deploy**: após mudanças, fazer commit/push e acionar o deploy (Fly.io/Vercel). O código é o mesmo para todos os usuários — qualquer melhoria chega a 100% deles no deploy.
+**Deploy (AUTOMÁTICO no `git push origin main`)**: não precisa deploy manual.
+- **Frontend (Vercel)**: build automático a cada push.
+- **Backend (Fly.io)**: GitHub Actions `.github/workflows/fly-deploy.yml` roda `flyctl deploy` a cada push. Depende do secret de repositório **`FLY_API_TOKEN`** (em GitHub → Settings → Secrets and variables → Actions).
+- Se o deploy do Fly começar a falhar com exit code 1 no passo `flyctl deploy` (e o build local passa), o motivo mais provável é o **`FLY_API_TOKEN` expirado/ausente**. Correção: gerar novo token com `fly tokens create deploy -a cpa-report-2026` e atualizar o secret no GitHub.
+- O app é **PWA com Service Worker** — após deploy do frontend, o usuário pode precisar **fechar e reabrir** o app no celular para pegar a versão nova (cache).
+- O código é o mesmo para todos os usuários — qualquer melhoria chega a 100% deles no deploy.
 
 ---
 
