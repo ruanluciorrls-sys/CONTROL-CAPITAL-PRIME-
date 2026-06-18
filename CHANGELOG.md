@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.8.1] - 2026-06-18
+
+### Corrigido
+- **Notificação de ciclo disparando cedo demais (falso prejuízo)**: antes o aviso saía assim que a linha era adicionada — quando só o depósito estava preenchido e o saque ainda era 0 — gerando "prejuízo" falso (ex.: `Ciclo 4: -R$ 983,00`). Agora um ciclo só notifica quando está **finalizado**: **depósito E saque preenchidos** (baú entra no cálculo se houver, mas é opcional). Dispara **uma única vez**, na transição de incompleto → completo. Exclusão de linha não dispara aviso.
+
 ## [1.8.0] - 2026-06-18
 
 ### Adicionado

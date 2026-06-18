@@ -343,19 +343,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const updateRelatorio = async (id: string, relatorio: Partial<RelatorioData>) => {
     try {
-      // Push: novo ciclo (linha) adicionado -> mostra lucro/perda do ciclo
-      if (relatorio.rows) {
-        const anterior = state.relatorios.find((r) => r.id === id);
-        const qtdAntes = anterior?.rows?.length ?? 0;
-        if (relatorio.rows.length > qtdAntes) {
-          const ciclo = relatorio.rows[relatorio.rows.length - 1] as any;
-          const resultado = Number(ciclo?.resultado) || 0;
-          const nome = anterior ? nomeRelatorio(anterior) : "Meta";
-          dispararPush(
-            resultado >= 0 ? "💰 Lucro no ciclo" : "🔻 Prejuízo no ciclo",
-            `${nome} · Ciclo ${ciclo?.numero ?? relatorio.rows.length}: ${fmtBRL(resultado)}`,
-            `ciclo-${id}-${ciclo?.numero ?? relatorio.rows.length}`
-          );
+      // Push: notifica APENAS quando um ciclo é FINALIZADO (depósito E saque preenchidos).
+      // O baú entra no cálculo se houver, mas não é obrigatório. Dispara uma única vez,
+      // na transição de "incompleto" -> "completo" (evita o falso prejuízo de linha só com depósito).
+      const anteriorRel = state.relatorios.find((r) => r.id === id);
+      const naoDiminuiu = (relatorio.rows?.length ?? 0) >= (anteriorRel?.rows?.length ?? 0);
+      if (relatorio.rows && naoDiminuiu) {
+        const anterior = anteriorRel;
+        const nome = anterior ? nomeRelatorio(anterior) : "Meta";
+        const completo = (row: any) => (Number(row?.deposito) || 0) > 0 && (Number(row?.saque) || 0) > 0;
+        const antesPorNumero = new Map<number, any>(
+          (anterior?.rows || []).map((row: any) => [row.numero, row])
+        );
+        for (const ciclo of relatorio.rows as any[]) {
+          const eraCompleto = completo(antesPorNumero.get(ciclo.numero));
+          if (completo(ciclo) && !eraCompleto) {
+            const resultado = Number(ciclo?.resultado) || 0;
+            dispararPush(
+              resultado >= 0 ? "💰 Lucro no ciclo" : "🔻 Prejuízo no ciclo",
+              `${nome} · Ciclo ${ciclo?.numero}: ${fmtBRL(resultado)}`,
+              `ciclo-${id}-${ciclo?.numero}`
+            );
+          }
         }
       }
       // Salvar prazo em localStorage se fornecido
