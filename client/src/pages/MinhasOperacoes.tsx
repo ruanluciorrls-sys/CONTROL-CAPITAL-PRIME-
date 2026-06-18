@@ -25,7 +25,7 @@ export default function MinhasOperacoes() {
           <button
             key={tab.id}
             onClick={() => setActiveSubTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-xs uppercase tracking-wider transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-xs uppercase tracking-wider transition-all whitespace-nowrap shrink-0 ${
               activeSubTab === tab.id
                 ? "bg-[#d4a017] text-[#050b18] shadow-md shadow-[#d4a017]/20"
                 : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground"

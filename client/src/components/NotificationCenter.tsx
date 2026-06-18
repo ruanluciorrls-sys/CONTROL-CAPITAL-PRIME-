@@ -31,7 +31,7 @@ function salvarLidas(set: Set<string>) {
 export default function NotificationCenter() {
   const { state } = useApp();
   const [open, setOpen] = useState(false);
-  const [coords, setCoords] = useState<{ top?: number; bottom?: number; left?: number; right?: number } | null>(null);
+  const [coords, setCoords] = useState<{ top?: number; bottom?: number; left?: number; right?: number; maxH?: number } | null>(null);
   const [lidas, setLidas] = useState<Set<string>>(carregarLidas);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -64,8 +64,19 @@ export default function NotificationCenter() {
       const subscription = await assinarPush(publicKey);
       await subscribeMut.mutateAsync({ subscription });
       setPushAtivo(true);
-      toast.success("Notificações ativadas neste aparelho!");
-      try { await testMut.mutateAsync(); } catch {}
+      // Envia um teste e mostra o resultado REAL da entrega (não mente "ativado")
+      try {
+        const r = await testMut.mutateAsync();
+        if (r.sent > 0) {
+          toast.success("Notificações ativadas! Veja o aviso de teste no seu aparelho.");
+        } else if (r.total === 0) {
+          toast.error("Inscrição não foi salva. Feche e abra o app pelo ícone e tente de novo.");
+        } else {
+          toast.error(`Ativado, mas a entrega falhou${r.lastError ? `: ${r.lastError}` : "."} Verifique as permissões de notificação do app.`, { duration: 8000 });
+        }
+      } catch {
+        toast.success("Notificações ativadas neste aparelho!");
+      }
     } catch (e: any) {
       toast.error(e?.message || "Não foi possível ativar as notificações.");
     } finally {
@@ -142,6 +153,7 @@ export default function NotificationCenter() {
     if (!el) return;
     const r = el.getBoundingClientRect();
     const PAINEL_ALTURA = 420; // altura estimada do painel
+    const MARGEM = 12;
 
     // Horizontal: sino na metade esquerda -> abre para a DIREITA; senão para a ESQUERDA
     const horiz: { left?: number; right?: number } =
@@ -149,14 +161,16 @@ export default function NotificationCenter() {
         ? { left: Math.max(r.left, 8) }
         : { right: Math.max(window.innerWidth - r.right, 8) };
 
-    // Vertical: pouco espaço abaixo (sino no rodapé) -> abre para CIMA
-    const espacoAbaixo = window.innerHeight - r.bottom;
-    const vert: { top?: number; bottom?: number } =
-      espacoAbaixo < PAINEL_ALTURA && r.top > espacoAbaixo
-        ? { bottom: window.innerHeight - r.top + 8 }
-        : { top: r.bottom + 8 };
+    // Vertical: escolhe o lado com mais espaço e limita a altura para nunca cortar
+    const espacoAbaixo = window.innerHeight - r.bottom - MARGEM;
+    const espacoAcima = r.top - MARGEM;
+    const abreParaCima = espacoAbaixo < PAINEL_ALTURA && espacoAcima > espacoAbaixo;
+    const vert: { top?: number; bottom?: number } = abreParaCima
+      ? { bottom: window.innerHeight - r.top + 8 }
+      : { top: r.bottom + 8 };
+    const maxH = Math.max(240, Math.floor(abreParaCima ? espacoAcima : espacoAbaixo));
 
-    setCoords({ ...horiz, ...vert });
+    setCoords({ ...horiz, ...vert, maxH });
   };
 
   const abrir = () => { atualizarPosicao(); setOpen(true); };
@@ -228,6 +242,9 @@ export default function NotificationCenter() {
             ...(coords.left !== undefined ? { left: coords.left } : { right: coords.right }),
             width: 320,
             maxWidth: "calc(100vw - 16px)",
+            maxHeight: coords.maxH,
+            display: "flex",
+            flexDirection: "column",
             zIndex: 9999,
             background: "#070e20",
             boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
@@ -237,7 +254,7 @@ export default function NotificationCenter() {
             style={{ background: "linear-gradient(to right, transparent, rgba(212,160,23,0.5), transparent)" }}
           />
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/8"
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 shrink-0"
             style={{ background: "rgba(212,160,23,0.05)" }}
           >
             <div className="flex items-center gap-2">
@@ -261,7 +278,7 @@ export default function NotificationCenter() {
           </div>
 
           {/* Lista */}
-          <div className="max-h-[360px] overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             {notificacoes.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-10 px-4 text-center">
                 <CheckCircle2 size={28} className="text-emerald-400/50" />
@@ -296,7 +313,7 @@ export default function NotificationCenter() {
 
           {/* Rodapé: ativar notificações no celular */}
           {pushSuportado() && (
-            <div className="px-4 py-3 border-t border-white/8" style={{ background: "rgba(255,255,255,0.02)" }}>
+            <div className="px-4 py-3 border-t border-white/8 shrink-0" style={{ background: "rgba(255,255,255,0.02)" }}>
               {pushAtivo ? (
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">

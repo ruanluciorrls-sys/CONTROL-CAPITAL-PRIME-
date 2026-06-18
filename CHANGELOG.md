@@ -5,6 +5,37 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato baseia-se em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+> 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
+
+## [1.8.0] - 2026-06-18
+
+### Adicionado
+- **Notificações push em tempo real no celular** (o pedido principal do operador): além dos avisos de prazo, o servidor agora dispara push **na hora** em 3 momentos da operação:
+  - 🚀 **Meta iniciada** — ao criar um relatório.
+  - 💰 / 🔻 **Lucro/Prejuízo por ciclo** — a cada nova linha da planilha (um **ciclo** = `saque − depósito − redepósito + baú`), mostrando o resultado daquele ciclo.
+  - 🏁 **Meta finalizada** — ao finalizar, com o **lucro total** (soma dos ciclos + cooperação).
+  - Implementado via nova mutation `push.notify` (`server/routers.ts`) chamada do `AppContext.tsx`; cada aviso usa **tag única** para não sobrescrever o anterior no celular.
+- **Botão "Instalar app" (PWA)** + sincronização entre dispositivos + logo com brilho reforçado e transições suaves de página.
+
+### Corrigido
+- **Diagnóstico de push real**: antes o app dizia "ativado!" mesmo quando a entrega falhava. Agora `push.test` retorna o resultado real da entrega (`total`/`sent`/`failed`/`lastError`) e o sino mostra mensagem honesta: "veja o teste no aparelho", "inscrição não foi salva, abra pelo ícone" ou o erro de entrega. Facilita descobrir por que não chega no celular.
+- **`tsconfig.json` sem `target`** (item #1 da auditoria): adicionado `"target": "ES2020"` + exclusão correta de `*.test.tsx`. Agora `npm run check` (tsc) fica **verde**. O build de produção não muda.
+- **Abas de "Minhas Operações" cortadas no celular**: os botões encolhiam no flexbox e truncavam o texto ("OPERAÇ...", "CRIAÇÃO ME..."). Adicionado `shrink-0` — agora mantêm a largura e a barra rola de lado.
+- **Painel de notificações cortado**: ao abrir para cima a partir do sino no rodapé da sidebar, o topo saía da tela. Agora calcula o espaço disponível, aplica `maxHeight` e usa layout flex (header/rodapé fixos, lista rola dentro) — nunca corta.
+- **Painel de notificações abrindo para o lado errado** quando o sino está na sidebar esquerda (abre para a direita).
+- **Push sem SQL manual**: chaves VAPID via env/constante e tabela criada automaticamente (não precisa mais rodar SQL no Supabase para ativar push).
+- **Varredura mobile geral**: corrige zoom indesejado e overflow horizontal.
+- **Aviso diário de prazo** disparado às 12h UTC (~9h no horário do Brasil).
+
+### Dívida técnica conhecida (ver `AGENTS.md` › Bugs conhecidos)
+- Testes (`MobileButton`, `MobileNav`, `supabase`) falhando por setup do `@testing-library` e env vars ausentes localmente (excluídos do `tsc`, mas o `vitest` ainda quebra).
+- Prazo dos relatórios ainda vive só em `localStorage` (coluna não existe no banco) — não sincroniza entre dispositivos.
+
+### ⚠ Importante para o operador (push no celular)
+- As notificações de **meta iniciada / ciclo / meta finalizada** são novas e só passam a chegar **após este deploy**.
+- No **iPhone**: o push só funciona com o app **instalado na tela inicial** e **aberto pelo ícone** (modo standalone), com a permissão de notificação concedida **dentro do app instalado** (não no Safari). Exige iOS 16.4+.
+- Para testar a entrega: abra o sino → "Ativar notificações no celular". Se aparecer erro de entrega, a mensagem agora diz o motivo real.
+
 ## [1.7.0] - 2026-06-15
 
 ### Adicionado

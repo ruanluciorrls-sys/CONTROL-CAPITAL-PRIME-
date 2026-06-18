@@ -139,6 +139,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   
   const updateSettingsMutation = trpc.settings.update.useMutation();
 
+  // Push em tempo real (meta iniciada / ciclo / meta finalizada)
+  const notifyPushMutation = trpc.push.notify.useMutation();
+
+  // Nome de exibição do relatório: "CASA-agente" (sem traço/espaços sobrando)
+  const nomeRelatorio = (rel: { casaId: string; agente?: string }): string => {
+    const base = (state.casas.find((c) => c.id === rel.casaId)?.nome || "Meta").replace(/[\s-]+$/, "").trim();
+    return `${base}${rel.agente ? `-${rel.agente}` : ""}`;
+  };
+
+  const fmtBRL = (v: number): string =>
+    `${v >= 0 ? "+" : "-"}R$ ${Math.abs(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  // Dispara push (fire-and-forget — não bloqueia a UI nem mostra erro)
+  const dispararPush = (title: string, body: string, tag: string) => {
+    try { notifyPushMutation.mutate({ title, body, tag }); } catch {}
+  };
+
   // Carregar dados do tRPC
   useEffect(() => {
     if (casasQuery.isLoading || relatoriosQuery.isLoading || settingsQuery.isLoading) {
@@ -310,6 +327,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
+      // Push: meta iniciada
+      dispararPush(
+        "🚀 Meta iniciada",
+        `${nomeRelatorio(relatorio)} começou agora.`,
+        `meta-iniciada-${relId || Date.now()}`
+      );
+
       // Recarregar relatórios
       await relatoriosQuery.refetch();
     } catch (error) {
@@ -319,6 +343,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const updateRelatorio = async (id: string, relatorio: Partial<RelatorioData>) => {
     try {
+      // Push: novo ciclo (linha) adicionado -> mostra lucro/perda do ciclo
+      if (relatorio.rows) {
+        const anterior = state.relatorios.find((r) => r.id === id);
+        const qtdAntes = anterior?.rows?.length ?? 0;
+        if (relatorio.rows.length > qtdAntes) {
+          const ciclo = relatorio.rows[relatorio.rows.length - 1] as any;
+          const resultado = Number(ciclo?.resultado) || 0;
+          const nome = anterior ? nomeRelatorio(anterior) : "Meta";
+          dispararPush(
+            resultado >= 0 ? "💰 Lucro no ciclo" : "🔻 Prejuízo no ciclo",
+            `${nome} · Ciclo ${ciclo?.numero ?? relatorio.rows.length}: ${fmtBRL(resultado)}`,
+            `ciclo-${id}-${ciclo?.numero ?? relatorio.rows.length}`
+          );
+        }
+      }
       // Salvar prazo em localStorage se fornecido
       if (relatorio.prazo !== undefined) {
         try {
@@ -366,6 +405,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         id,
         status: "finalizado",
       });
+
+      // Push: meta finalizada -> lucro total (soma dos ciclos + cooperação)
+      const rel = state.relatorios.find((r) => r.id === id);
+      if (rel) {
+        const somaCiclos = (rel.rows || []).reduce((s, row: any) => s + (Number(row.resultado) || 0), 0);
+        const lucro = somaCiclos + (Number(rel.cooperacao) || 0);
+        dispararPush(
+          "🏁 Meta finalizada",
+          `${nomeRelatorio(rel)} · Lucro total: ${fmtBRL(lucro)}`,
+          `meta-fim-${id}`
+        );
+      }
+
       await relatoriosQuery.refetch();
     } catch (error) {
       console.error("Erro ao finalizar relatório:", error);

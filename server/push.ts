@@ -31,25 +31,44 @@ interface PushPayload {
   title: string;
   body: string;
   url?: string;
+  tag?: string;
 }
 
-/** Envia uma notificação push para todos os aparelhos de um usuário. */
-export async function sendPushToUser(userId: number, payload: PushPayload): Promise<void> {
-  if (!(await garantirVapid())) return;
+export interface PushResult {
+  total: number;   // aparelhos inscritos
+  sent: number;    // entregues com sucesso
+  failed: number;  // falharam
+  removed: number; // inscrições expiradas removidas
+  lastError?: string;
+}
+
+/** Envia uma notificação push para todos os aparelhos de um usuário. Retorna o resumo da entrega. */
+export async function sendPushToUser(userId: number, payload: PushPayload): Promise<PushResult> {
+  const result: PushResult = { total: 0, sent: 0, failed: 0, removed: 0 };
+  if (!(await garantirVapid())) {
+    result.lastError = "VAPID não configurado no servidor";
+    return result;
+  }
   const subs = await getPushSubscriptionsByUser(userId);
+  result.total = subs.length;
   const data = JSON.stringify(payload);
   await Promise.all(subs.map(async (s) => {
     try {
       await webpush.sendNotification(s.subscription as any, data);
+      result.sent++;
     } catch (err: any) {
       // 404/410 = inscrição expirada -> remove
       if (err?.statusCode === 404 || err?.statusCode === 410) {
         await deletePushSubscription(s.endpoint);
+        result.removed++;
       } else {
+        result.failed++;
+        result.lastError = `${err?.statusCode || ""} ${err?.body || err?.message || "erro desconhecido"}`.trim();
         console.error("[Push] Erro ao enviar:", err?.statusCode || err?.message);
       }
     }
   }));
+  return result;
 }
 
 // ── Agendador de avisos de prazo ──

@@ -470,13 +470,30 @@ export const appRouter = router({
         return { success: true };
       }),
     test: protectedProcedure.mutation(async ({ ctx }) => {
-      await sendPushToUser(ctx.user.id, {
+      const r = await sendPushToUser(ctx.user.id, {
         title: "✅ Notificações ativadas!",
-        body: "Você vai receber avisos de prazos das suas metas aqui no celular.",
+        body: "Você vai receber avisos de metas e ciclos aqui no celular.",
         url: "/",
+        tag: `teste-${Date.now()}`,
       });
-      return { success: true };
+      return r; // { total, sent, failed, removed, lastError }
     }),
+    // Disparo em tempo real (meta iniciada / ciclo / meta finalizada)
+    notify: protectedProcedure
+      .input(z.object({
+        title: z.string().min(1),
+        body: z.string().min(1),
+        tag: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await sendPushToUser(ctx.user.id, {
+          title: input.title,
+          body: input.body,
+          tag: input.tag,
+          url: "/",
+        });
+        return { success: true };
+      }),
   }),
 });
 
