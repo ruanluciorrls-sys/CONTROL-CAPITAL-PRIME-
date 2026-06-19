@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.8.4] - 2026-06-19
+
+### Alterado
+- **Ícone do app (tela inicial) com a coroa maior**: a coroa dourada foi ampliada (~1,42x) e centralizada, ocupando melhor o ícone. O fundo navy foi mantido porque o iPhone **não permite ícone de app transparente** (transparência vira fundo preto). Para ver o ícone novo no celular, é preciso remover e re-adicionar o app à tela inicial (cache do iOS).
+
 ## [1.8.3] - 2026-06-18
 
 ### Alterado
