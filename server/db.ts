@@ -458,10 +458,88 @@ export async function ensurePushTable(): Promise<void> {
       subscription jsonb NOT NULL,
       criado_em timestamp DEFAULT now() NOT NULL
     )`);
-    console.log("[Push] Tabela push_subscriptions pronta.");
+    // device = 'mobile' | 'desktop' (para a opção "só celular")
+    await db.execute(sql`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS device text`);
+    // Acumulado de ciclos por dia (para o resumo diário no push)
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS push_daily (
+      user_id integer NOT NULL,
+      dia text NOT NULL,
+      lucro numeric DEFAULT 0 NOT NULL,
+      ciclos integer DEFAULT 0 NOT NULL,
+      PRIMARY KEY (user_id, dia)
+    )`);
+    // Preferências de push por usuário
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS push_prefs (
+      user_id integer PRIMARY KEY,
+      so_celular boolean DEFAULT false NOT NULL
+    )`);
+    console.log("[Push] Tabelas de push prontas.");
   } catch (e) {
-    console.error("[Push] Falha ao criar tabela push_subscriptions:", e);
+    console.error("[Push] Falha ao criar tabelas de push:", e);
   }
+}
+
+/** Dia atual no horário do Brasil (UTC-3), formato YYYY-MM-DD. */
+export function diaBrasil(d: Date = new Date()): string {
+  return new Date(d.getTime() - 3 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
+/** Acumula o resultado de um ciclo no total do dia (para o resumo diário).
+ *  ciclosDelta = 1 para ciclo novo; 0 para ajuste de valor numa edição. */
+export async function acumularCicloDia(userId: number, lucro: number, ciclosDelta: number = 1): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.execute(sql`
+      INSERT INTO push_daily (user_id, dia, lucro, ciclos)
+      VALUES (${userId}, ${diaBrasil()}, ${lucro}, ${ciclosDelta})
+      ON CONFLICT (user_id, dia)
+      DO UPDATE SET lucro = push_daily.lucro + ${lucro}, ciclos = push_daily.ciclos + ${ciclosDelta}
+    `);
+  } catch (e) { console.error("[Push] acumularCicloDia:", e); }
+}
+
+export async function getResumoDia(userId: number, dia: string): Promise<{ lucro: number; ciclos: number } | null> {
+  const db = await getDb();
+  if (!db) return null;
+  try {
+    const res: any = await db.execute(sql`SELECT lucro, ciclos FROM push_daily WHERE user_id = ${userId} AND dia = ${dia} LIMIT 1`);
+    const rows = (res as any).rows ?? res;
+    const row = rows?.[0];
+    return row ? { lucro: Number(row.lucro) || 0, ciclos: Number(row.ciclos) || 0 } : null;
+  } catch { return null; }
+}
+
+export async function getUsuariosComResumoDia(dia: string): Promise<number[]> {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    const res: any = await db.execute(sql`SELECT user_id FROM push_daily WHERE dia = ${dia} AND ciclos > 0`);
+    const rows = (res as any).rows ?? res;
+    return (rows || []).map((x: any) => Number(x.user_id));
+  } catch { return []; }
+}
+
+export async function getPushSoCelular(userId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  try {
+    const res: any = await db.execute(sql`SELECT so_celular FROM push_prefs WHERE user_id = ${userId} LIMIT 1`);
+    const rows = (res as any).rows ?? res;
+    const row = rows?.[0];
+    return !!(row && (row.so_celular === true || row.so_celular === "t"));
+  } catch { return false; }
+}
+
+export async function setPushSoCelular(userId: number, soCelular: boolean): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.execute(sql`
+      INSERT INTO push_prefs (user_id, so_celular) VALUES (${userId}, ${soCelular})
+      ON CONFLICT (user_id) DO UPDATE SET so_celular = ${soCelular}
+    `);
+  } catch (e) { console.error("[Push] setPushSoCelular:", e); }
 }
 
 export async function getPushConfig(): Promise<PushConfig | null> {
@@ -473,15 +551,15 @@ export async function getPushConfig(): Promise<PushConfig | null> {
   } catch { return null; }
 }
 
-export async function savePushSubscription(userId: number, sub: any): Promise<void> {
+export async function savePushSubscription(userId: number, sub: any, device?: string): Promise<void> {
   const db = await getDb();
   if (!db) return;
   const endpoint = sub?.endpoint;
   if (!endpoint) return;
   try {
     await db.insert(pushSubscriptions)
-      .values({ userId, endpoint, subscription: sub } as InsertPushSubscription)
-      .onConflictDoUpdate({ target: pushSubscriptions.endpoint, set: { userId, subscription: sub } });
+      .values({ userId, endpoint, subscription: sub, device: device || null } as InsertPushSubscription)
+      .onConflictDoUpdate({ target: pushSubscriptions.endpoint, set: { userId, subscription: sub, ...(device ? { device } : {}) } });
   } catch (e) {
     console.error("[Push] Falha ao salvar inscrição:", e);
   }

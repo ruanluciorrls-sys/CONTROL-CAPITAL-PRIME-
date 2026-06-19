@@ -207,6 +207,7 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
   userId: integer("user_id").notNull(),
   endpoint: text("endpoint").notNull().unique(),
   subscription: jsonb("subscription").$type<Record<string, unknown>>().notNull(),
+  device: text("device"), // 'mobile' | 'desktop' — para a opção "só celular"
   criadoEm: timestamp("criado_em").defaultNow().notNull(),
 });
 export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;

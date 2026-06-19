@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, getRelatorioById, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma, seedPlataformasIfEmpty } from "./db";
-import { savePushSubscription, deletePushSubscription } from "./db";
+import { savePushSubscription, deletePushSubscription, acumularCicloDia, getPushSoCelular, setPushSoCelular } from "./db";
 import { getPushPublicKey, sendPushToUser, fmtBRL, nomeDaMeta } from "./push";
 import { supabaseUploadJSON } from "./storage";
 import { InsertRelatorio } from "../drizzle/schema";
@@ -258,16 +258,24 @@ export const appRouter = router({
                 if (!temSaque) continue; // sem saque ainda não há resultado pra avisar
                 const rowAntes = antesPorNumero.get(ciclo.numero);
                 const tinhaSaqueAntes = rowAntes ? (Number(rowAntes.saque) || 0) > 0 : false;
-                const resultadoAntes = rowAntes ? (Number(rowAntes.resultado) || 0) : null;
+                const resultadoAntes = rowAntes ? (Number(rowAntes.resultado) || 0) : 0;
                 const resultado = Number(ciclo?.resultado) || 0;
-                // dispara ao colocar o saque, ou quando o resultado muda numa edição
-                if (!tinhaSaqueAntes || resultado !== resultadoAntes) {
+                const avisar = async () => {
                   await sendPushToUser(antes.userId, {
                     title: resultado >= 0 ? "💰 Lucro no ciclo" : "🔻 Prejuízo no ciclo",
                     body: `${nome} · Ciclo ${ciclo?.numero}: ${fmtBRL(resultado)}`,
                     tag: `ciclo-${input.id}-${ciclo?.numero}`,
                     url: "/",
                   });
+                };
+                if (!tinhaSaqueAntes) {
+                  // ciclo novo concluído -> avisa e soma no total do dia
+                  await avisar();
+                  await acumularCicloDia(antes.userId, resultado, 1);
+                } else if (resultado !== resultadoAntes) {
+                  // resultado mudou numa edição -> reavisa e ajusta o total do dia pelo delta
+                  await avisar();
+                  await acumularCicloDia(antes.userId, resultado - resultadoAntes, 0);
                 }
               }
             }
@@ -519,9 +527,9 @@ export const appRouter = router({
       return { publicKey: key };
     }),
     subscribe: protectedProcedure
-      .input(z.object({ subscription: z.any() }))
+      .input(z.object({ subscription: z.any(), device: z.enum(["mobile", "desktop"]).optional() }))
       .mutation(async ({ ctx, input }) => {
-        await savePushSubscription(ctx.user.id, input.subscription);
+        await savePushSubscription(ctx.user.id, input.subscription, input.device);
         return { success: true };
       }),
     unsubscribe: protectedProcedure
@@ -553,6 +561,16 @@ export const appRouter = router({
           tag: input.tag,
           url: "/",
         });
+        return { success: true };
+      }),
+    // Preferência "só celular" (não enviar para desktops)
+    soCelular: protectedProcedure.query(async ({ ctx }) => {
+      return { soCelular: await getPushSoCelular(ctx.user.id) };
+    }),
+    setSoCelular: protectedProcedure
+      .input(z.object({ soCelular: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        await setPushSoCelular(ctx.user.id, input.soCelular);
         return { success: true };
       }),
   }),

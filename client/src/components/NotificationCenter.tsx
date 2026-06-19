@@ -4,7 +4,7 @@ import { Bell, Clock, AlertTriangle, CheckCircle2, X, Trophy, Smartphone, BellRi
 import { useApp } from "@/contexts/AppContext";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { pushSuportado, assinarPush, desassinarPush, getInscricaoAtual, permissaoAtual, precisaInstalarIOS } from "@/lib/push";
+import { pushSuportado, assinarPush, desassinarPush, getInscricaoAtual, permissaoAtual, precisaInstalarIOS, ehCelular } from "@/lib/push";
 
 const LIDAS_KEY = "notificacoes-lidas-v1";
 
@@ -43,6 +43,15 @@ export default function NotificationCenter() {
   const subscribeMut = trpc.push.subscribe.useMutation();
   const unsubscribeMut = trpc.push.unsubscribe.useMutation();
   const testMut = trpc.push.test.useMutation();
+  const soCelularQuery = trpc.push.soCelular.useQuery(undefined, { retry: false });
+  const setSoCelularMut = trpc.push.setSoCelular.useMutation();
+  const [soCelular, setSoCelular] = useState(false);
+  useEffect(() => { if (soCelularQuery.data) setSoCelular(soCelularQuery.data.soCelular); }, [soCelularQuery.data]);
+
+  const alternarSoCelular = async (valor: boolean) => {
+    setSoCelular(valor);
+    try { await setSoCelularMut.mutateAsync({ soCelular: valor }); } catch { setSoCelular(!valor); }
+  };
 
   useEffect(() => {
     getInscricaoAtual().then((s) => setPushAtivo(!!s && permissaoAtual() === "granted"));
@@ -62,7 +71,7 @@ export default function NotificationCenter() {
     setPushCarregando(true);
     try {
       const subscription = await assinarPush(publicKey);
-      await subscribeMut.mutateAsync({ subscription });
+      await subscribeMut.mutateAsync({ subscription, device: ehCelular() });
       setPushAtivo(true);
       // Envia um teste e mostra o resultado REAL da entrega (não mente "ativado")
       try {
@@ -315,15 +324,31 @@ export default function NotificationCenter() {
           {pushSuportado() && (
             <div className="px-4 py-3 border-t border-white/8 shrink-0" style={{ background: "rgba(255,255,255,0.02)" }}>
               {pushAtivo ? (
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
-                    <BellRing size={13} /> Avisos no celular ativos
-                  </span>
-                  <button onClick={handleDesativarPush} disabled={pushCarregando}
-                    className="text-[10px] font-bold text-white/30 hover:text-white/60 transition-colors disabled:opacity-50"
-                  >
-                    Desativar
-                  </button>
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
+                      <BellRing size={13} /> Avisos no celular ativos
+                    </span>
+                    <button onClick={handleDesativarPush} disabled={pushCarregando}
+                      className="text-[10px] font-bold text-white/30 hover:text-white/60 transition-colors disabled:opacity-50"
+                    >
+                      Desativar
+                    </button>
+                  </div>
+                  <label className="flex items-center justify-between gap-2 cursor-pointer select-none">
+                    <span className="text-[10px] font-bold text-white/45">Receber só no celular (não no PC)</span>
+                    <button
+                      type="button"
+                      onClick={() => alternarSoCelular(!soCelular)}
+                      className="relative w-9 h-5 rounded-full transition-colors shrink-0"
+                      style={{ background: soCelular ? "#d4a017" : "rgba(255,255,255,0.15)" }}
+                      aria-pressed={soCelular}
+                    >
+                      <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all"
+                        style={{ left: soCelular ? "18px" : "2px" }}
+                      />
+                    </button>
+                  </label>
                 </div>
               ) : (
                 <button onClick={handleAtivarPush} disabled={pushCarregando}

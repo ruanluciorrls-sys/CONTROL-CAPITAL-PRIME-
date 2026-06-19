@@ -4,6 +4,12 @@ export function pushSuportado(): boolean {
   return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 }
 
+/** Detecta se este aparelho é celular/tablet (para a opção "só celular"). */
+export function ehCelular(): "mobile" | "desktop" {
+  if (typeof navigator === "undefined") return "desktop";
+  return /iphone|ipad|ipod|android|mobile/i.test(navigator.userAgent) ? "mobile" : "desktop";
+}
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");

@@ -1,6 +1,6 @@
 // @ts-ignore - web-push não tem tipos embutidos
 import webpush from "web-push";
-import { getPushSubscriptionsByUser, getAllPushSubscriptions, deletePushSubscription, getCasasByUserId } from "./db";
+import { getPushSubscriptionsByUser, getAllPushSubscriptions, deletePushSubscription, getCasasByUserId, getPushSoCelular, getUsuariosComResumoDia, getResumoDia, diaBrasil } from "./db";
 
 // Chaves VAPID — usa variáveis de ambiente (Fly secrets) se existirem,
 // senão usa as chaves padrão (geradas para este app).
@@ -61,7 +61,12 @@ export async function sendPushToUser(userId: number, payload: PushPayload): Prom
     result.lastError = "VAPID não configurado no servidor";
     return result;
   }
-  const subs = await getPushSubscriptionsByUser(userId);
+  let subs = await getPushSubscriptionsByUser(userId);
+  // Opção "só celular": não envia para dispositivos marcados como desktop
+  // (mantém celular e inscrições antigas sem device definido).
+  if (await getPushSoCelular(userId)) {
+    subs = subs.filter((s) => (s as any).device !== "desktop");
+  }
   result.total = subs.length;
   const data = JSON.stringify(payload);
   await Promise.all(subs.map(async (s) => {
@@ -134,7 +139,33 @@ async function checarPrazosEEnviar(): Promise<void> {
   console.log("[Push] Avisos diários de prazo enviados:", hojeStr);
 }
 
-/** Inicia o agendador: checa de hora em hora; envia o resumo diário às ~9h. */
+let ultimoResumoDiario = "";
+
+/** Resumo do dia: "Hoje você lucrou R$ X em N ciclos" — enviado uma vez à noite. */
+async function enviarResumoDiario(): Promise<void> {
+  const dia = diaBrasil();
+  if (ultimoResumoDiario === dia) return; // já enviou hoje
+  const usuarios = await getUsuariosComResumoDia(dia);
+  for (const userId of usuarios) {
+    try {
+      const r = await getResumoDia(userId, dia);
+      if (!r || r.ciclos === 0) continue;
+      const sinal = r.lucro >= 0 ? "lucrou" : "teve prejuízo de";
+      await sendPushToUser(userId, {
+        title: r.lucro >= 0 ? "📊 Resumo do dia" : "📊 Resumo do dia",
+        body: `Hoje você ${sinal} ${fmtBRL(r.lucro)} em ${r.ciclos} ciclo${r.ciclos > 1 ? "s" : ""}.`,
+        tag: `resumo-${dia}`,
+        url: "/",
+      });
+    } catch (e) {
+      console.error("[Push] Erro no resumo diário do usuário", userId, e);
+    }
+  }
+  ultimoResumoDiario = dia;
+  console.log("[Push] Resumo diário enviado:", dia);
+}
+
+/** Inicia o agendador: checa de hora em hora; prazos ~9h e resumo do dia ~20h (Brasil). */
 export function iniciarAgendadorPush(): void {
   const tick = async () => {
     try {
@@ -142,6 +173,10 @@ export function iniciarAgendadorPush(): void {
       // servidor usa UTC; 12h UTC ≈ 9h no Brasil (UTC-3). Trava diária evita repetição.
       if (agora.getUTCHours() >= 12) {
         await checarPrazosEEnviar();
+      }
+      // 23h UTC ≈ 20h no Brasil — resumo do dia. Trava por dia (Brasil) evita repetição.
+      if (agora.getUTCHours() >= 23) {
+        await enviarResumoDiario();
       }
     } catch (e) {
       console.error("[Push] Erro no agendador:", e);
