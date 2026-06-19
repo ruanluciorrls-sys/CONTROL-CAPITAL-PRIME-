@@ -7,6 +7,22 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.9.0] - 2026-06-19
+
+### Adicionado (lote de melhorias do roadmap)
+- **Resumo diário no push**: à noite (~20h Brasil) chega um aviso "Hoje você lucrou R$ X em N ciclos" (acumula o resultado dos ciclos do dia no servidor, tabela `push_daily`; ajusta o total quando um ciclo é editado).
+- **Opção "só no celular"**: toggle no rodapé do sino para não receber os avisos no PC (cada inscrição guarda se é `mobile`/`desktop`; o servidor não envia para desktops quando a opção está ligada).
+- **Histórico de avisos no sino**: o servidor registra cada ciclo em `push_log` (com data) e o sino mostra os ciclos recentes junto das metas finalizadas e prazos.
+- **Selecionar e finalizar vários relatórios de uma vez**: botão "Selecionar vários" na aba Relatórios, com checkbox nos cards, "Marcar todos" e "Finalizar selecionados".
+- **Ordenação e paginação em Contas**: seletor de ordenação (mais recentes / maior valor / casa / usuário) e paginação de 12 por página.
+
+### Alterado
+- **Tema claro**: melhor contraste do texto secundário/muted (só afeta o modo claro). O app continua dark-first por design.
+
+### Infra
+- Ponto de restauração `v1.8.4-estavel` criado antes deste lote.
+- Tabelas `push_daily`, `push_prefs` e `push_log` criadas automaticamente (sem migration manual).
+
 ## [1.8.4] - 2026-06-19
 
 ### Alterado

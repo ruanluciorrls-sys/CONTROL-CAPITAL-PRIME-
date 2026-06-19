@@ -126,14 +126,14 @@ Ordenado por impacto. Itens marcados **[Quick]** são correções rápidas e seg
 ### Prioridade MÉDIA (valor pro operador)
 - [ ] **Exportação em PDF de relatórios** (já estava no `todo.md` como desejado).
 - [ ] **Mais métricas/análise e comparação entre períodos** no Faturamento/Dashboard.
-- [ ] **Ordenação por colunas e paginação** em tabelas grandes (relatórios/contas).
-- [ ] **Preferência de notificação "somente celular"** + agrupar avisos para não floodar.
-- [ ] **Resumo diário no push** (ex.: "Hoje você lucrou R$ X em N ciclos").
+- [x] ~~Ordenação e paginação~~ ✅ v1.9.0 (Contas). _Falta aplicar em Relatórios Finalizados se necessário._
+- [x] ~~Preferência "somente celular"~~ ✅ v1.9.0 (toggle no sino + filtro por device no servidor).
+- [x] ~~Resumo diário no push~~ ✅ v1.9.0 (push_daily + envio ~20h Brasil).
 
 ### Prioridade BAIXA (refino)
-- [ ] Histórico dos eventos de push dentro do sino (meta iniciada/ciclo/finalizada).
-- [ ] Bulk actions (selecionar e finalizar/mover vários relatórios).
-- [ ] Tema claro revisado (hoje o app é focado no dark navy+gold).
+- [x] ~~Histórico dos eventos de push no sino~~ ✅ v1.9.0 (ciclos via `push_log`).
+- [x] ~~Bulk actions (finalizar vários relatórios)~~ ✅ v1.9.0.
+- [~] Tema claro revisado — v1.9.0 melhorou o contraste; redesign completo do modo claro segue pendente (app é dark-first).
 
 ## 8. Regras para a IA que for editar
 
