@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Clock, AlertTriangle, CheckCircle2, X, Trophy, Smartphone, BellRing } from "lucide-react";
+import { Bell, Clock, AlertTriangle, CheckCircle2, X, Trophy, Smartphone, BellRing, Coins } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -14,7 +14,7 @@ interface Notificacao {
   msg: string;
   cor: string;
   ordem: number; // menor = mais urgente / mais recente
-  icone: "vencido" | "hoje" | "proximo" | "finalizada";
+  icone: "vencido" | "hoje" | "proximo" | "finalizada" | "ciclo";
 }
 
 function carregarLidas(): Set<string> {
@@ -43,6 +43,7 @@ export default function NotificationCenter() {
   const subscribeMut = trpc.push.subscribe.useMutation();
   const unsubscribeMut = trpc.push.unsubscribe.useMutation();
   const testMut = trpc.push.test.useMutation();
+  const historicoQuery = trpc.push.historico.useQuery(undefined, { retry: false, refetchInterval: 30000 });
   const soCelularQuery = trpc.push.soCelular.useQuery(undefined, { retry: false });
   const setSoCelularMut = trpc.push.setSoCelular.useMutation();
   const [soCelular, setSoCelular] = useState(false);
@@ -150,9 +151,19 @@ export default function NotificationCenter() {
     }
     prazos.sort((a, b) => a.ordem - b.ordem);
 
-    // Finalizadas (boas notícias) no topo, depois os prazos
-    return [...finalizadas, ...prazos];
-  }, [state.casas, state.relatorios]);
+    // 3) Histórico de avisos de ciclo (vindo do servidor, com data)
+    const historico: Notificacao[] = (historicoQuery.data || []).map((h) => ({
+      id: `log-${h.id}`,
+      titulo: h.titulo,
+      msg: h.corpo,
+      cor: h.cor || "#d4a017",
+      ordem: -new Date(h.criadoEm).getTime(),
+      icone: "ciclo",
+    }));
+
+    // Finalizadas + ciclos recentes no topo, depois os prazos
+    return [...finalizadas, ...historico, ...prazos];
+  }, [state.casas, state.relatorios, historicoQuery.data]);
 
   const naoLidas = notificacoes.filter((n) => !lidas.has(n.id));
   const totalNaoLidas = naoLidas.length;
@@ -213,6 +224,7 @@ export default function NotificationCenter() {
 
   const Icone = ({ tipo }: { tipo: Notificacao["icone"] }) => {
     if (tipo === "finalizada") return <Trophy size={14} />;
+    if (tipo === "ciclo") return <Coins size={14} />;
     if (tipo === "vencido") return <AlertTriangle size={14} />;
     return <Clock size={14} />;
   };

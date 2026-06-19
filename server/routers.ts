@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, getRelatorioById, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma, seedPlataformasIfEmpty } from "./db";
-import { savePushSubscription, deletePushSubscription, acumularCicloDia, getPushSoCelular, setPushSoCelular } from "./db";
+import { savePushSubscription, deletePushSubscription, acumularCicloDia, getPushSoCelular, setPushSoCelular, logPush, getPushLog } from "./db";
 import { getPushPublicKey, sendPushToUser, fmtBRL, nomeDaMeta } from "./push";
 import { supabaseUploadJSON } from "./storage";
 import { InsertRelatorio } from "../drizzle/schema";
@@ -267,6 +267,7 @@ export const appRouter = router({
                     tag: `ciclo-${input.id}-${ciclo?.numero}`,
                     url: "/",
                   });
+                  await logPush(antes.userId, nome, `Ciclo ${ciclo?.numero}: ${fmtBRL(resultado)}`, resultado >= 0 ? "#4ade80" : "#f87171");
                 };
                 if (!tinhaSaqueAntes) {
                   // ciclo novo concluído -> avisa e soma no total do dia
@@ -563,6 +564,10 @@ export const appRouter = router({
         });
         return { success: true };
       }),
+    // Histórico de avisos (ciclos) para o sino
+    historico: protectedProcedure.query(async ({ ctx }) => {
+      return getPushLog(ctx.user.id, 30);
+    }),
     // Preferência "só celular" (não enviar para desktops)
     soCelular: protectedProcedure.query(async ({ ctx }) => {
       return { soCelular: await getPushSoCelular(ctx.user.id) };

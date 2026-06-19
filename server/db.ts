@@ -473,6 +473,15 @@ export async function ensurePushTable(): Promise<void> {
       user_id integer PRIMARY KEY,
       so_celular boolean DEFAULT false NOT NULL
     )`);
+    // Histórico de avisos (para o sino mostrar os ciclos passados)
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS push_log (
+      id serial PRIMARY KEY,
+      user_id integer NOT NULL,
+      titulo text NOT NULL,
+      corpo text NOT NULL,
+      cor text,
+      criado_em timestamp DEFAULT now() NOT NULL
+    )`);
     console.log("[Push] Tabelas de push prontas.");
   } catch (e) {
     console.error("[Push] Falha ao criar tabelas de push:", e);
@@ -517,6 +526,34 @@ export async function getUsuariosComResumoDia(dia: string): Promise<number[]> {
     const res: any = await db.execute(sql`SELECT user_id FROM push_daily WHERE dia = ${dia} AND ciclos > 0`);
     const rows = (res as any).rows ?? res;
     return (rows || []).map((x: any) => Number(x.user_id));
+  } catch { return []; }
+}
+
+/** Registra um aviso no histórico (para o sino mostrar). Mantém os últimos ~50 por usuário. */
+export async function logPush(userId: number, titulo: string, corpo: string, cor?: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.execute(sql`INSERT INTO push_log (user_id, titulo, corpo, cor) VALUES (${userId}, ${titulo}, ${corpo}, ${cor || null})`);
+    await db.execute(sql`DELETE FROM push_log WHERE user_id = ${userId} AND id NOT IN (
+      SELECT id FROM push_log WHERE user_id = ${userId} ORDER BY id DESC LIMIT 50
+    )`);
+  } catch (e) { console.error("[Push] logPush:", e); }
+}
+
+export async function getPushLog(userId: number, limit: number = 30): Promise<Array<{ id: number; titulo: string; corpo: string; cor: string | null; criadoEm: string }>> {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    const res: any = await db.execute(sql`SELECT id, titulo, corpo, cor, criado_em FROM push_log WHERE user_id = ${userId} ORDER BY id DESC LIMIT ${limit}`);
+    const rows = (res as any).rows ?? res;
+    return (rows || []).map((r: any) => ({
+      id: Number(r.id),
+      titulo: String(r.titulo),
+      corpo: String(r.corpo),
+      cor: r.cor ?? null,
+      criadoEm: r.criado_em instanceof Date ? r.criado_em.toISOString() : String(r.criado_em),
+    }));
   } catch { return []; }
 }
 
