@@ -1,6 +1,6 @@
 import { useApp } from "@/contexts/AppContext";
 import { trpc } from "@/lib/trpc";
-import { Plus, Trash2, Copy, Clock, ChevronDown, X, Check } from "lucide-react";
+import { Plus, Trash2, Copy, Clock, ChevronDown, X, Check, CheckCircle2, Circle, CheckCheck } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -22,11 +22,15 @@ interface RelatorioCardProps {
   onSelect: () => void;
   onDuplicate: (e: React.MouseEvent) => void;
   onDelete: (e: React.MouseEvent) => void;
+  selectMode?: boolean;
+  checked?: boolean;
+  onToggleCheck?: (e: React.MouseEvent) => void;
 }
 
 function RelatorioCard({
   rel, accent, isSelected, nome, loginCasa, lucroTotal,
   prazoDate, isVencido, countdown, onSelect, onDuplicate, onDelete,
+  selectMode, checked, onToggleCheck,
 }: RelatorioCardProps) {
   const [loginCopiado, setLoginCopiado] = useState(false);
 
@@ -40,16 +44,28 @@ function RelatorioCard({
 
   return (
     <div
-      onClick={onSelect}
+      onClick={(e) => { if (selectMode && onToggleCheck) { onToggleCheck(e); } else { onSelect(); } }}
       className="group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
       style={{
         background: isSelected
           ? `linear-gradient(145deg, ${accent}18, ${accent}06)`
           : "linear-gradient(145deg, #070e20, #0c1524)",
-        border: `1px solid ${isSelected ? accent + "50" : "rgba(255,255,255,0.08)"}`,
-        boxShadow: isSelected ? `0 0 24px ${accent}20` : "none",
+        border: `1px solid ${checked ? "#d4a017" : isSelected ? accent + "50" : "rgba(255,255,255,0.08)"}`,
+        boxShadow: checked ? "0 0 24px rgba(212,160,23,0.25)" : isSelected ? `0 0 24px ${accent}20` : "none",
       }}
     >
+      {/* Checkbox de seleção múltipla */}
+      {selectMode && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleCheck?.(e); }}
+          className="absolute top-2 right-2 z-10 w-6 h-6 rounded-lg flex items-center justify-center"
+          style={{ color: checked ? "#d4a017" : "rgba(255,255,255,0.45)", background: "rgba(0,0,0,0.4)" }}
+          title={checked ? "Desmarcar" : "Selecionar"}
+        >
+          {checked ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+        </button>
+      )}
+
       {/* Barra de cor no topo */}
       <div className="h-[2px] w-full" style={{ background: accent }} />
 
@@ -391,6 +407,25 @@ export default function Relatorios() {
   });
   const [countdown, setCountdown] = useState("");
   const [selectedLixeira, setSelectedLixeira] = useState<Set<string>>(new Set());
+  const [selectMode, setSelectMode] = useState(false);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+
+  const toggleSelecionado = (id: string) => {
+    setSelecionados((prev) => {
+      const novo = new Set(prev);
+      novo.has(id) ? novo.delete(id) : novo.add(id);
+      return novo;
+    });
+  };
+
+  const finalizarSelecionados = () => {
+    const ids = [...selecionados];
+    if (ids.length === 0) return;
+    ids.forEach((id) => finalizarRelatorio(id));
+    toast.success(`${ids.length} relatório(s) finalizado(s)!`);
+    setSelecionados(new Set());
+    setSelectMode(false);
+  };
 
   useEffect(() => {
     if (!newRelatorioData.prazo) { setCountdown(""); return; }
@@ -659,10 +694,44 @@ export default function Relatorios() {
             {/* Lista de Relatórios */}
             {relatoriosAtivos.length > 0 && (
               <div className="rounded-2xl p-5 border border-white/8" style={{ background: "rgba(255,255,255,0.02)" }}>
-                <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center justify-between mb-5 gap-2 flex-wrap">
                   <h3 className="text-sm font-black text-white/70 uppercase tracking-wider">Relatórios Criados</h3>
-                  <span className="text-[10px] font-bold text-white/25">{relatoriosAtivos.length} ativo(s)</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-white/25">{relatoriosAtivos.length} ativo(s)</span>
+                    <button
+                      onClick={() => { setSelectMode((v) => !v); setSelecionados(new Set()); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
+                      style={selectMode
+                        ? { background: "rgba(212,160,23,0.15)", color: "#d4a017", border: "1px solid rgba(212,160,23,0.35)" }
+                        : { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.1)" }}
+                    >
+                      <CheckCheck size={13} /> {selectMode ? "Cancelar" : "Selecionar vários"}
+                    </button>
+                  </div>
                 </div>
+
+                {/* Barra de ação em massa */}
+                {selectMode && (
+                  <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-xl flex-wrap"
+                    style={{ background: "rgba(212,160,23,0.08)", border: "1px solid rgba(212,160,23,0.25)" }}
+                  >
+                    <span className="text-xs font-bold text-white/70">
+                      {selecionados.size} selecionado(s)
+                      <button
+                        onClick={() => setSelecionados(new Set(relatoriosAtivos.map((r) => r.id)))}
+                        className="ml-3 text-[10px] font-bold text-[#d4a017] hover:underline"
+                      >Marcar todos</button>
+                    </span>
+                    <button
+                      onClick={finalizarSelecionados}
+                      disabled={selecionados.size === 0}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-black text-[#050b18] transition-all hover:scale-[1.02] disabled:opacity-40"
+                      style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                    >
+                      <Check size={14} /> Finalizar selecionados
+                    </button>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {(() => {
                     const accentColors = [
@@ -696,6 +765,9 @@ export default function Relatorios() {
                           onSelect={() => setSelectedRelatorioId(rel.id)}
                           onDuplicate={(e) => { e.stopPropagation(); duplicarRelatorio(rel.id); }}
                           onDelete={(e) => { e.stopPropagation(); handleDeleteRelatorio(rel.id); }}
+                          selectMode={selectMode}
+                          checked={selecionados.has(rel.id)}
+                          onToggleCheck={() => toggleSelecionado(rel.id)}
                         />
                       );
                     });
