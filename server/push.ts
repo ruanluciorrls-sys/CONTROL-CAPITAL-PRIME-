@@ -27,6 +27,18 @@ export async function getPushPublicKey(): Promise<string | null> {
   return VAPID_PUBLIC || null;
 }
 
+/** Formata valor em R$ com sinal (+/-). Ex.: +R$ 1.756,00 */
+export function fmtBRL(v: number): string {
+  return `${v >= 0 ? "+" : "-"}R$ ${Math.abs(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** Monta o nome de exibição da meta: "CASA-agente" (sem traço/espaço sobrando). */
+export async function nomeDaMeta(userId: number, casaId: string, agente?: string | null): Promise<string> {
+  const casas = await getCasasByUserId(userId);
+  const base = (casas.find((c) => c.id === casaId)?.nome || "Meta").replace(/[\s-]+$/, "").trim();
+  return `${base}${agente ? `-${agente}` : ""}`;
+}
+
 interface PushPayload {
   title: string;
   body: string;

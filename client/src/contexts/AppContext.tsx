@@ -139,22 +139,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   
   const updateSettingsMutation = trpc.settings.update.useMutation();
 
-  // Push em tempo real (meta iniciada / ciclo / meta finalizada)
-  const notifyPushMutation = trpc.push.notify.useMutation();
-
-  // Nome de exibição do relatório: "CASA-agente" (sem traço/espaços sobrando)
-  const nomeRelatorio = (rel: { casaId: string; agente?: string }): string => {
-    const base = (state.casas.find((c) => c.id === rel.casaId)?.nome || "Meta").replace(/[\s-]+$/, "").trim();
-    return `${base}${rel.agente ? `-${rel.agente}` : ""}`;
-  };
-
-  const fmtBRL = (v: number): string =>
-    `${v >= 0 ? "+" : "-"}R$ ${Math.abs(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-  // Dispara push (fire-and-forget — não bloqueia a UI nem mostra erro)
-  const dispararPush = (title: string, body: string, tag: string) => {
-    try { notifyPushMutation.mutate({ title, body, tag }); } catch {}
-  };
+  // NOTA: as notificações push (meta iniciada / ciclo finalizado / meta finalizada)
+  // são disparadas no SERVIDOR (server/routers.ts), não aqui. Isso garante entrega
+  // confiável independente do cache do PWA e funciona a partir de qualquer dispositivo.
 
   // Carregar dados do tRPC
   useEffect(() => {
@@ -327,13 +314,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
-      // Push: meta iniciada
-      dispararPush(
-        "🚀 Meta iniciada",
-        `${nomeRelatorio(relatorio)} começou agora.`,
-        `meta-iniciada-${relId || Date.now()}`
-      );
-
       // Recarregar relatórios
       await relatoriosQuery.refetch();
     } catch (error) {
@@ -343,30 +323,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const updateRelatorio = async (id: string, relatorio: Partial<RelatorioData>) => {
     try {
-      // Push: notifica APENAS quando um ciclo é FINALIZADO (depósito E saque preenchidos).
-      // O baú entra no cálculo se houver, mas não é obrigatório. Dispara uma única vez,
-      // na transição de "incompleto" -> "completo" (evita o falso prejuízo de linha só com depósito).
-      const anteriorRel = state.relatorios.find((r) => r.id === id);
-      const naoDiminuiu = (relatorio.rows?.length ?? 0) >= (anteriorRel?.rows?.length ?? 0);
-      if (relatorio.rows && naoDiminuiu) {
-        const anterior = anteriorRel;
-        const nome = anterior ? nomeRelatorio(anterior) : "Meta";
-        const completo = (row: any) => (Number(row?.deposito) || 0) > 0 && (Number(row?.saque) || 0) > 0;
-        const antesPorNumero = new Map<number, any>(
-          (anterior?.rows || []).map((row: any) => [row.numero, row])
-        );
-        for (const ciclo of relatorio.rows as any[]) {
-          const eraCompleto = completo(antesPorNumero.get(ciclo.numero));
-          if (completo(ciclo) && !eraCompleto) {
-            const resultado = Number(ciclo?.resultado) || 0;
-            dispararPush(
-              resultado >= 0 ? "💰 Lucro no ciclo" : "🔻 Prejuízo no ciclo",
-              `${nome} · Ciclo ${ciclo?.numero}: ${fmtBRL(resultado)}`,
-              `ciclo-${id}-${ciclo?.numero}`
-            );
-          }
-        }
-      }
       // Salvar prazo em localStorage se fornecido
       if (relatorio.prazo !== undefined) {
         try {
@@ -414,19 +370,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         id,
         status: "finalizado",
       });
-
-      // Push: meta finalizada -> lucro total (soma dos ciclos + cooperação)
-      const rel = state.relatorios.find((r) => r.id === id);
-      if (rel) {
-        const somaCiclos = (rel.rows || []).reduce((s, row: any) => s + (Number(row.resultado) || 0), 0);
-        const lucro = somaCiclos + (Number(rel.cooperacao) || 0);
-        dispararPush(
-          "🏁 Meta finalizada",
-          `${nomeRelatorio(rel)} · Lucro total: ${fmtBRL(lucro)}`,
-          `meta-fim-${id}`
-        );
-      }
-
       await relatoriosQuery.refetch();
     } catch (error) {
       console.error("Erro ao finalizar relatório:", error);

@@ -274,6 +274,12 @@ export async function getRelatoriosByUserId(userId: number): Promise<Relatorio[]
   return db.select().from(relatorios).where(eq(relatorios.userId, userId));
 }
 
+export async function getRelatorioById(id: string): Promise<Relatorio | null> {
+  const db = await getDb();
+  if (!db) return null;
+  return db.select().from(relatorios).where(eq(relatorios.id, id)).limit(1).then(r => r[0] || null);
+}
+
 export async function createRelatorio(relatorio: InsertRelatorio): Promise<Relatorio | null> {
   const db = await getDb();
   if (!db) return null;

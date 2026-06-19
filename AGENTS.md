@@ -73,7 +73,11 @@ todo.md          → histórico de tarefas (legado, quase tudo concluído)
 - **Mobile-first**: alvos de toque ≥ 44px; inputs com fonte ≥16px (evita zoom do iPhone); cuidado com overflow horizontal e flexbox encolhendo botões (use `shrink-0` em barras de abas roláveis).
 - **Listas roláveis de abas**: `flex overflow-x-auto` + `shrink-0` nos itens (senão o texto trunca).
 - **Popovers/menus**: renderize em **portal** (`createPortal`) com posição calculada por `getBoundingClientRect`, e **limite a altura ao espaço disponível** para nunca cortar fora da tela (ver `NotificationCenter.tsx`).
-- **Push**: dispare via `trpc.push.notify` (fire-and-forget, não bloqueie a UI). Use **tag única** por evento para não sobrescrever no celular.
+- **Push de eventos de operação é SERVER-SIDE** (em `server/routers.ts`, dentro das mutations `relatorios.create` e `relatorios.update`), **não no cliente**. Motivo: o PWA do celular guarda versão antiga em cache, e a lógica no cliente só rodaria a partir do aparelho que fez a ação. No servidor (Fly.io) sempre roda a versão nova e dispara para todos os aparelhos do usuário via `sendPushToUser`. Use **tag única** por evento. Helpers: `fmtBRL`, `nomeDaMeta` em `server/push.ts`.
+  - **Meta iniciada** → em `relatorios.create`.
+  - **Ciclo finalizado** (lucro/prejuízo) → em `relatorios.update`, quando uma linha passa a ter **depósito E saque** preenchidos (transição incompleto→completo, dispara uma vez; baú entra no cálculo se houver).
+  - **Meta finalizada** (lucro total) → em `relatorios.update` quando `status` vira `finalizado`.
+  - `trpc.push.notify`/`push.test` existem para testes manuais; o fluxo automático não depende deles.
 
 ## 5. Como rodar / construir
 

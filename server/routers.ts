@@ -3,9 +3,9 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma, seedPlataformasIfEmpty } from "./db";
+import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, getRelatorioById, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma, seedPlataformasIfEmpty } from "./db";
 import { savePushSubscription, deletePushSubscription } from "./db";
-import { getPushPublicKey, sendPushToUser } from "./push";
+import { getPushPublicKey, sendPushToUser, fmtBRL, nomeDaMeta } from "./push";
 import { supabaseUploadJSON } from "./storage";
 import { InsertRelatorio } from "../drizzle/schema";
 import { nanoid } from "nanoid";
@@ -206,6 +206,16 @@ export const appRouter = router({
           status: "ativo",
           cooperacao: input.cooperacao || "0",
         });
+        // Push: meta iniciada (no servidor — sempre roda a versão nova, independe do cache do celular)
+        try {
+          const nome = await nomeDaMeta(ctx.user.id, input.casaId, input.agente);
+          await sendPushToUser(ctx.user.id, {
+            title: "🚀 Meta iniciada",
+            body: `${nome} começou agora.`,
+            tag: `meta-iniciada-${relatorio?.id ?? Date.now()}`,
+            url: "/",
+          });
+        } catch (e) { console.error("[Push] meta iniciada:", e); }
         // Retorna com prazo do input para o cliente salvar no localStorage
         return relatorio ? { ...relatorio, prazoInput: input.prazo || null } : { success: false };
       }),
@@ -218,7 +228,9 @@ export const appRouter = router({
         cooperacao: z.string().optional(),
         status: z.enum(["ativo", "finalizado", "lixeira"]).optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const antes = await getRelatorioById(input.id);
+
         const updateData: Partial<InsertRelatorio> = {};
         if (input.agente !== undefined) updateData.agente = input.agente;
         // prazo omitido intencionalmente — coluna não existe no banco ainda
@@ -227,6 +239,49 @@ export const appRouter = router({
         if (input.cooperacao !== undefined) updateData.cooperacao = input.cooperacao;
         if (input.status !== undefined) updateData.status = input.status;
         await updateRelatorio(input.id, updateData);
+
+        // Push (no servidor — confiável, independe do cache do celular)
+        if (antes) {
+          try {
+            const nome = await nomeDaMeta(antes.userId, antes.casaId, antes.agente);
+
+            // 1) Ciclo FINALIZADO = linha com depósito E saque preenchidos.
+            //    Dispara uma vez, na transição incompleto -> completo. Não dispara em exclusão.
+            const naoDiminuiu = (input.rows?.length ?? 0) >= ((antes.rows as any[])?.length ?? 0);
+            if (input.rows && naoDiminuiu) {
+              const completo = (row: any) => (Number(row?.deposito) || 0) > 0 && (Number(row?.saque) || 0) > 0;
+              const antesPorNumero = new Map<number, any>(
+                ((antes.rows as any[]) || []).map((r) => [r.numero, r])
+              );
+              for (const ciclo of input.rows as any[]) {
+                if (completo(ciclo) && !completo(antesPorNumero.get(ciclo.numero))) {
+                  const resultado = Number(ciclo?.resultado) || 0;
+                  await sendPushToUser(antes.userId, {
+                    title: resultado >= 0 ? "💰 Lucro no ciclo" : "🔻 Prejuízo no ciclo",
+                    body: `${nome} · Ciclo ${ciclo?.numero}: ${fmtBRL(resultado)}`,
+                    tag: `ciclo-${input.id}-${ciclo?.numero}`,
+                    url: "/",
+                  });
+                }
+              }
+            }
+
+            // 2) Meta finalizada -> lucro total (soma dos ciclos + cooperação)
+            if (input.status === "finalizado" && antes.status !== "finalizado") {
+              const rowsFinais = (input.rows as any[]) ?? (antes.rows as any[]) ?? [];
+              const somaCiclos = rowsFinais.reduce((s, r) => s + (Number(r?.resultado) || 0), 0);
+              const coop = Number(input.cooperacao ?? antes.cooperacao) || 0;
+              const lucro = somaCiclos + coop;
+              await sendPushToUser(antes.userId, {
+                title: "🏁 Meta finalizada",
+                body: `${nome} · Lucro total: ${fmtBRL(lucro)}`,
+                tag: `meta-fim-${input.id}`,
+                url: "/",
+              });
+            }
+          } catch (e) { console.error("[Push] eventos de relatório:", e); }
+        }
+
         return { success: true };
       }),
     delete: protectedProcedure

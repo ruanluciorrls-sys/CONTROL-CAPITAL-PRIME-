@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.8.2] - 2026-06-18
+
+### Alterado
+- **Notificações push agora são disparadas no SERVIDOR** (antes era no cliente). As três notificações (meta iniciada, ciclo finalizado, meta finalizada) saem de `server/routers.ts` (mutations `relatorios.create`/`update`). Motivo: no cliente, o PWA do celular guardava versão antiga em cache e a notificação podia não disparar; além disso só funcionaria a partir do aparelho que fez a ação. No servidor (Fly.io) sempre roda a versão nova e entrega para todos os aparelhos do usuário — **confiável e independente do cache**.
+
 ## [1.8.1] - 2026-06-18
 
 ### Corrigido
