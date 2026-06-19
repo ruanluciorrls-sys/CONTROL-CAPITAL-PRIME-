@@ -61,9 +61,9 @@
   --popover: rgba(255, 255, 255, 0.95);
   --popover-foreground: #0f1e45;
   --secondary: rgba(237, 240, 248, 0.7);
-  --secondary-foreground: #2a3a6b;
+  --secondary-foreground: #233158;
   --muted: #e2e8f5;
-  --muted-foreground: #5a6a9a;
+  --muted-foreground: #46537a;
   --accent: var(--prime-gold);
   --accent-foreground: #0f1e45;
   --destructive: #e53e3e;
