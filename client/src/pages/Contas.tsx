@@ -42,6 +42,22 @@ export default function Contas() {
     action: "delete" | "restore" | "deleteMultiple" | "changeStatus" | null;
   }>({ isOpen: false, contaId: null, action: null });
   const [bulkStatusAction, setBulkStatusAction] = useState<"sacado" | "sacando" | "bloqueado" | null>(null);
+  const [ordenarPor, setOrdenarPor] = useState<"recente" | "valor" | "casa" | "usuario">("recente");
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 12;
+
+  // Ordena e pagina as contas
+  const contasOrdenadas = [...filteredContas].sort((a, b) => {
+    if (ordenarPor === "valor") return (Number(b.valor) || 0) - (Number(a.valor) || 0);
+    if (ordenarPor === "casa") return String(a.casa || "").localeCompare(String(b.casa || ""));
+    if (ordenarPor === "usuario") return String(a.usuario || "").localeCompare(String(b.usuario || ""));
+    return new Date(b.criadoEm || 0).getTime() - new Date(a.criadoEm || 0).getTime();
+  });
+  const totalPaginas = Math.max(1, Math.ceil(contasOrdenadas.length / POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const contasVisiveis = contasOrdenadas.slice((paginaAtual - 1) * POR_PAGINA, paginaAtual * POR_PAGINA);
+  // Volta para a primeira página ao mudar filtro/ordenação
+  useEffect(() => { setPagina(1); }, [ordenarPor, filteredContas.length]);
 
   // Carregar contas ao montar
   const { data: contasData, refetch } = trpc.contas.list.useQuery();
@@ -638,21 +654,34 @@ export default function Contas() {
             />
           ) : (
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <h2 className="text-xl font-bold text-foreground dark:text-white">
                   Contas Salvas ({filteredContas.length})
                 </h2>
-                <button
-                  onClick={selectAllContas}
-                  className="text-xs px-4 py-2 rounded-xl font-bold min-h-[44px] flex items-center gap-2 border border-white/12 text-white/50 hover:bg-white/5 transition-colors"
-                >
-                  <Check size={14} />
-                  {selectedIds.size === filteredContas.length ? "Desselecionar" : "Selecionar Todos"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={ordenarPor}
+                    onChange={(e) => setOrdenarPor(e.target.value as any)}
+                    className="text-xs px-3 py-2 rounded-xl font-bold min-h-[44px] bg-[#0a1428] border border-white/12 text-white/70 focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
+                    title="Ordenar por"
+                  >
+                    <option value="recente">Mais recentes</option>
+                    <option value="valor">Maior valor</option>
+                    <option value="casa">Casa (A-Z)</option>
+                    <option value="usuario">Usuário (A-Z)</option>
+                  </select>
+                  <button
+                    onClick={selectAllContas}
+                    className="text-xs px-4 py-2 rounded-xl font-bold min-h-[44px] flex items-center gap-2 border border-white/12 text-white/50 hover:bg-white/5 transition-colors"
+                  >
+                    <Check size={14} />
+                    {selectedIds.size === filteredContas.length ? "Desselecionar" : "Selecionar Todos"}
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredContas.map((conta) => (
+                {contasVisiveis.map((conta) => (
                   <div
                     key={conta.id}
                     className="rounded-2xl p-4 border space-y-3 hover:border-white/15 transition-all duration-300"
@@ -756,6 +785,29 @@ export default function Contas() {
                   </div>
                 ))}
               </div>
+
+              {/* Paginação */}
+              {totalPaginas > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  <button
+                    onClick={() => setPagina((p) => Math.max(1, p - 1))}
+                    disabled={paginaAtual === 1}
+                    className="px-3 py-2 rounded-xl text-xs font-bold border border-white/12 text-white/60 hover:bg-white/5 transition-colors disabled:opacity-30"
+                  >
+                    ‹ Anterior
+                  </button>
+                  <span className="text-xs font-bold text-white/50 px-2">
+                    Página {paginaAtual} de {totalPaginas}
+                  </span>
+                  <button
+                    onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+                    disabled={paginaAtual === totalPaginas}
+                    className="px-3 py-2 rounded-xl text-xs font-bold border border-white/12 text-white/60 hover:bg-white/5 transition-colors disabled:opacity-30"
+                  >
+                    Próxima ›
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </>
