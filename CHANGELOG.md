@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.8.3] - 2026-06-18
+
+### Alterado
+- **Regra do aviso de ciclo simplificada para o que o operador quer**: o gatilho agora é o **saque** (é o que gera o resultado). Quando o saque é preenchido → notifica lucro/prejuízo na hora. Se depois o operador **editar** (ex.: esqueceu o baú, ou mudou o saque) e o **resultado mudar**, **notifica de novo** com o valor atualizado. O depósito não é mais exigido para disparar (o que importa é o resultado). Exclusão de linha continua não disparando.
+
 ## [1.8.2] - 2026-06-18
 
 ### Alterado

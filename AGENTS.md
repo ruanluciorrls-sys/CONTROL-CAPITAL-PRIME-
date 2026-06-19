@@ -75,7 +75,7 @@ todo.md          → histórico de tarefas (legado, quase tudo concluído)
 - **Popovers/menus**: renderize em **portal** (`createPortal`) com posição calculada por `getBoundingClientRect`, e **limite a altura ao espaço disponível** para nunca cortar fora da tela (ver `NotificationCenter.tsx`).
 - **Push de eventos de operação é SERVER-SIDE** (em `server/routers.ts`, dentro das mutations `relatorios.create` e `relatorios.update`), **não no cliente**. Motivo: o PWA do celular guarda versão antiga em cache, e a lógica no cliente só rodaria a partir do aparelho que fez a ação. No servidor (Fly.io) sempre roda a versão nova e dispara para todos os aparelhos do usuário via `sendPushToUser`. Use **tag única** por evento. Helpers: `fmtBRL`, `nomeDaMeta` em `server/push.ts`.
   - **Meta iniciada** → em `relatorios.create`.
-  - **Ciclo finalizado** (lucro/prejuízo) → em `relatorios.update`, quando uma linha passa a ter **depósito E saque** preenchidos (transição incompleto→completo, dispara uma vez; baú entra no cálculo se houver).
+  - **Ciclo (lucro/prejuízo)** → em `relatorios.update`, quando uma linha passa a ter **saque** preenchido (o saque é o que gera o resultado). Dispara ao pôr o saque e **de novo se o resultado mudar** numa edição posterior (ex.: adicionou o baú depois). Não exige depósito. Não dispara em exclusão (renumera linhas).
   - **Meta finalizada** (lucro total) → em `relatorios.update` quando `status` vira `finalizado`.
   - `trpc.push.notify`/`push.test` existem para testes manuais; o fluxo automático não depende deles.
 

@@ -245,17 +245,23 @@ export const appRouter = router({
           try {
             const nome = await nomeDaMeta(antes.userId, antes.casaId, antes.agente);
 
-            // 1) Ciclo FINALIZADO = linha com depósito E saque preenchidos.
-            //    Dispara uma vez, na transição incompleto -> completo. Não dispara em exclusão.
+            // 1) Ciclo com RESULTADO = linha com SAQUE preenchido (o que importa é o resultado).
+            //    Notifica quando o saque é posto e DE NOVO se o resultado mudar depois
+            //    (ex.: esqueceu o baú e editou). Não dispara em exclusão (renumera as linhas).
             const naoDiminuiu = (input.rows?.length ?? 0) >= ((antes.rows as any[])?.length ?? 0);
             if (input.rows && naoDiminuiu) {
-              const completo = (row: any) => (Number(row?.deposito) || 0) > 0 && (Number(row?.saque) || 0) > 0;
               const antesPorNumero = new Map<number, any>(
                 ((antes.rows as any[]) || []).map((r) => [r.numero, r])
               );
               for (const ciclo of input.rows as any[]) {
-                if (completo(ciclo) && !completo(antesPorNumero.get(ciclo.numero))) {
-                  const resultado = Number(ciclo?.resultado) || 0;
+                const temSaque = (Number(ciclo?.saque) || 0) > 0;
+                if (!temSaque) continue; // sem saque ainda não há resultado pra avisar
+                const rowAntes = antesPorNumero.get(ciclo.numero);
+                const tinhaSaqueAntes = rowAntes ? (Number(rowAntes.saque) || 0) > 0 : false;
+                const resultadoAntes = rowAntes ? (Number(rowAntes.resultado) || 0) : null;
+                const resultado = Number(ciclo?.resultado) || 0;
+                // dispara ao colocar o saque, ou quando o resultado muda numa edição
+                if (!tinhaSaqueAntes || resultado !== resultadoAntes) {
                   await sendPushToUser(antes.userId, {
                     title: resultado >= 0 ? "💰 Lucro no ciclo" : "🔻 Prejuízo no ciclo",
                     body: `${nome} · Ciclo ${ciclo?.numero}: ${fmtBRL(resultado)}`,
