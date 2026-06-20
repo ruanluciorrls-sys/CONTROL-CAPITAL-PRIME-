@@ -182,6 +182,23 @@ export default function Faturamento() {
 
   const percentMeta = metaGlobal > 0 ? Math.min((lucroTotal / metaGlobal) * 100, 100) : 0;
 
+  // Comparação: mês atual vs mês anterior (tendência)
+  const inicioMesAnterior = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+  const fimMesAnterior = endOfDay(new Date(hoje.getFullYear(), hoje.getMonth(), 0));
+  const relMesAnterior = relatoriosFinalizados.filter((r) => {
+    const d = getDataFaturamento(r);
+    return !!d && d >= inicioMesAnterior && d <= fimMesAnterior;
+  });
+  const receitasMesAnterior = (receitasList as any[])
+    .filter((r) => { const d = parseLocalDate(r.data); return d && d >= inicioMesAnterior && d <= fimMesAnterior; })
+    .reduce((s, r) => s + (Number(r.valor) || 0), 0);
+  const lucroMesAnterior = calcLucro(relMesAnterior) + receitasMesAnterior;
+  const variacaoMes = lucroMesAnterior !== 0
+    ? ((lucroMes - lucroMesAnterior) / Math.abs(lucroMesAnterior)) * 100
+    : (lucroMes > 0 ? 100 : 0);
+  const labelMesAtual = MESES_NOMES[hoje.getMonth()];
+  const labelMesAnterior = MESES_NOMES[(hoje.getMonth() + 11) % 12];
+
   const saveHistorico = (novoHistorico: HistoricoMes[]) => {
     setHistorico(novoHistorico);
     localStorage.setItem(HISTORICO_KEY, JSON.stringify(novoHistorico));
@@ -629,6 +646,36 @@ export default function Faturamento() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Comparação: mês atual vs mês anterior */}
+            <div className="rounded-2xl border border-white/8 p-5"
+              style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
+            >
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  {variacaoMes >= 0 ? <TrendingUp size={16} className="text-emerald-400" /> : <TrendingDown size={16} className="text-red-400" />}
+                  <span className="text-sm font-black text-white/85">Comparativo mensal</span>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-black ${variacaoMes >= 0 ? "text-emerald-300 bg-emerald-300/10 border border-emerald-300/20" : "text-red-300 bg-red-300/10 border border-red-300/20"}`}>
+                  {variacaoMes >= 0 ? "▲" : "▼"} {Math.abs(variacaoMes).toFixed(0)}% vs {labelMesAnterior}
+                </span>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">{labelMesAnterior} (anterior)</p>
+                  <p className="mt-1 font-mono text-xl font-black text-white/60">{formatCurrency(lucroMesAnterior)}</p>
+                </div>
+                <div className="rounded-xl border p-4" style={{ borderColor: "rgba(212,160,23,0.2)", background: "rgba(212,160,23,0.05)" }}>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-[#d4a017]/60">{labelMesAtual} (atual)</p>
+                  <p className="mt-1 font-mono text-xl font-black" style={{ color: lucroMes >= 0 ? "#4ade80" : "#f87171" }}>{formatCurrency(lucroMes)}</p>
+                </div>
+              </div>
+              <p className="mt-3 text-[11px] text-white/35">
+                {variacaoMes >= 0
+                  ? `📈 Você está lucrando ${Math.abs(variacaoMes).toFixed(0)}% a mais que em ${labelMesAnterior}.`
+                  : `📉 Atenção: ${Math.abs(variacaoMes).toFixed(0)}% abaixo de ${labelMesAnterior}.`}
+              </p>
             </div>
 
             {/* Middle: Intelligence + Meta */}
