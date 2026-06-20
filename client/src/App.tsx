@@ -232,30 +232,38 @@ function AppContent() {
         </div>
 
         {/* Sidebar Scrollable Vertical Navigation Menu */}
-        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 custom-scrollbar">
+        <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-1 custom-scrollbar">
+          <p className="px-3 mb-2 text-[9px] font-black uppercase tracking-[0.25em] text-white/25">Menu</p>
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-[10px] uppercase tracking-wider transition-all duration-300 relative group text-left ${
-                  isActive
-                    ? "bg-[#d4a017]/10 text-[#d4a017] border-l-4 border-[#d4a017]"
-                    : "text-white/60 hover:text-white hover:bg-white/5 border-l-4 border-transparent"
+                className={`group relative w-full flex items-center gap-3 pl-3.5 pr-3 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-wider transition-all duration-300 text-left ${
+                  isActive ? "text-[#f3d078]" : "text-white/55 hover:text-white"
                 }`}
+                style={isActive ? {
+                  background: "linear-gradient(90deg, rgba(212,160,23,0.16) 0%, rgba(212,160,23,0.04) 60%, transparent 100%)",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+                } : undefined}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.035)"; }}
+                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
               >
-                <span className={`transition-transform duration-300 group-hover:scale-110 ${
-                  isActive ? "text-[#d4a017]" : "text-white/40 group-hover:text-white"
-                }`}>
+                {/* Barra de destaque (ativo) */}
+                <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-full transition-all duration-300 ${
+                  isActive ? "h-6 shadow-[0_0_10px_rgba(212,160,23,0.85)]" : "h-0"
+                }`} style={{ background: isActive ? "linear-gradient(180deg, #f3d078, #d4a017)" : "transparent" }} />
+
+                {/* Ícone em caixinha */}
+                <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300 ${
+                  isActive ? "text-[#050b18]" : "text-white/45 group-hover:text-white bg-white/[0.04] group-hover:bg-white/[0.09]"
+                }`}
+                  style={isActive ? { background: "linear-gradient(135deg, #f3d078, #d4a017)", boxShadow: "0 3px 12px rgba(212,160,23,0.4)" } : undefined}
+                >
                   {tab.icon}
                 </span>
                 <span className="truncate">{tab.label}</span>
-                
-                {/* Active indicator card glow */}
-                {isActive && (
-                  <span className="absolute right-3 w-1.5 h-1.5 bg-[#d4a017] rounded-full shadow-[0_0_8px_rgba(212,160,23,0.8)]" />
-                )}
               </button>
             );
           })}
