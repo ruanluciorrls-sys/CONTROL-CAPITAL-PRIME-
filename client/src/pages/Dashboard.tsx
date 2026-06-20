@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { trpc } from "@/lib/trpc";
 import { Calendar, Home, FileText, DollarSign, Wallet, TrendingUp, Clock, Zap, ArrowRight } from "lucide-react";
@@ -7,6 +8,18 @@ import { PLATAFORMAS_PADRAO, type Plataforma } from "@/lib/plataformas";
 
 export default function Dashboard() {
   const { state } = useApp();
+
+  // Relógio ao vivo
+  const [agora, setAgora] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setAgora(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const hh = String(agora.getHours()).padStart(2, "0");
+  const mm = String(agora.getMinutes()).padStart(2, "0");
+  const ss = String(agora.getSeconds()).padStart(2, "0");
+  const dataRelogio = agora.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
+
   const { data: totalGastosProxy = 0 } = trpc.gastosProxy.total.useQuery();
   const { data: gastosProxyList = [] } = trpc.gastosProxy.list.useQuery();
   const { data: contasData = [] } = trpc.contas.list.useQuery();
@@ -160,11 +173,34 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Ícone decorativo */}
-            <div className="hidden md:flex items-center justify-center w-20 h-20 rounded-2xl border border-emerald-500/20 group-hover:scale-105 transition-transform duration-500"
-              style={{ background: "rgba(74,222,128,0.06)" }}
-            >
-              <DollarSign size={36} className="text-emerald-400" />
+            {/* Relógio ao vivo + Ícone decorativo */}
+            <div className="hidden md:flex items-center gap-5 self-start">
+              {/* Relógio elegante */}
+              <div className="hidden lg:flex flex-col items-end justify-center pr-1">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Clock size={11} className="text-emerald-400/50" />
+                  <span className="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-400/45">Agora</span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-mono text-4xl xl:text-5xl font-black tabular-nums tracking-tight"
+                    style={{ color: "#4ade80", textShadow: "0 0 30px rgba(74,222,128,0.3)" }}
+                  >
+                    {hh}:{mm}
+                  </span>
+                  <span className="font-mono text-lg font-bold tabular-nums text-emerald-400/40 w-7">{ss}</span>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/30 mt-1.5 capitalize">{dataRelogio}</span>
+              </div>
+
+              {/* Divisória sutil */}
+              <div className="hidden lg:block w-[1px] h-16 bg-gradient-to-b from-transparent via-emerald-500/20 to-transparent" />
+
+              {/* Ícone decorativo */}
+              <div className="flex items-center justify-center w-20 h-20 rounded-2xl border border-emerald-500/20 group-hover:scale-105 transition-transform duration-500"
+                style={{ background: "rgba(74,222,128,0.06)" }}
+              >
+                <DollarSign size={36} className="text-emerald-400" />
+              </div>
             </div>
           </div>
         </div>
