@@ -7,6 +7,12 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.9.1] - 2026-06-19
+
+### Alterado (responsividade — resposta instantânea)
+- **Comandos do painel agora respondem na hora** (atualização otimista). Antes, cada ação esperava o servidor responder **e recarregava a lista inteira** antes de atualizar a tela — por isso "Finalizar" e "salvar valores do ciclo" demoravam. Agora a tela muda **imediatamente** e a sincronização com o servidor acontece em segundo plano (sem `refetch` bloqueante da lista toda). Em caso de erro, reconcilia com o servidor automaticamente.
+- Aplicado em: salvar valores de ciclo / cooperação, finalizar / reutilizar / deletar relatório, e finalizar / editar / deletar / restaurar casa.
+
 ## [1.9.0] - 2026-06-19
 
 ### Adicionado (lote de melhorias do roadmap)

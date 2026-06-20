@@ -213,56 +213,58 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateCasa = async (id: string, updates: Partial<CasaData>) => {
-    try {
-      await updateCasaMutation.mutateAsync({
-        id,
-        nome: updates.nome,
-        login: updates.login,
-        senha: updates.senha,
-        media: updates.media?.toString(),
-        linkCasa: updates.linkCasa,
-        linkContaFina: updates.linkContaFilha,
-        meta: updates.meta?.toString(),
-        prazo: updates.prazo,
-        status: updates.status,
-      });
-      await casasQuery.refetch();
-    } catch (error) {
+    // ATUALIZAÇÃO OTIMISTA: aplica as mudanças na hora
+    setState((prev) => ({
+      ...prev,
+      casas: prev.casas.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+    }));
+    updateCasaMutation.mutateAsync({
+      id,
+      nome: updates.nome,
+      login: updates.login,
+      senha: updates.senha,
+      media: updates.media?.toString(),
+      linkCasa: updates.linkCasa,
+      linkContaFina: updates.linkContaFilha,
+      meta: updates.meta?.toString(),
+      prazo: updates.prazo,
+      status: updates.status,
+    }).catch((error) => {
       console.error("Erro ao atualizar casa:", error);
-    }
+      casasQuery.refetch();
+    });
+  };
+
+  // Muda só o status da casa na hora (deletar/restaurar/finalizar)
+  const setCasaStatusOtimista = (id: string, status: string, extra?: Partial<CasaData>) => {
+    setState((prev) => ({
+      ...prev,
+      casas: prev.casas.map((c) => (c.id === id ? { ...c, status: status as any, ...extra } : c)),
+    }));
   };
 
   const deleteCasa = async (id: string) => {
-    try {
-      await updateCasaMutation.mutateAsync({
-        id,
-        status: "lixeira" as any,
-      });
-      await casasQuery.refetch();
-    } catch (error) {
+    setCasaStatusOtimista(id, "lixeira");
+    updateCasaMutation.mutateAsync({ id, status: "lixeira" as any }).catch((error) => {
       console.error("Erro ao deletar casa:", error);
-    }
+      casasQuery.refetch();
+    });
   };
 
   const restaurarCasa = async (id: string) => {
-    try {
-      await updateCasaMutation.mutateAsync({
-        id,
-        status: "ativa",
-      });
-      await casasQuery.refetch();
-    } catch (error) {
+    setCasaStatusOtimista(id, "ativa");
+    updateCasaMutation.mutateAsync({ id, status: "ativa" }).catch((error) => {
       console.error("Erro ao restaurar casa:", error);
-    }
+      casasQuery.refetch();
+    });
   };
 
   const deletePermanentementeCasa = async (id: string) => {
-    try {
-      await deleteCasaMutation.mutateAsync({ id });
-      await casasQuery.refetch();
-    } catch (error) {
+    setState((prev) => ({ ...prev, casas: prev.casas.filter((c) => c.id !== id) }));
+    deleteCasaMutation.mutateAsync({ id }).catch((error) => {
       console.error("Erro ao deletar permanentemente casa:", error);
-    }
+      casasQuery.refetch();
+    });
   };
 
   const esvaziarLixeiraCasas = async () => {
@@ -279,17 +281,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
   const finalizarCasa = async (id: string) => {
-    try {
-      const hoje = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
-      await updateCasaMutation.mutateAsync({
-        id,
-        status: "finalizada",
-        dataFim: hoje,
-      });
-      await casasQuery.refetch();
-    } catch (error) {
+    const hoje = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    setCasaStatusOtimista(id, "finalizada", { dataFim: hoje } as any);
+    updateCasaMutation.mutateAsync({ id, status: "finalizada", dataFim: hoje }).catch((error) => {
       console.error("Erro ao finalizar casa:", error);
-    }
+      casasQuery.refetch();
+    });
   };
 
   const addRelatorio = async (relatorio: Omit<RelatorioData, "id" | "criadoEm">) => {
@@ -332,31 +329,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
+      // ATUALIZAÇÃO OTIMISTA: muda a tela na hora, sem esperar o servidor
+      setState((prev) => ({
+        ...prev,
+        relatorios: prev.relatorios.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                ...(relatorio.rows !== undefined ? { rows: relatorio.rows } : {}),
+                ...(relatorio.cooperacao !== undefined ? { cooperacao: relatorio.cooperacao } : {}),
+                ...(relatorio.agente !== undefined ? { agente: relatorio.agente } : {}),
+                ...(relatorio.status !== undefined ? { status: relatorio.status } : {}),
+                ...(relatorio.prazo !== undefined ? { prazo: relatorio.prazo } : {}),
+              }
+            : r
+        ),
+      }));
+
       // Deep copy dos rows para evitar compartilhamento
       const rowsCopy = relatorio.rows ? JSON.parse(JSON.stringify(relatorio.rows)) : undefined;
-      await updateRelatorioMutation.mutateAsync({
+      // Sincroniza com o servidor em segundo plano (não trava a UI; sem refetch da lista inteira)
+      updateRelatorioMutation.mutateAsync({
         id,
         agente: relatorio.agente,
         prazo: relatorio.prazo,
         cooperacao: relatorio.cooperacao?.toString(),
         rows: rowsCopy as any,
         status: relatorio.status,
+      }).catch((error) => {
+        console.error("Erro ao atualizar relatório:", error);
+        relatoriosQuery.refetch(); // em caso de erro, reconcilia com o servidor
       });
-      // Recarregar relatórios
-      await relatoriosQuery.refetch();
     } catch (error) {
       console.error("Erro ao atualizar relatório:", error);
     }
   };
 
   const deleteRelatorio = async (id: string) => {
-    try {
-      await deleteRelatorioMutation.mutateAsync({ id });
-      // Recarregar relatórios
-      await relatoriosQuery.refetch();
-    } catch (error) {
+    // ATUALIZAÇÃO OTIMISTA: remove da tela na hora
+    setState((prev) => ({ ...prev, relatorios: prev.relatorios.filter((r) => r.id !== id) }));
+    deleteRelatorioMutation.mutateAsync({ id }).catch((error) => {
       console.error("Erro ao deletar relatório:", error);
-    }
+      relatoriosQuery.refetch();
+    });
   };
 
   const finalizarRelatorio = async (id: string) => {
@@ -366,11 +381,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         finalizadosEm[id] = new Date().toISOString();
         localStorage.setItem(RELATORIOS_FINALIZADOS_EM_KEY, JSON.stringify(finalizadosEm));
       } catch {}
-      await updateRelatorioMutation.mutateAsync({
-        id,
-        status: "finalizado",
+      // ATUALIZAÇÃO OTIMISTA: marca como finalizado na hora
+      setState((prev) => ({
+        ...prev,
+        relatorios: prev.relatorios.map((r) =>
+          r.id === id ? { ...r, status: "finalizado", finalizadoEm: new Date().toISOString() } : r
+        ),
+      }));
+      // Sincroniza em segundo plano
+      updateRelatorioMutation.mutateAsync({ id, status: "finalizado" }).catch((error) => {
+        console.error("Erro ao finalizar relatório:", error);
+        relatoriosQuery.refetch();
       });
-      await relatoriosQuery.refetch();
     } catch (error) {
       console.error("Erro ao finalizar relatório:", error);
     }
@@ -379,17 +401,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const reutilizarRelatorio = async (id: string) => {
     const relatorioParaReutilizar = state.relatorios.find((r) => r.id === id);
     if (relatorioParaReutilizar) {
-      try {
-        // Mudar o status de "finalizado" para "ativo"
-        await updateRelatorioMutation.mutateAsync({
-          id: relatorioParaReutilizar.id,
-          status: "ativo",
-        });
-        // Recarregar relatórios
-        await relatoriosQuery.refetch();
-      } catch (error) {
+      // ATUALIZAÇÃO OTIMISTA: volta para "ativo" na hora
+      setState((prev) => ({
+        ...prev,
+        relatorios: prev.relatorios.map((r) => (r.id === id ? { ...r, status: "ativo" } : r)),
+      }));
+      updateRelatorioMutation.mutateAsync({ id, status: "ativo" }).catch((error) => {
         console.error("Erro ao reutilizar relatório:", error);
-      }
+        relatoriosQuery.refetch();
+      });
     }
   };
 
