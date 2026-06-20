@@ -7,6 +7,14 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.11.1] - 2026-06-19
+
+### Corrigido
+- **Desconexão automática "do nada" / login em vários aparelhos**: o `useAuth` deslogava e mandava pro login sempre que a query `auth.me` falhava — inclusive em **falhas temporárias** (servidor reiniciando durante um deploy, cold start do Fly, oscilação de rede). Agora **só desloga quando o servidor confirma que não há sessão** (resposta ok com usuário nulo); falhas temporárias **tentam de novo** (retry com backoff) e mantêm a sessão. Resultado: dá pra ficar logado em **vários aparelhos ao mesmo tempo** sem um derrubar o outro. Também blindado o servidor: a atualização de "último acesso" virou **não-fatal** (não derruba a sessão se a escrita falhar).
+
+### Alterado
+- **Dashboard**: o ícone $ foi movido para a **esquerda** (ao lado de "Lucro em Caixa") e o relógio ficou sozinho à direita.
+
 ## [1.11.0] - 2026-06-19
 
 ### Adicionado

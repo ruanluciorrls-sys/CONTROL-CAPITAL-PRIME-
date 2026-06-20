@@ -115,11 +115,14 @@ class SDKServer {
       throw ForbiddenError("User account is deactivated");
     }
 
-    // Update last signed in
-    await db.upsertUser({
-      openId: user.openId ?? "",
-      lastSignedIn: new Date(),
-    });
+    // Atualiza o último acesso — NÃO-FATAL: se a escrita falhar, não derruba a sessão.
+    if (user.openId) {
+      try {
+        await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
+      } catch (e) {
+        console.warn("[Auth] Falha ao atualizar lastSignedIn (ignorado):", String(e));
+      }
+    }
 
     return user;
   }

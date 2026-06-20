@@ -13,8 +13,12 @@ export function useAuth(options?: UseAuthOptions) {
   const utils = trpc.useUtils();
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
-    retry: false,
-    refetchOnWindowFocus: false,
+    // Tenta de novo em falhas temporárias (deploy/cold start/rede) — evita
+    // deslogar "do nada". Mantém a sessão válida em vários aparelhos.
+    retry: 4,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000,
   });
 
   const logoutMutation = trpc.auth.logout.useMutation({
@@ -58,8 +62,11 @@ export function useAuth(options?: UseAuthOptions) {
 
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
-    if (meQuery.isLoading || logoutMutation.isPending) return;
-    if (state.user) return;
+    if (logoutMutation.isPending) return;
+    // Só redireciona quando o servidor CONFIRMOU que não há sessão (resposta ok com user nulo).
+    // Falha de rede/servidor (deploy, cold start) NÃO desloga — react-query tenta de novo.
+    if (!meQuery.isSuccess) return;
+    if (meQuery.data) return;
     if (typeof window === "undefined") return;
     // Já está na página de login, não redirecionar
     if (window.location.pathname === "/login") return;
@@ -68,8 +75,8 @@ export function useAuth(options?: UseAuthOptions) {
     redirectOnUnauthenticated,
     redirectPath,
     logoutMutation.isPending,
-    meQuery.isLoading,
-    state.user,
+    meQuery.isSuccess,
+    meQuery.data,
   ]);
 
   return {
