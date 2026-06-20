@@ -5,7 +5,7 @@ import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_
 import { z } from "zod";
 import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, getRelatorioById, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma, seedPlataformasIfEmpty } from "./db";
 import { savePushSubscription, deletePushSubscription, acumularCicloDia, getPushSoCelular, setPushSoCelular, logPush, getPushLog } from "./db";
-import { getReceitasByUserId, createReceita, deleteReceita } from "./db";
+import { getReceitasByUserId, createReceita, updateReceita, deleteReceita } from "./db";
 import { getPushPublicKey, sendPushToUser, fmtBRL, nomeDaMeta } from "./push";
 import { supabaseUploadJSON } from "./storage";
 import { InsertRelatorio } from "../drizzle/schema";
@@ -470,6 +470,18 @@ export const appRouter = router({
           data: input.data as any,
         });
         return receita || { success: false };
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.string(),
+        valor: z.string().optional(),
+        descricao: z.string().optional(),
+        data: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateReceita(id, data as any);
+        return { success: true };
       }),
     delete: protectedProcedure
       .input(z.object({ id: z.string() }))

@@ -439,6 +439,12 @@ export async function createReceita(receita: InsertReceita): Promise<Receita | n
   return db.select().from(receitas).where(eq(receitas.id, receita.id)).limit(1).then(r => r[0] || null);
 }
 
+export async function updateReceita(id: string, data: Partial<InsertReceita>): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(receitas).set(data as any).where(eq(receitas.id, id));
+}
+
 export async function deleteReceita(id: string): Promise<void> {
   const db = await getDb();
   if (!db) return;

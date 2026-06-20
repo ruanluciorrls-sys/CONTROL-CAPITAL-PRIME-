@@ -70,9 +70,22 @@ export default function Faturamento() {
   const { data: receitasList = [] } = trpc.receitas.list.useQuery();
   const utilsFat = trpc.useUtils();
   const criarReceita = trpc.receitas.create.useMutation({ onSuccess: () => utilsFat.receitas.list.invalidate() });
+  const atualizarReceita = trpc.receitas.update.useMutation({ onSuccess: () => utilsFat.receitas.list.invalidate() });
   const deletarReceita = trpc.receitas.delete.useMutation({ onSuccess: () => utilsFat.receitas.list.invalidate() });
   const [showAddReceita, setShowAddReceita] = useState(false);
+  const [editandoReceitaId, setEditandoReceitaId] = useState<string | null>(null);
   const [novaReceita, setNovaReceita] = useState({ valor: "", descricao: "", data: new Date().toISOString().slice(0, 10) });
+
+  const abrirNovaReceita = () => {
+    setEditandoReceitaId(null);
+    setNovaReceita({ valor: "", descricao: "", data: new Date().toISOString().slice(0, 10) });
+    setShowAddReceita(true);
+  };
+  const abrirEditarReceita = (r: any) => {
+    setEditandoReceitaId(r.id);
+    setNovaReceita({ valor: String(r.valor), descricao: r.descricao || "", data: String(r.data).slice(0, 10) });
+    setShowAddReceita(true);
+  };
   const [activeTab, setActiveTab] = useState("visao-geral");
   const [period, setPeriod] = useState("mes");
   const [showApresentacao, setShowApresentacao] = useState(false);
@@ -147,8 +160,13 @@ export default function Faturamento() {
   const handleAddReceita = () => {
     const valor = parseFloat(novaReceita.valor);
     if (isNaN(valor) || valor <= 0) return;
-    criarReceita.mutate({ valor: valor.toString(), descricao: novaReceita.descricao || undefined, data: novaReceita.data });
+    if (editandoReceitaId) {
+      atualizarReceita.mutate({ id: editandoReceitaId, valor: valor.toString(), descricao: novaReceita.descricao || undefined, data: novaReceita.data });
+    } else {
+      criarReceita.mutate({ valor: valor.toString(), descricao: novaReceita.descricao || undefined, data: novaReceita.data });
+    }
     setNovaReceita({ valor: "", descricao: "", data: new Date().toISOString().slice(0, 10) });
+    setEditandoReceitaId(null);
     setShowAddReceita(false);
   };
 
@@ -422,7 +440,7 @@ export default function Faturamento() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowAddReceita(true)}
+              onClick={abrirNovaReceita}
               className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all hover:scale-105 border border-[#d4a017]/30"
               style={{ background: "rgba(212,160,23,0.1)", color: "#f3d078" }}
               title="Adicionar receita manual (bônus)"
@@ -1031,7 +1049,7 @@ export default function Faturamento() {
                   <p className="mt-1 text-[10px] text-white/30">Casas + cooperação + receitas manuais</p>
                 </div>
                 <button
-                  onClick={() => setShowAddReceita(true)}
+                  onClick={abrirNovaReceita}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black text-[#050b18] transition-all hover:scale-[1.02]"
                   style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
                 >
@@ -1067,7 +1085,10 @@ export default function Faturamento() {
                       <div className="flex items-center gap-3 shrink-0">
                         <span className="text-[10px] text-white/30">{parseLocalDate(r.data)?.toLocaleDateString("pt-BR")}</span>
                         <span className="font-mono font-black text-emerald-300">+{formatCurrency(Number(r.valor) || 0)}</span>
-                        <button onClick={() => deletarReceita.mutate({ id: r.id })} className="text-red-400/50 hover:text-red-400">
+                        <button onClick={() => abrirEditarReceita(r)} className="text-white/30 hover:text-[#d4a017]" title="Editar">
+                          <Edit3 size={14} />
+                        </button>
+                        <button onClick={() => deletarReceita.mutate({ id: r.id })} className="text-red-400/50 hover:text-red-400" title="Excluir">
                           <X size={14} />
                         </button>
                       </div>
@@ -1278,9 +1299,9 @@ export default function Faturamento() {
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[#050b18]" style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}>
                   <DollarSign size={16} />
                 </div>
-                <h3 className="text-base font-black text-white">Adicionar Receita</h3>
+                <h3 className="text-base font-black text-white">{editandoReceitaId ? "Editar Receita" : "Adicionar Receita"}</h3>
               </div>
-              <button onClick={() => setShowAddReceita(false)} className="text-white/30 hover:text-white/70"><X size={18} /></button>
+              <button onClick={() => { setShowAddReceita(false); setEditandoReceitaId(null); }} className="text-white/30 hover:text-white/70"><X size={18} /></button>
             </div>
 
             <div className="space-y-3">
@@ -1309,11 +1330,11 @@ export default function Faturamento() {
 
             <div className="flex gap-2 pt-1">
               <button onClick={() => setShowAddReceita(false)} className="flex-1 py-2.5 rounded-xl font-medium text-sm text-white/40 border border-white/12 hover:bg-white/5 transition-colors">Cancelar</button>
-              <button onClick={handleAddReceita} disabled={criarReceita.isPending}
+              <button onClick={handleAddReceita} disabled={criarReceita.isPending || atualizarReceita.isPending}
                 className="flex-1 py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.01] disabled:opacity-50"
                 style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
               >
-                {criarReceita.isPending ? "Salvando..." : "Adicionar"}
+                {(criarReceita.isPending || atualizarReceita.isPending) ? "Salvando..." : editandoReceitaId ? "Salvar" : "Adicionar"}
               </button>
             </div>
           </div>
