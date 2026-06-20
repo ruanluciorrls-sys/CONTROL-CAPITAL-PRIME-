@@ -7,6 +7,15 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.10.0] - 2026-06-19
+
+### Adicionado
+- **Receita manual (bônus) no Faturamento**: botão "+ Receita" (valor + descrição + data) para lançar ganhos avulsos (ex.: bônus de conta). Salvo no banco (sincroniza PC/celular) e soma no lucro total. Nova tabela `receitas` (auto-criada).
+
+### Alterado
+- **Histórico do Faturamento reformulado (por casa)**: agora mostra cada **casa finalizada** com depósito, saque, baú, cooperação e o **LUCRO REAL** (ciclos + cooperação). O total do período passou a ser o **lucro real** (casas + cooperação + receitas).
+- **Removido o "prejuízo" enganoso**: o histórico antes somava só os ciclos (sem a cooperação), mostrando um "Resultado do período" negativo que não refletia a realidade da operação CPA. Removidos os cards de "Prejuízo"/"Resultado período" e os cards mensais de lucro vs prejuízo.
+
 ## [1.9.3] - 2026-06-19
 
 ### Corrigido

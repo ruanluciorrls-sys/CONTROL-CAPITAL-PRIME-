@@ -67,6 +67,12 @@ function parseLocalDate(value?: string | Date | null): Date | null {
 export default function Faturamento() {
   const { state } = useApp();
   const { data: gastosProxyList = [] } = trpc.gastosProxy.list.useQuery();
+  const { data: receitasList = [] } = trpc.receitas.list.useQuery();
+  const utilsFat = trpc.useUtils();
+  const criarReceita = trpc.receitas.create.useMutation({ onSuccess: () => utilsFat.receitas.list.invalidate() });
+  const deletarReceita = trpc.receitas.delete.useMutation({ onSuccess: () => utilsFat.receitas.list.invalidate() });
+  const [showAddReceita, setShowAddReceita] = useState(false);
+  const [novaReceita, setNovaReceita] = useState({ valor: "", descricao: "", data: new Date().toISOString().slice(0, 10) });
   const [activeTab, setActiveTab] = useState("visao-geral");
   const [period, setPeriod] = useState("mes");
   const [showApresentacao, setShowApresentacao] = useState(false);
@@ -126,10 +132,25 @@ export default function Faturamento() {
   const rel7Dias = relatoriosFinalizados.filter((r) => isRelatorioNoPeriodo(r, inicio7Dias));
   const relMes = relatoriosFinalizados.filter((r) => isRelatorioNoPeriodo(r, inicioMes));
 
-  const lucroHoje = calcLucro(relHoje);
-  const lucro7Dias = calcLucro(rel7Dias);
-  const lucroMes = calcLucro(relMes);
-  const lucroTotal = calcLucro(relatoriosFinalizados);
+  // Receitas manuais (bônus) somam no lucro
+  const sumReceitas = (inicio: Date) =>
+    (receitasList as any[])
+      .filter((r) => { const d = parseLocalDate(r.data); return d && d >= inicio && d <= fimHoje; })
+      .reduce((s, r) => s + (Number(r.valor) || 0), 0);
+  const receitasTotal = (receitasList as any[]).reduce((s, r) => s + (Number(r.valor) || 0), 0);
+
+  const lucroHoje = calcLucro(relHoje) + sumReceitas(inicioHoje);
+  const lucro7Dias = calcLucro(rel7Dias) + sumReceitas(inicio7Dias);
+  const lucroMes = calcLucro(relMes) + sumReceitas(inicioMes);
+  const lucroTotal = calcLucro(relatoriosFinalizados) + receitasTotal;
+
+  const handleAddReceita = () => {
+    const valor = parseFloat(novaReceita.valor);
+    if (isNaN(valor) || valor <= 0) return;
+    criarReceita.mutate({ valor: valor.toString(), descricao: novaReceita.descricao || undefined, data: novaReceita.data });
+    setNovaReceita({ valor: "", descricao: "", data: new Date().toISOString().slice(0, 10) });
+    setShowAddReceita(false);
+  };
 
   const lucroExibido =
     period === "hoje" ? lucroHoje :
@@ -331,6 +352,51 @@ export default function Faturamento() {
     { resultado: 0, deposito: 0, saque: 0, bau: 0, lucro: 0, prejuizo: 0, operacoes: 0, acertos: 0 }
   );
   const taxaAcerto = resumoGeral.operacoes > 0 ? (resumoGeral.acertos / resumoGeral.operacoes) * 100 : 0;
+
+  // ── Resumo por CASA finalizada (lucro real = ciclos + cooperação) ──
+  const casasResumo = relatoriosFinalizados
+    .map((rel) => {
+      const data = getDataFaturamento(rel);
+      const casaNome = getCasaNome(rel.casaId);
+      const rede = getRede(casaNome);
+      const operador = rel.agente || "Sem operador";
+      const deposito = rel.rows.reduce((s, r) => s + (Number(r.deposito) || 0) + (Number(r.redeposito) || 0), 0);
+      const saque = rel.rows.reduce((s, r) => s + (Number(r.saque) || 0), 0);
+      const bau = rel.rows.reduce((s, r) => s + (Number(r.bau) || 0), 0);
+      const cooperacao = Number(rel.cooperacao) || 0;
+      const lucroReal = rel.rows.reduce((s, r) => s + (Number(r.resultado) || 0), 0) + cooperacao;
+      return {
+        id: rel.id,
+        nome: `${casaNome.replace(/[\s-]+$/, "").trim()}${rel.agente ? `-${rel.agente}` : ""}`,
+        rede, operador, data, deposito, saque, bau, cooperacao, lucroReal, ciclos: rel.rows.length,
+      };
+    })
+    .filter((c) => {
+      if (!c.data) return false;
+      if (financeStart && c.data < financeStart) return false;
+      if (financeEnd && c.data > financeEnd) return false;
+      if (financeOperator !== "todos" && c.operador !== financeOperator) return false;
+      if (financeNetwork !== "todos" && c.rede !== financeNetwork) return false;
+      return true;
+    })
+    .sort((a, b) => (b.data?.getTime() || 0) - (a.data?.getTime() || 0));
+
+  // Receitas dentro do período filtrado
+  const receitasNoPeriodo = (receitasList as any[]).filter((r) => {
+    const d = parseLocalDate(r.data);
+    if (!d) return false;
+    if (financeStart && d < financeStart) return false;
+    if (financeEnd && d > financeEnd) return false;
+    return true;
+  });
+  const totalReceitasPeriodo = receitasNoPeriodo.reduce((s, r) => s + (Number(r.valor) || 0), 0);
+
+  const totalLucroCasas = casasResumo.reduce((s, c) => s + c.lucroReal, 0);
+  const totalDepositoCasas = casasResumo.reduce((s, c) => s + c.deposito, 0);
+  const totalSaqueCasas = casasResumo.reduce((s, c) => s + c.saque, 0);
+  const totalCoopCasas = casasResumo.reduce((s, c) => s + c.cooperacao, 0);
+  const lucroHistPeriodo = totalLucroCasas + totalReceitasPeriodo;
+  const casasLucrativas = casasResumo.filter((c) => c.lucroReal >= 0).length;
 
   const detailedHistoryRows = [...filteredFinancialEntries].sort(
     (a, b) => (b.data?.getTime() || 0) - (a.data?.getTime() || 0)
@@ -935,115 +1001,83 @@ export default function Faturamento() {
 
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <div>
-                <h2 className="text-xl font-black text-white/95">Historico detalhado</h2>
-                <p className="text-xs text-white/30">Meses puxados automaticamente dos relatorios finalizados</p>
+                <h2 className="text-xl font-black text-white/95">Histórico das casas</h2>
+                <p className="text-xs text-white/30">Cada casa finalizada com o lucro real (ciclos + cooperação)</p>
               </div>
               <span className="w-fit rounded-full border border-[#d4a017]/25 bg-[#d4a017]/10 px-3 py-1 text-[10px] font-black text-[#d4a017]">
-                {detailedHistoryRows.length} registros
+                {casasResumo.length} casa(s)
               </span>
             </div>
 
-            {/* Resumo Geral (respeita os filtros) */}
-            {detailedHistoryRows.length > 0 && (
-              <div className="rounded-2xl border border-white/10 p-5"
-                style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)" }}
-              >
-                <div className="flex flex-wrap items-end justify-between gap-4">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/35">Resultado no período</p>
-                    <p className={`mt-1 font-mono text-3xl font-black ${resumoGeral.resultado >= 0 ? "text-emerald-300" : "text-red-300"}`}>
-                      {resumoGeral.resultado >= 0 ? "+" : "-"}{formatCurrency(Math.abs(resumoGeral.resultado))}
-                    </p>
-                  </div>
-                  <span className="rounded-full border px-3 py-1 text-[10px] font-black uppercase"
-                    style={resumoGeral.resultado >= 0
-                      ? { borderColor: "rgba(74,222,128,0.25)", background: "rgba(74,222,128,0.1)", color: "#86efac" }
-                      : { borderColor: "rgba(248,113,113,0.25)", background: "rgba(248,113,113,0.1)", color: "#fca5a5" }}
-                  >
-                    {resumoGeral.resultado >= 0 ? "Lucro" : "Prejuízo"}
-                  </span>
+            {/* Resumo do período — LUCRO REAL (ciclos + cooperação + receitas), sem "prejuízo" */}
+            <div className="rounded-2xl border border-white/10 p-5"
+              style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)" }}
+            >
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/35">Lucro do período</p>
+                  <p className={`mt-1 font-mono text-3xl font-black ${lucroHistPeriodo >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+                    {lucroHistPeriodo >= 0 ? "+" : "-"}{formatCurrency(Math.abs(lucroHistPeriodo))}
+                  </p>
+                  <p className="mt-1 text-[10px] text-white/30">Casas + cooperação + receitas manuais</p>
                 </div>
+                <button
+                  onClick={() => setShowAddReceita(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black text-[#050b18] transition-all hover:scale-[1.02]"
+                  style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                >
+                  <DollarSign size={15} /> + Receita
+                </button>
+              </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
-                  {[
-                    { label: "Lucro bruto", value: formatCurrency(resumoGeral.lucro), color: "#4ade80" },
-                    { label: "Prejuízo", value: formatCurrency(resumoGeral.prejuizo), color: "#f87171" },
-                    { label: "Depósitos", value: formatCurrency(resumoGeral.deposito), color: "#60a5fa" },
-                    { label: "Saques", value: formatCurrency(resumoGeral.saque), color: "#fb923c" },
-                    { label: "Taxa acerto", value: `${taxaAcerto.toFixed(0)}%`, color: "#d4a017" },
-                    { label: "Operações", value: String(resumoGeral.operacoes), color: "#a78bfa" },
-                  ].map((s) => (
-                    <div key={s.label} className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">{s.label}</p>
-                      <p className="mt-1 text-sm font-black" style={{ color: s.color }}>{s.value}</p>
+              <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+                {[
+                  { label: "Lucro das casas", value: formatCurrency(totalLucroCasas), color: "#4ade80" },
+                  { label: "Receitas (bônus)", value: formatCurrency(totalReceitasPeriodo), color: "#f3d078" },
+                  { label: "Cooperação", value: formatCurrency(totalCoopCasas), color: "#22d3ee" },
+                  { label: "Depósitos", value: formatCurrency(totalDepositoCasas), color: "#60a5fa" },
+                  { label: "Saques", value: formatCurrency(totalSaqueCasas), color: "#fb923c" },
+                  { label: "Casas", value: `${casasLucrativas}/${casasResumo.length}`, color: "#a78bfa" },
+                ].map((s) => (
+                  <div key={s.label} className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">{s.label}</p>
+                    <p className="mt-1 text-sm font-black" style={{ color: s.color }}>{s.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Lista de receitas manuais do período */}
+            {receitasNoPeriodo.length > 0 && (
+              <div className="rounded-2xl border border-[#d4a017]/15 p-4" style={{ background: "rgba(212,160,23,0.04)" }}>
+                <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#d4a017]/70">Receitas manuais</p>
+                <div className="space-y-1.5">
+                  {receitasNoPeriodo.map((r: any) => (
+                    <div key={r.id} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-white/60 truncate">{r.descricao || "Receita"}</span>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-[10px] text-white/30">{parseLocalDate(r.data)?.toLocaleDateString("pt-BR")}</span>
+                        <span className="font-mono font-black text-emerald-300">+{formatCurrency(Number(r.valor) || 0)}</span>
+                        <button onClick={() => deletarReceita.mutate({ id: r.id })} className="text-red-400/50 hover:text-red-400">
+                          <X size={14} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {monthlySummary.length > 0 && (
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {monthlySummary.map((mes) => {
-                  const isGood = mes.resultado >= 0;
-                  return (
-                    <div key={mes.key} className="rounded-2xl border p-4 shadow-[0_12px_34px_rgba(0,0,0,0.22)]"
-                      style={{
-                        background: "linear-gradient(145deg, rgba(7,14,32,0.9), rgba(12,21,36,0.9))",
-                        borderColor: isGood ? "rgba(74,222,128,0.18)" : "rgba(248,113,113,0.18)",
-                      }}
-                    >
-                      <div className="mb-3 flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-white/35">Mes</p>
-                          <h3 className="mt-1 text-lg font-black text-white">{mes.label}</h3>
-                        </div>
-                        <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase ${
-                          isGood
-                            ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-300"
-                            : "border-red-300/20 bg-red-300/10 text-red-300"
-                        }`}>
-                          {isGood ? "Bom" : "Ruim"}
-                        </span>
-                      </div>
-                      <p className={`font-mono text-2xl font-black ${isGood ? "text-emerald-300" : "text-red-300"}`}>
-                        {formatCurrency(mes.resultado)}
-                      </p>
-                      <div className="mt-4 grid grid-cols-2 gap-2">
-                        <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Lucro</p>
-                          <p className="mt-1 text-xs font-black text-emerald-300">{formatCurrency(mes.lucro)}</p>
-                        </div>
-                        <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Prejuizo</p>
-                          <p className="mt-1 text-xs font-black text-red-300">{formatCurrency(mes.prejuizo)}</p>
-                        </div>
-                        <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Taxa acerto</p>
-                          <p className="mt-1 text-xs font-black text-[#d4a017]">
-                            {mes.operacoes > 0 ? Math.round((mes.acertos / mes.operacoes) * 100) : 0}%
-                          </p>
-                        </div>
-                        <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Operações</p>
-                          <p className="mt-1 text-xs font-black text-[#a78bfa]">{mes.operacoes}</p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
+            {/* Tabela por casa finalizada */}
             <div className="overflow-hidden rounded-3xl border border-white/10 shadow-[0_18px_60px_rgba(0,0,0,0.28)]"
               style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
             >
-              {detailedHistoryRows.length > 0 ? (
+              {casasResumo.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[900px] text-sm">
+                  <table className="w-full min-w-[760px] text-sm">
                     <thead>
                       <tr className="border-b border-white/10 bg-white/[0.025]">
-                        {["Rede", "Plataforma", "Deposito", "Saque", "Bau", "Resultado", "Data"].map((heading) => (
+                        {["Casa", "Depósito", "Saque", "Baú", "Cooperação", "Lucro real", "Data"].map((heading) => (
                           <th key={heading} className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-white/35">
                             {heading}
                           </th>
@@ -1051,22 +1085,18 @@ export default function Faturamento() {
                       </tr>
                     </thead>
                     <tbody>
-                      {detailedHistoryRows.map((row) => (
-                        <tr key={row.id} className="border-b border-white/7 transition-colors hover:bg-white/[0.03]">
-                          <td className="px-5 py-4">
-                            <span className="rounded-full border border-[#d4a017]/25 bg-[#d4a017]/10 px-3 py-1 text-[10px] font-black text-[#d4a017]">
-                              {row.rede}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4 text-white/55">{row.plataforma}</td>
-                          <td className="px-5 py-4 font-mono text-white/70">{formatCurrency(row.deposito)}</td>
-                          <td className="px-5 py-4 font-mono text-white/70">{formatCurrency(row.saque)}</td>
-                          <td className="px-5 py-4 font-mono text-white/50">{formatCurrency(row.bau)}</td>
-                          <td className={`px-5 py-4 font-mono font-black ${row.resultado >= 0 ? "text-emerald-300" : "text-red-300"}`}>
-                            {row.resultado >= 0 ? "+" : "-"}{formatCurrency(Math.abs(row.resultado))}
+                      {casasResumo.map((c) => (
+                        <tr key={c.id} className="border-b border-white/7 transition-colors hover:bg-white/[0.03]">
+                          <td className="px-5 py-4 font-bold text-white/80">{c.nome}</td>
+                          <td className="px-5 py-4 font-mono text-white/70">{formatCurrency(c.deposito)}</td>
+                          <td className="px-5 py-4 font-mono text-white/70">{formatCurrency(c.saque)}</td>
+                          <td className="px-5 py-4 font-mono text-white/50">{formatCurrency(c.bau)}</td>
+                          <td className="px-5 py-4 font-mono text-cyan-300/80">{formatCurrency(c.cooperacao)}</td>
+                          <td className={`px-5 py-4 font-mono font-black ${c.lucroReal >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+                            {c.lucroReal >= 0 ? "+" : "-"}{formatCurrency(Math.abs(c.lucroReal))}
                           </td>
                           <td className="px-5 py-4 text-white/45">
-                            {row.data ? row.data.toLocaleDateString("pt-BR") : "-"}
+                            {c.data ? c.data.toLocaleDateString("pt-BR") : "-"}
                           </td>
                         </tr>
                       ))}
@@ -1074,7 +1104,7 @@ export default function Faturamento() {
                   </table>
                 </div>
               ) : (
-                <EmptyFinanceState icon={<Clock size={38} />} title="Nenhum registro encontrado" subtitle="Ajuste os filtros ou finalize relatorios para alimentar o historico." />
+                <EmptyFinanceState icon={<Clock size={38} />} title="Nenhuma casa finalizada" subtitle="Finalize relatórios (ou ajuste os filtros) para ver o histórico das casas." />
               )}
             </div>
           </div>
@@ -1224,6 +1254,63 @@ export default function Faturamento() {
       </div>
 
       {/* ===== MODAL DE APRESENTAÇÃO ===== */}
+      {/* Modal: Adicionar Receita Manual (bônus) */}
+      {showAddReceita && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
+          onClick={() => setShowAddReceita(false)}
+        >
+          <div className="w-full max-w-md rounded-2xl p-6 space-y-4"
+            style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)", border: "1px solid rgba(212,160,23,0.25)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[#050b18]" style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}>
+                  <DollarSign size={16} />
+                </div>
+                <h3 className="text-base font-black text-white">Adicionar Receita</h3>
+              </div>
+              <button onClick={() => setShowAddReceita(false)} className="text-white/30 hover:text-white/70"><X size={18} /></button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Valor (R$) *</label>
+                <input type="number" inputMode="decimal" placeholder="Ex: 200" value={novaReceita.valor}
+                  onChange={(e) => setNovaReceita({ ...novaReceita, valor: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-white focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Descrição</label>
+                <input type="text" placeholder="Ex: Bônus conta X" value={novaReceita.descricao}
+                  onChange={(e) => setNovaReceita({ ...novaReceita, descricao: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-white focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Data</label>
+                <input type="date" value={novaReceita.data}
+                  onChange={(e) => setNovaReceita({ ...novaReceita, data: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-[#0a1428] text-white focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setShowAddReceita(false)} className="flex-1 py-2.5 rounded-xl font-medium text-sm text-white/40 border border-white/12 hover:bg-white/5 transition-colors">Cancelar</button>
+              <button onClick={handleAddReceita} disabled={criarReceita.isPending}
+                className="flex-1 py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.01] disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+              >
+                {criarReceita.isPending ? "Salvando..." : "Adicionar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showApresentacao && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)" }}

@@ -167,6 +167,22 @@ export const usersRelationsFull = relations(users, ({ many }) => ({
   gastosProxy: many(gastosProxy),
 }));
 
+// Tabela de receitas manuais (bônus, ganhos avulsos) — soma no lucro
+export const receitas = pgTable("receitas", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: integer("userId").notNull(),
+  valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
+  descricao: text("descricao"),
+  data: date("data").notNull(),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+});
+
+export type Receita = typeof receitas.$inferSelect;
+export type InsertReceita = Omit<typeof receitas.$inferInsert, 'id' | 'userId' | 'criadoEm'> & {
+  id: string;
+  userId: number;
+};
+
 // Tabela de slots / jogos adicionados
 export const slots = pgTable("slots", {
   id: serial("id").primaryKey(),

@@ -5,6 +5,7 @@ import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_
 import { z } from "zod";
 import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, getRelatorioById, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma, seedPlataformasIfEmpty } from "./db";
 import { savePushSubscription, deletePushSubscription, acumularCicloDia, getPushSoCelular, setPushSoCelular, logPush, getPushLog } from "./db";
+import { getReceitasByUserId, createReceita, deleteReceita } from "./db";
 import { getPushPublicKey, sendPushToUser, fmtBRL, nomeDaMeta } from "./push";
 import { supabaseUploadJSON } from "./storage";
 import { InsertRelatorio } from "../drizzle/schema";
@@ -451,6 +452,33 @@ export const appRouter = router({
       .input(z.object({ id: z.string() }))
       .mutation(async ({ input }) => {
         await deleteGastoProxy(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // Receitas manuais (bônus / ganhos avulsos)
+  receitas: router({
+    list: protectedProcedure.query(({ ctx }) => getReceitasByUserId(ctx.user.id)),
+    create: protectedProcedure
+      .input(z.object({
+        valor: z.string(),
+        descricao: z.string().optional(),
+        data: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const receita = await createReceita({
+          id: nanoid(),
+          userId: ctx.user.id,
+          valor: input.valor,
+          descricao: input.descricao,
+          data: input.data as any,
+        });
+        return receita || { success: false };
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ input }) => {
+        await deleteReceita(input.id);
         return { success: true };
       }),
   }),

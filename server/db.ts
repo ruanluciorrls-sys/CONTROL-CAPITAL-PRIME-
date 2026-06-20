@@ -1,7 +1,7 @@
 import { eq, desc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, casas, relatorios, contas, userSettings, gastosProxy, Casa, Relatorio, InsertCasa, InsertRelatorio, Conta, InsertConta, UserSettings, GastoProxy, InsertGastoProxy, slots, Slot, InsertSlot, plataformas, PlataformaDb, InsertPlataforma, pushConfig, PushConfig, pushSubscriptions, PushSubscriptionRow, InsertPushSubscription } from "../drizzle/schema";
+import { InsertUser, users, casas, relatorios, contas, userSettings, gastosProxy, Casa, Relatorio, InsertCasa, InsertRelatorio, Conta, InsertConta, UserSettings, GastoProxy, InsertGastoProxy, slots, Slot, InsertSlot, plataformas, PlataformaDb, InsertPlataforma, pushConfig, PushConfig, pushSubscriptions, PushSubscriptionRow, InsertPushSubscription, receitas, Receita, InsertReceita } from "../drizzle/schema";
 import bcrypt from "bcryptjs";
 import { ENV } from './_core/env';
 
@@ -391,6 +391,46 @@ export async function getTotalGastosProxy(userId: number): Promise<number> {
   if (!db) return 0;
   const result = await db.select().from(gastosProxy).where(eq(gastosProxy.userId, userId));
   return result.reduce((sum, gasto) => sum + parseFloat(gasto.valor.toString()), 0);
+}
+
+// ── Receitas manuais (bônus / ganhos avulsos) ──
+/** Cria a tabela de receitas automaticamente (sem migration manual). */
+export async function ensureReceitasTable(): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS receitas (
+      id varchar(64) PRIMARY KEY,
+      "userId" integer NOT NULL,
+      valor numeric(10,2) NOT NULL,
+      descricao text,
+      data date NOT NULL,
+      "criadoEm" timestamp DEFAULT now() NOT NULL
+    )`);
+    console.log("[Receitas] Tabela pronta.");
+  } catch (e) {
+    console.error("[Receitas] Falha ao criar tabela:", e);
+  }
+}
+
+export async function getReceitasByUserId(userId: number): Promise<Receita[]> {
+  const db = await getDb();
+  if (!db) return [];
+  try { return db.select().from(receitas).where(eq(receitas.userId, userId)).orderBy(desc(receitas.data)); }
+  catch { return []; }
+}
+
+export async function createReceita(receita: InsertReceita): Promise<Receita | null> {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(receitas).values(receita);
+  return db.select().from(receitas).where(eq(receitas.id, receita.id)).limit(1).then(r => r[0] || null);
+}
+
+export async function deleteReceita(id: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(receitas).where(eq(receitas.id, id));
 }
 
 // Queries para slots
