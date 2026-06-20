@@ -8,7 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { iniciarAgendadorPush } from "../push";
-import { ensurePushTable, ensureReceitasTable } from "../db";
+import { ensurePushTable, ensureReceitasTable, ensureRelatorioPrazo } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -67,6 +67,7 @@ async function startServer() {
   try {
     await ensurePushTable();
     await ensureReceitasTable();
+    await ensureRelatorioPrazo();
     iniciarAgendadorPush();
   } catch (e) { console.error("[Push] Falha ao iniciar push:", e); }
 }

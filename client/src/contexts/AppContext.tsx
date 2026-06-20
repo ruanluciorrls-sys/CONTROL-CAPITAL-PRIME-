@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useRef } from "react";
 import { AppState, CasaData, RelatorioData } from "@/lib/types";
 import { trpc } from "@/lib/trpc";
 
@@ -210,6 +210,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setIsLoading(false);
   }, [casasQuery.data, relatoriosQuery.data, settingsQuery.data, casasQuery.isLoading, relatoriosQuery.isLoading, settingsQuery.isLoading]);
+
+  // Migração única: envia para o banco os prazos que só existiam no localStorage
+  const prazosMigrados = useRef(false);
+  useEffect(() => {
+    if (prazosMigrados.current) return;
+    if (!relatoriosQuery.data) return;
+    let prazosLocais: Record<string, string> = {};
+    try { prazosLocais = JSON.parse(localStorage.getItem("relatorio-prazos-v1") || "{}"); } catch {}
+    const pendentes = (relatoriosQuery.data as any[]).filter(
+      (rel) => !rel.prazo && prazosLocais[rel.id]
+    );
+    if (pendentes.length === 0) { prazosMigrados.current = true; return; }
+    prazosMigrados.current = true;
+    Promise.allSettled(
+      pendentes.map((rel) => updateRelatorioMutation.mutateAsync({ id: rel.id, prazo: prazosLocais[rel.id] }))
+    ).then(() => { relatoriosQuery.refetch(); });
+  }, [relatoriosQuery.data]);
 
   const addCasa = async (casa: Omit<CasaData, "id" | "criadoEm">) => {
     try {

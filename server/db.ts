@@ -274,6 +274,18 @@ export async function getRelatoriosByUserId(userId: number): Promise<Relatorio[]
   return db.select().from(relatorios).where(eq(relatorios.userId, userId));
 }
 
+/** Garante a coluna 'prazo' na tabela relatorios (sem migration manual). */
+export async function ensureRelatorioPrazo(): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS prazo text`);
+    console.log("[Relatorios] Coluna prazo pronta.");
+  } catch (e) {
+    console.error("[Relatorios] Falha ao criar coluna prazo:", e);
+  }
+}
+
 export async function getRelatorioById(id: string): Promise<Relatorio | null> {
   const db = await getDb();
   if (!db) return null;
