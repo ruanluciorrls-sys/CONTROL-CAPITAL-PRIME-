@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.9.2] - 2026-06-19
+
+### Corrigido
+- **Valores de ciclo "sumindo" ao salvar** (bug introduzido na 1.9.1): a atualização otimista mudava só a tela, mas não o cache interno do tRPC. Quando outra ação recarregava algo (criar/finalizar casa ou meta), o app reconstruía a lista a partir do cache antigo e os ciclos salvos sumiam. Agora cada atualização otimista também **sincroniza o cache** (`utils.<entidade>.list.setData`), e a criação de relatório anexa ao cache em vez de recarregar a lista toda. Sem mais sumiço.
+
 ## [1.9.1] - 2026-06-19
 
 ### Alterado (responsividade — resposta instantânea)

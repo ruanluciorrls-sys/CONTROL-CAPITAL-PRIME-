@@ -139,6 +139,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   
   const updateSettingsMutation = trpc.settings.update.useMutation();
 
+  // Sincroniza o CACHE do tRPC junto com as atualizações otimistas — evita que uma
+  // recarga de outra entidade (casas/settings) reconstrua a lista a partir de dados
+  // antigos e faça os ciclos salvos "sumirem".
+  const utils = trpc.useUtils();
+  const patchRelCache = (id: string, patch: Record<string, unknown>) =>
+    utils.relatorios.list.setData(undefined, (old: any) =>
+      (old || []).map((r: any) => (r.id === id ? { ...r, ...patch } : r))
+    );
+  const removeRelCache = (id: string) =>
+    utils.relatorios.list.setData(undefined, (old: any) => (old || []).filter((r: any) => r.id !== id));
+  const patchCasaCache = (id: string, patch: Record<string, unknown>) =>
+    utils.casas.list.setData(undefined, (old: any) =>
+      (old || []).map((c: any) => (c.id === id ? { ...c, ...patch } : c))
+    );
+  const removeCasaCache = (id: string) =>
+    utils.casas.list.setData(undefined, (old: any) => (old || []).filter((c: any) => c.id !== id));
+
   // NOTA: as notificações push (meta iniciada / ciclo finalizado / meta finalizada)
   // são disparadas no SERVIDOR (server/routers.ts), não aqui. Isso garante entrega
   // confiável independente do cache do PWA e funciona a partir de qualquer dispositivo.
@@ -218,6 +235,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       casas: prev.casas.map((c) => (c.id === id ? { ...c, ...updates } : c)),
     }));
+    patchCasaCache(id, {
+      ...(updates.nome !== undefined ? { nome: updates.nome } : {}),
+      ...(updates.login !== undefined ? { login: updates.login } : {}),
+      ...(updates.senha !== undefined ? { senha: updates.senha } : {}),
+      ...(updates.media !== undefined ? { media: updates.media?.toString() } : {}),
+      ...(updates.linkCasa !== undefined ? { linkCasa: updates.linkCasa } : {}),
+      ...(updates.linkContaFilha !== undefined ? { linkContaFina: updates.linkContaFilha } : {}),
+      ...(updates.meta !== undefined ? { meta: updates.meta?.toString() } : {}),
+      ...(updates.prazo !== undefined ? { prazo: updates.prazo } : {}),
+      ...(updates.status !== undefined ? { status: updates.status } : {}),
+    });
     updateCasaMutation.mutateAsync({
       id,
       nome: updates.nome,
@@ -235,12 +263,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  // Muda só o status da casa na hora (deletar/restaurar/finalizar)
+  // Muda só o status da casa na hora (deletar/restaurar/finalizar) — tela + cache
   const setCasaStatusOtimista = (id: string, status: string, extra?: Partial<CasaData>) => {
     setState((prev) => ({
       ...prev,
       casas: prev.casas.map((c) => (c.id === id ? { ...c, status: status as any, ...extra } : c)),
     }));
+    patchCasaCache(id, { status, ...(extra as Record<string, unknown>) });
   };
 
   const deleteCasa = async (id: string) => {
@@ -261,6 +290,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const deletePermanentementeCasa = async (id: string) => {
     setState((prev) => ({ ...prev, casas: prev.casas.filter((c) => c.id !== id) }));
+    removeCasaCache(id);
     deleteCasaMutation.mutateAsync({ id }).catch((error) => {
       console.error("Erro ao deletar permanentemente casa:", error);
       casasQuery.refetch();
@@ -311,8 +341,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
-      // Recarregar relatórios
-      await relatoriosQuery.refetch();
+      // Anexa o novo relatório ao cache (sem refetch da lista toda, que poderia
+      // sobrescrever edições de ciclo ainda não recarregadas).
+      if (relId) {
+        const { prazoInput, ...novo } = result as any;
+        utils.relatorios.list.setData(undefined, (old: any) => {
+          const lista = old || [];
+          return lista.some((r: any) => r.id === relId) ? lista : [...lista, novo];
+        });
+      } else {
+        await relatoriosQuery.refetch();
+      }
     } catch (error) {
       console.error("Erro ao criar relatório:", error);
     }
@@ -345,6 +384,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             : r
         ),
       }));
+      // Mantém o cache do tRPC em sincronia (server-shaped) para não "sumir" ao recarregar
+      patchRelCache(id, {
+        ...(relatorio.rows !== undefined ? { rows: relatorio.rows } : {}),
+        ...(relatorio.cooperacao !== undefined ? { cooperacao: relatorio.cooperacao.toString() } : {}),
+        ...(relatorio.agente !== undefined ? { agente: relatorio.agente } : {}),
+        ...(relatorio.status !== undefined ? { status: relatorio.status } : {}),
+      });
 
       // Deep copy dos rows para evitar compartilhamento
       const rowsCopy = relatorio.rows ? JSON.parse(JSON.stringify(relatorio.rows)) : undefined;
@@ -368,6 +414,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteRelatorio = async (id: string) => {
     // ATUALIZAÇÃO OTIMISTA: remove da tela na hora
     setState((prev) => ({ ...prev, relatorios: prev.relatorios.filter((r) => r.id !== id) }));
+    removeRelCache(id);
     deleteRelatorioMutation.mutateAsync({ id }).catch((error) => {
       console.error("Erro ao deletar relatório:", error);
       relatoriosQuery.refetch();
@@ -388,6 +435,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           r.id === id ? { ...r, status: "finalizado", finalizadoEm: new Date().toISOString() } : r
         ),
       }));
+      patchRelCache(id, { status: "finalizado" });
       // Sincroniza em segundo plano
       updateRelatorioMutation.mutateAsync({ id, status: "finalizado" }).catch((error) => {
         console.error("Erro ao finalizar relatório:", error);
@@ -406,6 +454,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...prev,
         relatorios: prev.relatorios.map((r) => (r.id === id ? { ...r, status: "ativo" } : r)),
       }));
+      patchRelCache(id, { status: "ativo" });
       updateRelatorioMutation.mutateAsync({ id, status: "ativo" }).catch((error) => {
         console.error("Erro ao reutilizar relatório:", error);
         relatoriosQuery.refetch();
