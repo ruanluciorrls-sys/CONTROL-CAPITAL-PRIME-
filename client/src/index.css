@@ -148,17 +148,7 @@
   }
 }
 
-/* ── Page Transitions ── */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes fadeOut {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
-.page-transition-enter { animation: fadeIn 140ms cubic-bezier(.4,0,.2,1) forwards; }
-.page-transition-exit  { animation: fadeOut 70ms ease forwards; }
+/* ── Page Transitions ── (definição única e suave; ver também regra final abaixo) */
 
 /* ─────────────────────────────────────────
    LOGIN PAGE
@@ -741,17 +731,17 @@
   }
 }
 
-/* Page Transitions — suaves, sem blur agressivo */
+/* Page Transitions — suaves (fade + leve slide/scale) */
 .page-transition-enter {
   opacity: 1;
-  transform: translateY(0);
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  transform: translateY(0) scale(1);
+  transition: opacity 0.35s cubic-bezier(.22,.61,.36,1), transform 0.35s cubic-bezier(.22,.61,.36,1);
 }
 
 .page-transition-exit {
   opacity: 0;
-  transform: translateY(4px);
-  transition: opacity 0.22s ease, transform 0.22s ease;
+  transform: translateY(8px) scale(0.992);
+  transition: opacity 0.18s ease-in, transform 0.18s ease-in;
 }
 
 /* Respeita preferência de movimento reduzido */

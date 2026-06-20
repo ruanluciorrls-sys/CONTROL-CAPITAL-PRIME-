@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export function usePageTransition<T>(activeValue: T, delayMs: number = 150) {
+export function usePageTransition<T>(activeValue: T, delayMs: number = 130) {
   const [renderedValue, setRenderedValue] = useState<T>(activeValue);
   const [isVisible, setIsVisible] = useState(true);
 

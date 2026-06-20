@@ -182,27 +182,30 @@ export default function Dashboard() {
                 <button
                   key={i}
                   onClick={() => navigateToTab(m.tab)}
-                  className="group relative text-left rounded-2xl p-4 border border-white/8 transition-all duration-200 hover:-translate-y-1 hover:border-opacity-30 overflow-hidden"
+                  className="group relative text-left rounded-2xl p-4 border border-white/8 transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.05] overflow-hidden"
                   style={{ background: "rgba(255,255,255,0.03)" }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = m.color + "40"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.08)"; }}
+                  onMouseEnter={(e) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = m.color + "55"; el.style.boxShadow = `0 14px 34px ${m.color}1f`; }}
+                  onMouseLeave={(e) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "rgba(255,255,255,0.08)"; el.style.boxShadow = "none"; }}
                 >
                   {/* Barra de cor no topo */}
                   <div className="absolute top-0 left-0 w-full h-[2px] opacity-60 group-hover:opacity-100 transition-opacity"
                     style={{ background: m.color }} />
+                  {/* Glow sutil no canto */}
+                  <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                    style={{ background: `radial-gradient(circle, ${m.color}22, transparent 70%)` }} />
 
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center border border-white/8"
+                  <div className="relative flex items-start justify-between mb-3">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center border border-white/8 transition-transform duration-300 group-hover:scale-110"
                       style={{ background: m.color + "15", color: m.color }}
                     >
                       <Icon size={15} />
                     </div>
-                    <ArrowRight size={12} className="text-white/15 group-hover:text-white/40 transition-colors mt-1" />
+                    <ArrowRight size={12} className="text-white/15 group-hover:text-white/40 group-hover:translate-x-0.5 transition-all mt-1" />
                   </div>
 
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/35 mb-1">{m.title}</p>
-                  <p className="text-2xl font-black text-white">{m.value}</p>
-                  <p className="text-[9px] text-white/20 mt-0.5">{m.desc}</p>
+                  <p className="relative text-[9px] font-black uppercase tracking-widest text-white/35 mb-1">{m.title}</p>
+                  <p className="relative text-2xl font-black text-white">{m.value}</p>
+                  <p className="relative text-[9px] text-white/20 mt-0.5">{m.desc}</p>
                 </button>
               );
             })}
