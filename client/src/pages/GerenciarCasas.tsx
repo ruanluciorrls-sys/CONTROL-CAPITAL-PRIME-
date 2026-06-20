@@ -228,6 +228,7 @@ export default function GerenciarCasas() {
       });
       setEditingId(null);
       setErrors({});
+      setShowModal(false); // fecha o modal após salvar (evita o "Adicionar Casas" vazio)
     } catch (error) {
       toast.error("Erro ao salvar casa");
       console.error(error);
@@ -571,100 +572,128 @@ export default function GerenciarCasas() {
 
             <form onSubmit={editingId ? handleSubmit : handleSubmitMultiple} className="p-4 md:p-6 space-y-4">
               {editingId ? (
-                // Formulário de edição única
-                <div className="space-y-4">
+                // Formulário de edição única — mesmo visual da criação (com rótulos)
+                <div className="rounded-xl p-4 border border-white/10 space-y-3" style={{ background: "rgba(255,255,255,0.03)" }}>
+                  {/* Nome da Casa */}
                   <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Nome da Casa *</label>
                     <input
                       type="text"
-                      placeholder="Nome da Casa"
+                      placeholder="Ex: Casa 1, VOY, W1"
                       value={formData.nome}
                       onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground ${
-                        errors.nome ? "border-red-500" : "border-border"
+                      className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] ${
+                        errors.nome ? "border-red-500" : "border-white/15"
                       }`}
                       required
                     />
-                    {errors.nome && <p className="text-red-500 text-sm mt-1">{errors.nome}</p>}
+                    {errors.nome && <p className="text-red-400 text-xs mt-1">{errors.nome}</p>}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input
-                      type="text"
-                      placeholder="Login da casa"
-                      value={formData.login}
-                      name="login-casa-edit"
-                      autoComplete="off"
-                      data-lpignore="true"
-                      onChange={(e) => setFormData({ ...formData, login: e.target.value })}
-                      className="px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
-                    />
-                    <div className="relative">
+                  {/* Login | Senha */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Login da Casa</label>
                       <input
-                        type={showPassword["single"] ? "text" : "password"}
-                        placeholder="Senha da casa"
-                        value={formData.senha}
-                        name="senha-casa-edit"
-                        autoComplete="new-password"
+                        type="text"
+                        placeholder="Login da casa"
+                        value={formData.login}
+                        name="login-casa-edit"
+                        autoComplete="off"
                         data-lpignore="true"
-                        onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
-                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary pr-10 bg-background text-foreground"
+                        onChange={(e) => setFormData({ ...formData, login: e.target.value })}
+                        className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword({ ...showPassword, single: !showPassword["single"] })}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {showPassword["single"] ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Senha da Casa</label>
+                      <div className="relative">
+                        <input
+                          type={showPassword["single"] ? "text" : "password"}
+                          placeholder="Senha da casa"
+                          value={formData.senha}
+                          name="senha-casa-edit"
+                          autoComplete="new-password"
+                          data-lpignore="true"
+                          onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
+                          className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] pr-8"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword({ ...showPassword, single: !showPassword["single"] })}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60"
+                        >
+                          {showPassword["single"] ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Meta | Média */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Meta</label>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        value={formData.meta || ""}
+                        onChange={(e) => setFormData({ ...formData, meta: e.target.value ? parseFloat(e.target.value) : 0 })}
+                        className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Média</label>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        value={formData.media || ""}
+                        onChange={(e) => setFormData({ ...formData, media: e.target.value ? parseFloat(e.target.value) : 0 })}
+                        className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Prazo */}
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Prazo</label>
                     <input
-                      type="number"
-                      placeholder="Meta"
-                      value={formData.meta || ""}
-                      onChange={(e) => setFormData({ ...formData, meta: e.target.value ? parseFloat(e.target.value) : 0 })}
-                      className="px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Média"
-                      value={formData.media || ""}
-                      onChange={(e) => setFormData({ ...formData, media: e.target.value ? parseFloat(e.target.value) : 0 })}
-                      className="px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
+                      type="text"
+                      placeholder="AAAA-MM-DD"
+                      value={formData.prazo}
+                      onChange={(e) => setFormData({ ...formData, prazo: e.target.value })}
+                      className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
                     />
                   </div>
 
-                  <input
-                    type="text"
-                    placeholder="Prazo (DD/MM/YYYY)"
-                    value={formData.prazo}
-                    onChange={(e) => setFormData({ ...formData, prazo: e.target.value })}
-                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
-                  />
+                  {/* Link da Casa */}
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Link da Casa</label>
+                    <input
+                      type="url"
+                      placeholder="https://..."
+                      value={formData.linkCasa}
+                      onChange={(e) => setFormData({ ...formData, linkCasa: e.target.value })}
+                      className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] ${
+                        errors.linkCasa ? "border-red-500" : "border-white/15"
+                      }`}
+                    />
+                    {errors.linkCasa && <p className="text-red-400 text-xs mt-1">{errors.linkCasa}</p>}
+                  </div>
 
-                  <input
-                    type="url"
-                    placeholder="Link da Casa"
-                    value={formData.linkCasa}
-                    onChange={(e) => setFormData({ ...formData, linkCasa: e.target.value })}
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground ${
-                      errors.linkCasa ? "border-red-500" : "border-border"
-                    }`}
-                  />
-                  {errors.linkCasa && <p className="text-red-500 text-sm mt-1">{errors.linkCasa}</p>}
-
-                  <input
-                    type="url"
-                    placeholder="Link da Conta-Filha"
-                    value={formData.linkContaFilha}
-                    onChange={(e) => setFormData({ ...formData, linkContaFilha: e.target.value })}
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground ${
-                      errors.linkContaFilha ? "border-red-500" : "border-border"
-                    }`}
-                  />
-                  {errors.linkContaFilha && <p className="text-red-500 text-sm mt-1">{errors.linkContaFilha}</p>}
+                  {/* Link da Conta-Filha */}
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Link da Conta-Filha</label>
+                    <input
+                      type="url"
+                      placeholder="https://..."
+                      value={formData.linkContaFilha}
+                      onChange={(e) => setFormData({ ...formData, linkContaFilha: e.target.value })}
+                      className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017] ${
+                        errors.linkContaFilha ? "border-red-500" : "border-white/15"
+                      }`}
+                    />
+                    {errors.linkContaFilha && <p className="text-red-400 text-xs mt-1">{errors.linkContaFilha}</p>}
+                  </div>
                 </div>
               ) : (
                 // Múltiplos formulários (elegante)

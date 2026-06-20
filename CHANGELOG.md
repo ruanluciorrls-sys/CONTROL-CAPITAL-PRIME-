@@ -7,6 +7,12 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.9.3] - 2026-06-19
+
+### Corrigido
+- **Modal "Editar Casa"**: depois de salvar a edição, o modal **não fechava** e virava o "Adicionar Casas" vazio (com "Salvar 0 Casas"). Agora fecha corretamente ao salvar.
+- **Visual do formulário de edição de casa**: estava com campos "pelados" (sem rótulos). Agora tem os mesmos **rótulos e visual do formulário de criação** (Nome, Login, Senha, Meta, Média, Prazo, Link da Casa, Link da Conta-Filha).
+
 ## [1.9.2] - 2026-06-19
 
 ### Corrigido
