@@ -7,6 +7,20 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.11.0] - 2026-06-19
+
+### Adicionado
+- **Comparativo mensal no Faturamento**: card na Visão Geral com lucro do mês atual vs mês anterior, variação % e leitura de tendência (subindo/caindo).
+- **Editar receita manual**: além de adicionar/excluir, agora dá pra **editar** uma receita (botão de lápis na lista; mutation `receitas.update`).
+
+### Corrigido / Alterado
+- **Prazo do relatório salvo no banco** (resolve risco de perda de dados): a coluna `prazo` voltou ao schema (criada via `ALTER` automático), o servidor persiste no create/update e há uma **migração única** que envia ao banco os prazos que só existiam no `localStorage`. Não se perde mais ao trocar de aparelho/limpar cache.
+- **Transições de aba mais suaves**: unificadas as regras conflitantes de animação (fade + leve slide/scale com easing suave), troca mais ágil.
+- **Polimento dos cards do Dashboard**: sombra colorida no hover, glow sutil, ícone com leve zoom e seta deslizando.
+
+### Pendente (projeto à parte)
+- **Modo claro completo**: o app é dark-first com centenas de estilos fixos; um modo claro 100% consistente é um trabalho dedicado (não incluído neste lote para não arriscar o tema escuro que funciona).
+
 ## [1.10.0] - 2026-06-19
 
 ### Adicionado

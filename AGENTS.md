@@ -120,12 +120,12 @@ Ordenado por impacto. Itens marcados **[Quick]** são correções rápidas e seg
 
 ### Prioridade ALTA (saúde do projeto)
 - [x] ~~Corrigir `tsconfig` (target ES2020)~~ ✅ feito na v1.8.0.
-- [ ] **Persistir prazo de relatório no banco** (resolver item 2 dos bugs) — elimina perda de dados ao trocar de dispositivo.
+- [x] ~~Persistir prazo de relatório no banco~~ ✅ v1.11.0 (coluna via ALTER automático + migração do localStorage).
 - [ ] **Estabilizar a suíte de testes** (corrigir imports do testing-library; `skip` dos testes que dependem de env).
 
 ### Prioridade MÉDIA (valor pro operador)
 - [ ] **Exportação em PDF de relatórios** (já estava no `todo.md` como desejado).
-- [ ] **Mais métricas/análise e comparação entre períodos** no Faturamento/Dashboard.
+- [x] ~~Comparação entre períodos no Faturamento~~ ✅ v1.11.0 (mês vs mês anterior + tendência). _Falta projeção/mais métricas._
 - [x] ~~Ordenação e paginação~~ ✅ v1.9.0 (Contas). _Falta aplicar em Relatórios Finalizados se necessário._
 - [x] ~~Preferência "somente celular"~~ ✅ v1.9.0 (toggle no sino + filtro por device no servidor).
 - [x] ~~Resumo diário no push~~ ✅ v1.9.0 (push_daily + envio ~20h Brasil).
