@@ -422,6 +422,15 @@ export default function Faturamento() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowAddReceita(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all hover:scale-105 border border-[#d4a017]/30"
+              style={{ background: "rgba(212,160,23,0.1)", color: "#f3d078" }}
+              title="Adicionar receita manual (bônus)"
+            >
+              <DollarSign size={14} />
+              + Receita
+            </button>
+            <button
               onClick={() => setShowApresentacao(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all hover:scale-105"
               style={{
