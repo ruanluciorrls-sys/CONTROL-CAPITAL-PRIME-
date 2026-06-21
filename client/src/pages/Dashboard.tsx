@@ -124,15 +124,7 @@ export default function Dashboard() {
             style={{ background: "radial-gradient(circle, #4ade80, transparent)" }} />
 
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex-1 flex items-start gap-4 md:gap-5">
-              {/* Ícone $ à esquerda */}
-              <div className="flex items-center justify-center w-14 h-14 md:w-20 md:h-20 rounded-2xl border border-emerald-500/20 shrink-0 group-hover:scale-105 transition-transform duration-500"
-                style={{ background: "rgba(74,222,128,0.06)" }}
-              >
-                <DollarSign size={32} className="text-emerald-400" />
-              </div>
-
-              <div className="min-w-0">
+            <div className="flex-1">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-400/60">Lucro em Caixa</p>
@@ -179,7 +171,6 @@ export default function Dashboard() {
                   </div>
                 </div>
               )}
-              </div>
             </div>
 
             {/* Relógio ao vivo */}
