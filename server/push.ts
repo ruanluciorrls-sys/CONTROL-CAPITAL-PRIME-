@@ -1,6 +1,6 @@
 // @ts-ignore - web-push não tem tipos embutidos
 import webpush from "web-push";
-import { getPushSubscriptionsByUser, getAllPushSubscriptions, deletePushSubscription, getCasasByUserId, getPushSoCelular, getUsuariosComResumoDia, getResumoDia, getResumoFinalizadosPeriodo, diaBrasil } from "./db";
+import { getPushSubscriptionsByUser, getAllPushSubscriptions, deletePushSubscription, getCasasByUserId, getPushSoCelular, getUsuariosComResumoDia, getResumoDia, getResumoFinalizadosPeriodo, getReceitasPeriodo, diaBrasil } from "./db";
 
 // Chaves VAPID — usa variáveis de ambiente (Fly secrets) se existirem,
 // senão usa as chaves padrão (geradas para este app).
@@ -145,14 +145,12 @@ let ultimoResumoDiario = "";
 async function enviarResumoDiario(): Promise<void> {
   const dia = diaBrasil();
   if (ultimoResumoDiario === dia) return; // já enviou hoje
-  const ini = brtData(dia, "00:00:00");
-  const fim = brtData(dia, "23:59:59");
   await paraCadaUsuarioComPush(async (userId) => {
-    const fin = await getResumoFinalizadosPeriodo(userId, ini, fim);
-    if (fin.metas === 0) return;
+    const { lucro, metas } = await lucroDoDia(userId, dia);
+    if (metas === 0 && lucro === 0) return;
     await sendPushToUser(userId, {
       title: "📊 Resumo do dia",
-      body: `Hoje você ${fin.lucro >= 0 ? "lucrou" : "teve prejuízo de"} ${fmtBRL(fin.lucro)} em ${fin.metas} meta(s) finalizada(s).`,
+      body: `Hoje você ${lucro >= 0 ? "lucrou" : "teve prejuízo de"} ${fmtBRL(lucro)} em ${metas} meta(s) finalizada(s).`,
       tag: `resumo-${dia}`,
       url: "/",
     });
@@ -188,42 +186,49 @@ async function paraCadaUsuarioComPush(fn: (userId: number) => Promise<void>): Pr
 async function enviarLancamentosDia(hora: number): Promise<void> {
   const dia = diaBrasil();
   if (travar(`lanc-${dia}-${hora}`)) return;
-  const ini = brtData(dia, "00:00:00");
-  const fim = brtData(dia, "23:59:59");
   await paraCadaUsuarioComPush(async (userId) => {
     const ciclosDia = (await getResumoDia(userId, dia))?.ciclos || 0;
-    const fin = await getResumoFinalizadosPeriodo(userId, ini, fim);
-    if (ciclosDia === 0 && fin.metas === 0) return; // sem atividade hoje
+    const { lucro, metas } = await lucroDoDia(userId, dia);
+    if (ciclosDia === 0 && metas === 0 && lucro === 0) return; // sem atividade hoje
     await sendPushToUser(userId, {
       title: "🗒️ Lançamentos de hoje",
-      body: `${ciclosDia} ciclo(s) · ${fin.metas} meta(s) finalizada(s) · Lucro ${fmtBRL(fin.lucro)}`,
+      body: `${ciclosDia} ciclo(s) · ${metas} meta(s) finalizada(s) · Lucro ${fmtBRL(lucro)}`,
       tag: `lanc-${dia}-${hora}`,
       url: "/",
     });
   });
 }
 
-/** Relatório de período (dia/semana/mês) — lucro real das metas finalizadas. */
-async function enviarResumoFinalizados(titulo: string, prefixo: string, ini: Date, fim: Date, lockKey: string): Promise<void> {
+/** Relatório de período (dia/semana/mês) — lucro real (metas finalizadas + cooperação + receitas). */
+async function enviarResumoFinalizados(titulo: string, prefixo: string, ini: Date, fim: Date, iniDia: string, fimDia: string, lockKey: string): Promise<void> {
   if (travar(lockKey)) return;
   await paraCadaUsuarioComPush(async (userId) => {
     const fin = await getResumoFinalizadosPeriodo(userId, ini, fim);
-    if (fin.metas === 0) return;
+    const receitas = await getReceitasPeriodo(userId, iniDia, fimDia);
+    const lucro = fin.lucro + receitas;
+    if (fin.metas === 0 && lucro === 0) return;
     await sendPushToUser(userId, {
       title: titulo,
-      body: `${prefixo}: ${fin.metas} meta(s) · ${fin.lucro >= 0 ? "Lucro" : "Prejuízo"} ${fmtBRL(fin.lucro)}`,
+      body: `${prefixo}: ${fin.metas} meta(s) · ${lucro >= 0 ? "Lucro" : "Prejuízo"} ${fmtBRL(lucro)}`,
       tag: lockKey,
       url: "/",
     });
   });
 }
 
-/** Envia AGORA o resumo do dia (lucro real) para um usuário — usado no botão de teste. */
+/** Lucro do dia IGUAL ao "Hoje" do Faturamento: metas finalizadas hoje + cooperação + receitas de hoje. */
+async function lucroDoDia(userId: number, dia: string): Promise<{ lucro: number; metas: number }> {
+  const fin = await getResumoFinalizadosPeriodo(userId, brtData(dia, "00:00:00"), brtData(dia, "23:59:59"));
+  const receitas = await getReceitasPeriodo(userId, dia, dia);
+  return { lucro: fin.lucro + receitas, metas: fin.metas };
+}
+
+/** Envia AGORA o resumo do dia (lucro real, igual ao Faturamento) — usado no botão de teste. */
 export async function enviarResumoDiaTeste(userId: number): Promise<PushResult> {
   const dia = diaBrasil();
-  const fin = await getResumoFinalizadosPeriodo(userId, brtData(dia, "00:00:00"), brtData(dia, "23:59:59"));
-  const body = fin.metas > 0
-    ? `Hoje você ${fin.lucro >= 0 ? "lucrou" : "teve prejuízo de"} ${fmtBRL(fin.lucro)} em ${fin.metas} meta(s) finalizada(s).`
+  const { lucro, metas } = await lucroDoDia(userId, dia);
+  const body = (metas > 0 || lucro !== 0)
+    ? `Hoje você ${lucro >= 0 ? "lucrou" : "teve prejuízo de"} ${fmtBRL(lucro)} em ${metas} meta(s) finalizada(s).`
     : "Nenhuma meta finalizada hoje ainda — quando finalizar, o lucro real do dia aparece aqui.";
   return sendPushToUser(userId, {
     title: "📊 Resumo do dia (teste)",
@@ -247,20 +252,19 @@ export function iniciarAgendadorPush(): void {
       if (h >= 20) await enviarResumoDiario();                  // resumo de ciclos (~20h, mantido)
 
       if (h === 23) {
-        const ini = brtData(dia, "00:00:00");
         const fim = brtData(dia, "23:59:59");
         // Relatório do dia (lucro real)
-        await enviarResumoFinalizados("📊 Relatório do dia", "Hoje", ini, fim, `dia2359-${dia}`);
+        await enviarResumoFinalizados("📊 Relatório do dia", "Hoje", brtData(dia, "00:00:00"), fim, dia, dia, `dia2359-${dia}`);
         // Semanal — domingo (semana seg→dom)
         if (wd === 0) {
           const seg = new Date(b.getTime() - 6 * 86400000).toISOString().slice(0, 10);
-          await enviarResumoFinalizados("📈 Resultado da semana", "Esta semana", brtData(seg, "00:00:00"), fim, `sem-${dia}`);
+          await enviarResumoFinalizados("📈 Resultado da semana", "Esta semana", brtData(seg, "00:00:00"), fim, seg, dia, `sem-${dia}`);
         }
         // Mensal — último dia do mês
         const amanha = new Date(b.getTime() + 86400000);
         if (amanha.getUTCMonth() !== b.getUTCMonth()) {
           const primeiro = dia.slice(0, 8) + "01";
-          await enviarResumoFinalizados("🏆 Resultado do mês", "Este mês", brtData(primeiro, "00:00:00"), fim, `mes-${dia}`);
+          await enviarResumoFinalizados("🏆 Resultado do mês", "Este mês", brtData(primeiro, "00:00:00"), fim, primeiro, dia, `mes-${dia}`);
         }
       }
     } catch (e) {

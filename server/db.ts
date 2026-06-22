@@ -599,6 +599,20 @@ export async function getResumoFinalizadosPeriodo(userId: number, ini: Date, fim
   } catch (e) { console.error("[Push] getResumoFinalizadosPeriodo:", e); return { lucro: 0, metas: 0 }; }
 }
 
+/** Soma das receitas manuais (bônus) entre duas datas (YYYY-MM-DD). */
+export async function getReceitasPeriodo(userId: number, iniDia: string, fimDia: string): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  try {
+    const res: any = await db.execute(sql`
+      SELECT COALESCE(SUM(valor), 0) AS total FROM receitas
+      WHERE "userId" = ${userId} AND data >= ${iniDia} AND data <= ${fimDia}
+    `);
+    const rows = (res as any).rows ?? res ?? [];
+    return Number(rows[0]?.total) || 0;
+  } catch { return 0; }
+}
+
 export async function getUsuariosComResumoDia(dia: string): Promise<number[]> {
   const db = await getDb();
   if (!db) return [];
