@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.12.1] - 2026-06-19
+
+### Adicionado
+- **Ao finalizar um relatório, pergunta se finaliza a meta vinculada**: ao clicar em "Finalizar Relatório", abre uma caixa perguntando se quer finalizar **também a casa/meta** ligada — "Sim (finaliza os dois)" ou "Não (só o relatório)". Assim você decide caso a caso se a meta acabou junto.
+
 ## [1.12.0] - 2026-06-19
 
 ### Adicionado

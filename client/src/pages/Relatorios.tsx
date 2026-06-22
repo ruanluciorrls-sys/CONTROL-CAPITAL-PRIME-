@@ -395,7 +395,8 @@ function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
 }
 
 export default function Relatorios() {
-  const { state, addRelatorio, updateRelatorio, deleteRelatorio, finalizarRelatorio, duplicarRelatorio, esvaziarLixeira } = useApp();
+  const { state, addRelatorio, updateRelatorio, deleteRelatorio, finalizarRelatorio, finalizarCasa, duplicarRelatorio, esvaziarLixeira } = useApp();
+  const [finalizarDialogId, setFinalizarDialogId] = useState<string | null>(null);
   const [selectedRelatorioId, setSelectedRelatorioId] = useState<string>("");
   const [showNewForm, setShowNewForm] = useState(false);
   const [activeTab, setActiveTab] = useState<"relatorio" | "progresso" | "lixeira">("relatorio");
@@ -802,13 +803,7 @@ export default function Relatorios() {
                   onRestoreRows={(rows) => updateRelatorio(selectedRelatorioId, { rows })}
                 />
                 <button
-                  onClick={() => {
-                    if (selectedRelatorioId) {
-                      finalizarRelatorio(selectedRelatorioId);
-                      setSelectedRelatorioId("");
-                      toast.success("Relatório finalizado! Movido para Relatórios Finalizados.");
-                    }
-                  }}
+                  onClick={() => { if (selectedRelatorioId) setFinalizarDialogId(selectedRelatorioId); }}
                   className="mt-6 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
                 >
                   ✓ Finalizar Relatório
@@ -911,6 +906,61 @@ export default function Relatorios() {
             )}
           </div>
         )}
+
+        {/* Diálogo: finalizar também a meta vinculada? */}
+        {finalizarDialogId && (() => {
+          const rel = relatoriosAtivos.find((r) => r.id === finalizarDialogId);
+          const casa = rel ? state.casas.find((c) => c.id === rel.casaId) : null;
+          const nomeCasa = (casa?.nome || "a meta").replace(/[\s-]+$/, "").trim();
+          const casaJaFinalizada = casa?.status !== "ativa";
+          const finalizar = (comCasa: boolean) => {
+            finalizarRelatorio(finalizarDialogId);
+            if (comCasa && rel?.casaId) finalizarCasa(rel.casaId);
+            setSelectedRelatorioId("");
+            setFinalizarDialogId(null);
+            toast.success(comCasa ? "Relatório e meta finalizados!" : "Relatório finalizado!");
+          };
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
+              onClick={() => setFinalizarDialogId(null)}
+            >
+              <div className="w-full max-w-md rounded-2xl p-6 space-y-5"
+                style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)", border: "1px solid rgba(212,160,23,0.25)" }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-[#050b18]"
+                    style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                  >✓</div>
+                  <h3 className="text-base font-black text-white">Finalizar Relatório</h3>
+                </div>
+                <p className="text-sm text-white/70">
+                  Deseja finalizar <b className="text-white">também a meta</b> vinculada
+                  (<span className="font-bold text-[#d4a017]">{nomeCasa}</span>)?
+                  <br />
+                  <span className="text-xs text-white/40">
+                    {casaJaFinalizada
+                      ? "Obs: essa meta já não está ativa."
+                      : "Finalizar a meta tira ela da Operação CPA e move para Casas Finalizadas."}
+                  </span>
+                </p>
+                <div className="flex flex-col gap-2">
+                  <button onClick={() => finalizar(true)}
+                    className="w-full py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.01]"
+                    style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                  >Sim — finalizar relatório e meta</button>
+                  <button onClick={() => finalizar(false)}
+                    className="w-full py-2.5 rounded-xl font-bold text-sm text-white/80 border border-white/15 hover:bg-white/5 transition-colors"
+                  >Não — só o relatório</button>
+                  <button onClick={() => setFinalizarDialogId(null)}
+                    className="w-full py-2 rounded-xl text-xs font-medium text-white/40 hover:text-white/60 transition-colors"
+                  >Cancelar</button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
