@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.12.2] - 2026-06-19
+
+### Adicionado
+- **Ao reutilizar um relatório, pergunta se reativa a meta vinculada**: caixa de confirmação igual à de finalizar — "Sim (reativa relatório e meta)" ou "Não (só o relatório)". Se "Sim" e a meta estiver finalizada, ela volta de Casas Finalizadas para Operação CPA.
+
 ## [1.12.1] - 2026-06-19
 
 ### Adicionado

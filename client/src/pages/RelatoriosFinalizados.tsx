@@ -14,8 +14,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export default function RelatoriosFinalizados() {
-  const { state, deleteRelatorio, reutilizarRelatorio, updateRelatorio } = useApp();
+  const { state, deleteRelatorio, reutilizarRelatorio, restaurarCasa, updateRelatorio } = useApp();
   const [selectedRelatorioId, setSelectedRelatorioId] = useState<string | null>(null);
+  const [reutilizarDialogId, setReutilizarDialogId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingData, setEditingData] = useState<any>(null);
   const [filtroNomeInicial, setFiltroNomeInicial] = useState("");
@@ -90,8 +91,21 @@ export default function RelatoriosFinalizados() {
   const totalFinalizado = relatoriosFinalizados.reduce((total, relatorio) => total + getRelatorioTotal(relatorio), 0);
 
   const handleReutilizar = (relatorioId: string) => {
-    reutilizarRelatorio(relatorioId);
-    toast.success("Relatorio reutilizado! Verifique em Operacao CPA.");
+    setReutilizarDialogId(relatorioId);
+  };
+
+  const executarReutilizar = (comCasa: boolean) => {
+    const id = reutilizarDialogId;
+    if (!id) return;
+    const rel = relatoriosFinalizadosTodos.find((r) => r.id === id);
+    reutilizarRelatorio(id);
+    if (comCasa && rel) {
+      const casa = state.casas.find((c) => c.id === rel.casaId);
+      if (casa && casa.status === "finalizada") restaurarCasa(casa.id);
+    }
+    setReutilizarDialogId(null);
+    setSelectedRelatorioId(null);
+    toast.success(comCasa ? "Relatório e meta reativados!" : "Relatório reativado em Operação CPA.");
   };
 
   const handleEditClick = () => {
@@ -480,6 +494,54 @@ export default function RelatoriosFinalizados() {
           )}
         </div>
       </div>
+
+      {/* Diálogo: reutilizar também a meta vinculada? */}
+      {reutilizarDialogId && (() => {
+        const rel = relatoriosFinalizadosTodos.find((r) => r.id === reutilizarDialogId);
+        const casa = rel ? state.casas.find((c) => c.id === rel.casaId) : null;
+        const nomeCasa = (casa?.nome || "a meta").replace(/[\s-]+$/, "").trim();
+        const casaFinalizada = casa?.status === "finalizada";
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
+            onClick={() => setReutilizarDialogId(null)}
+          >
+            <div className="w-full max-w-md rounded-2xl p-6 space-y-5"
+              style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)", border: "1px solid rgba(212,160,23,0.25)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[#050b18]"
+                  style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                ><Copy size={16} /></div>
+                <h3 className="text-base font-black text-white">Reutilizar Relatório</h3>
+              </div>
+              <p className="text-sm text-white/70">
+                Deseja reativar <b className="text-white">também a meta</b> vinculada
+                (<span className="font-bold text-[#d4a017]">{nomeCasa}</span>)?
+                <br />
+                <span className="text-xs text-white/40">
+                  {casaFinalizada
+                    ? "Reativar a meta tira ela de Casas Finalizadas e volta para Operação CPA."
+                    : "Obs: essa meta não está finalizada (continua como está)."}
+                </span>
+              </p>
+              <div className="flex flex-col gap-2">
+                <button onClick={() => executarReutilizar(true)}
+                  className="w-full py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.01]"
+                  style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                >Sim — reativar relatório e meta</button>
+                <button onClick={() => executarReutilizar(false)}
+                  className="w-full py-2.5 rounded-xl font-bold text-sm text-white/80 border border-white/15 hover:bg-white/5 transition-colors"
+                >Não — só o relatório</button>
+                <button onClick={() => setReutilizarDialogId(null)}
+                  className="w-full py-2 rounded-xl text-xs font-medium text-white/40 hover:text-white/60 transition-colors"
+                >Cancelar</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
