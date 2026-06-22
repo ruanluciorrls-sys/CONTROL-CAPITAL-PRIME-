@@ -1,5 +1,6 @@
 import { useApp } from "@/contexts/AppContext";
 import {
+  CalendarDays,
   Check,
   Copy,
   Edit2,
@@ -18,8 +19,22 @@ export default function RelatoriosFinalizados() {
   const [isEditing, setIsEditing] = useState(false);
   const [editingData, setEditingData] = useState<any>(null);
   const [filtroNomeInicial, setFiltroNomeInicial] = useState("");
+  const [filtroMes, setFiltroMes] = useState(""); // "" = todos os meses
 
-  const relatoriosFinalizados = state.relatorios.filter((relatorio) => relatorio.status === "finalizado");
+  const relatoriosFinalizadosTodos = state.relatorios.filter((relatorio) => relatorio.status === "finalizado");
+
+  // ── Filtro por mês (usa finalizadoEm; cai para criadoEm se faltar) ──
+  const MESES_LBL = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  const getMesKey = (rel: any): string => {
+    const d = new Date(rel.finalizadoEm || rel.criadoEm);
+    return isNaN(d.getTime()) ? "" : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+  const mesLabel = (key: string) => { const [a, m] = key.split("-"); return `${MESES_LBL[parseInt(m) - 1]}/${a}`; };
+  const mesesDisponiveis = Array.from(new Set(relatoriosFinalizadosTodos.map(getMesKey).filter(Boolean))).sort().reverse();
+
+  const relatoriosFinalizados = filtroMes
+    ? relatoriosFinalizadosTodos.filter((r) => getMesKey(r) === filtroMes)
+    : relatoriosFinalizadosTodos;
 
   const panelClass =
     "relative overflow-hidden rounded-2xl border border-white/10 bg-[#071226]/82 shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur-xl";
@@ -167,6 +182,32 @@ export default function RelatoriosFinalizados() {
         <div className="lg:col-span-1">
           <div className={`${panelClass} p-5`}>
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/30 to-transparent" />
+            {/* Filtro por MÊS */}
+            {mesesDisponiveis.length > 0 && (
+              <div className="mb-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <CalendarDays size={15} className="text-[#d4a017]" />
+                  <h3 className="text-sm font-black uppercase tracking-wider text-white/80">Mês</h3>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => { setFiltroMes(""); setFiltroNomeInicial(""); }}
+                    className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
+                    style={filtroMes === "" ? goldButtonStyle : ghostButtonStyle}
+                  >Todos</button>
+                  {mesesDisponiveis.map((mk) => (
+                    <button
+                      key={mk}
+                      onClick={() => { setFiltroMes(mk); setFiltroNomeInicial(""); }}
+                      className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
+                      style={filtroMes === mk ? goldButtonStyle : ghostButtonStyle}
+                    >{mesLabel(mk)}</button>
+                  ))}
+                </div>
+                <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+              </div>
+            )}
+
             <div className="mb-4 flex items-center gap-2">
               <ListFilter size={16} className="text-[#d4a017]" />
               <h3 className="text-lg font-bold text-white">Filtrar por Nomenclatura</h3>

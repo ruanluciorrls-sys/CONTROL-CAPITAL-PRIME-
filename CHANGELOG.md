@@ -7,6 +7,20 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.12.0] - 2026-06-19
+
+### Adicionado
+- **Notificações agendadas (horário de Brasília)**:
+  - **8h, 12h, 17h** → resumo dos lançamentos do dia (ciclos · metas finalizadas · lucro).
+  - **23:59** → relatório do dia com **lucro real** (metas finalizadas + cooperação).
+  - **Domingo 23:59** → resultado da semana. **Último dia do mês 23:59** → resultado do mês.
+  - Mantido o resumo de ciclos das ~20h. Tudo enviado só para quem tem push ativo.
+- **`finalizadoEm` no banco**: registra quando cada relatório foi finalizado (antes só no aparelho). Base para os resumos por período e para os filtros mensais funcionarem em qualquer aparelho. Migração automática do localStorage.
+- **Filtro por mês em Relatórios Finalizados**: seletor de mês (não mistura mais os meses). Casas Finalizadas já tinha; Faturamento tem filtros de data + comparativo mensal.
+
+### Notas
+- O lucro dos resumos é o **lucro real** (com cooperação), por data de finalização — coerente com o "Lucro em Caixa".
+
 ## [1.11.4] - 2026-06-19
 
 ### Adicionado / Alterado (Chaves PIX)
