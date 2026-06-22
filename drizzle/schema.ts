@@ -65,6 +65,7 @@ export const relatorios = pgTable("relatorios", {
   agente: text("agente").notNull(),
   status: relatorioStatusEnum("status").default("ativo").notNull(),
   prazo: text("prazo"), // coluna criada via ALTER automático (ensureRelatorioPrazo)
+  finalizadoEm: timestamp("finalizadoEm"), // quando foi finalizado (ALTER automático)
   rows: jsonb("rows").$type<Array<Record<string, unknown>>>().notNull(),
   cooperacao: decimal("cooperacao", { precision: 10, scale: 2 }).default("0").notNull(),
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),

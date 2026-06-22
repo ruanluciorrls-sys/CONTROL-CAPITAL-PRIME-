@@ -190,7 +190,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       cooperacao: rel.cooperacao ? Number(rel.cooperacao) : 0,
       // Usa prazo do DB se existir, senão usa o salvo localmente
       prazo: rel.prazo || prazosLocais[rel.id] || "",
-      finalizadoEm: rel.finalizadoEm || finalizadosEmLocais[rel.id] || undefined,
+      finalizadoEm: (rel.finalizadoEm instanceof Date ? rel.finalizadoEm.toISOString() : rel.finalizadoEm)
+        || finalizadosEmLocais[rel.id] || undefined,
       rows: rel.rows || [],
       criadoEm: rel.criadoEm instanceof Date ? rel.criadoEm.toISOString() : rel.criadoEm,
       atualizadoEm: rel.atualizadoEm instanceof Date ? rel.atualizadoEm.toISOString() : rel.atualizadoEm,
@@ -211,20 +212,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, [casasQuery.data, relatoriosQuery.data, settingsQuery.data, casasQuery.isLoading, relatoriosQuery.isLoading, settingsQuery.isLoading]);
 
-  // Migração única: envia para o banco os prazos que só existiam no localStorage
+  // Migração única: envia para o banco os prazos e finalizadoEm que só existiam no localStorage
   const prazosMigrados = useRef(false);
   useEffect(() => {
     if (prazosMigrados.current) return;
     if (!relatoriosQuery.data) return;
     let prazosLocais: Record<string, string> = {};
+    let finalizadosLocais: Record<string, string> = {};
     try { prazosLocais = JSON.parse(localStorage.getItem("relatorio-prazos-v1") || "{}"); } catch {}
-    const pendentes = (relatoriosQuery.data as any[]).filter(
-      (rel) => !rel.prazo && prazosLocais[rel.id]
-    );
+    try { finalizadosLocais = JSON.parse(localStorage.getItem(RELATORIOS_FINALIZADOS_EM_KEY) || "{}"); } catch {}
+
+    const pendentes = (relatoriosQuery.data as any[])
+      .map((rel) => {
+        const patch: any = { id: rel.id };
+        let temAlgo = false;
+        if (!rel.prazo && prazosLocais[rel.id]) { patch.prazo = prazosLocais[rel.id]; temAlgo = true; }
+        if (!rel.finalizadoEm && finalizadosLocais[rel.id]) { patch.finalizadoEm = finalizadosLocais[rel.id]; temAlgo = true; }
+        return temAlgo ? patch : null;
+      })
+      .filter(Boolean) as any[];
+
     if (pendentes.length === 0) { prazosMigrados.current = true; return; }
     prazosMigrados.current = true;
     Promise.allSettled(
-      pendentes.map((rel) => updateRelatorioMutation.mutateAsync({ id: rel.id, prazo: prazosLocais[rel.id] }))
+      pendentes.map((patch) => updateRelatorioMutation.mutateAsync(patch))
     ).then(() => { relatoriosQuery.refetch(); });
   }, [relatoriosQuery.data]);
 

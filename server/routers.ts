@@ -222,6 +222,7 @@ export const appRouter = router({
         id: z.string(),
         agente: z.string().optional(),
         prazo: z.string().optional(),
+        finalizadoEm: z.string().optional(), // usado na migração do localStorage
         rows: z.array(z.record(z.string(), z.any())).optional(),
         cooperacao: z.string().optional(),
         status: z.enum(["ativo", "finalizado", "lixeira"]).optional(),
@@ -235,6 +236,14 @@ export const appRouter = router({
         if (input.rows !== undefined) updateData.rows = input.rows;
         if (input.cooperacao !== undefined) updateData.cooperacao = input.cooperacao;
         if (input.status !== undefined) updateData.status = input.status;
+        // finalizadoEm: registra ao finalizar; limpa ao reutilizar; ou define o da migração
+        if (input.status === "finalizado" && antes?.status !== "finalizado") {
+          (updateData as any).finalizadoEm = new Date();
+        } else if (input.status === "ativo") {
+          (updateData as any).finalizadoEm = null;
+        } else if (input.finalizadoEm !== undefined && !(antes as any)?.finalizadoEm) {
+          (updateData as any).finalizadoEm = new Date(input.finalizadoEm);
+        }
         await updateRelatorio(input.id, updateData);
 
         // Push (no servidor — confiável, independe do cache do celular)
