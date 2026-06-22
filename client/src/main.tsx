@@ -7,6 +7,7 @@ import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
 import { isEditingActive } from "./lib/syncLock";
+import { iniciarAutoUpdate } from "./lib/autoUpdate";
 import "./index.css";
 
 // Sincronização automática entre dispositivos, SEM atrapalhar a edição:
@@ -75,6 +76,9 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </trpc.Provider>
 );
+
+// Auto-update: recarrega o app quando uma nova versão é publicada (todos pegam as atualizações)
+iniciarAutoUpdate();
 
 // Registra o service worker (necessário para notificações push no celular)
 if ("serviceWorker" in navigator) {

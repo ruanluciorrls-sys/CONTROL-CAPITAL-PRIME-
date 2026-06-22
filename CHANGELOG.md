@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.11.2] - 2026-06-19
+
+### Adicionado
+- **Auto-update (todos os usuários pegam as atualizações sozinhos)**: o app agora detecta quando uma nova versão foi publicada (comparando o hash do bundle do index.html publicado com o carregado) e **recarrega automaticamente** — sem o usuário precisar limpar cache. Não interrompe quem está editando (respeita a trava de edição) e avisa com um toast antes de recarregar. Resolve o "as atualizações não chegam para todos" (era cache do navegador/PWA de cada aparelho).
+
 ## [1.11.1] - 2026-06-19
 
 ### Corrigido
