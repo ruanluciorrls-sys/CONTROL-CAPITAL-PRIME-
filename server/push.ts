@@ -1,6 +1,6 @@
 // @ts-ignore - web-push não tem tipos embutidos
 import webpush from "web-push";
-import { getPushSubscriptionsByUser, getAllPushSubscriptions, deletePushSubscription, getCasasByUserId, getPushSoCelular, getUsuariosComResumoDia, getResumoDia, diaBrasil } from "./db";
+import { getPushSubscriptionsByUser, getAllPushSubscriptions, deletePushSubscription, getCasasByUserId, getPushSoCelular, getUsuariosComResumoDia, getResumoDia, getResumoFinalizadosPeriodo, diaBrasil } from "./db";
 
 // Chaves VAPID — usa variáveis de ambiente (Fly secrets) se existirem,
 // senão usa as chaves padrão (geradas para este app).
@@ -165,25 +165,98 @@ async function enviarResumoDiario(): Promise<void> {
   console.log("[Push] Resumo diário enviado:", dia);
 }
 
-/** Inicia o agendador: checa de hora em hora; prazos ~9h e resumo do dia ~20h (Brasil). */
+// ── Helpers de horário de Brasília (UTC-3) ──
+function brtAgora(): Date { return new Date(Date.now() - 3 * 3600 * 1000); }
+function brtData(diaStr: string, hora: string): Date { return new Date(`${diaStr}T${hora}-03:00`); }
+
+// Travas em memória (resetam a cada dia pela chave). Evitam reenvio no mesmo ciclo.
+const locks = new Set<string>();
+function travar(key: string): boolean {
+  if (locks.has(key)) return true;
+  locks.add(key);
+  if (locks.size > 1000) locks.clear();
+  return false;
+}
+
+/** Roda uma função para cada usuário que tem push ativo. */
+async function paraCadaUsuarioComPush(fn: (userId: number) => Promise<void>): Promise<void> {
+  if (!(await garantirVapid())) return;
+  const subs = await getAllPushSubscriptions();
+  const usuarios = Array.from(new Set(subs.map((s) => s.userId)));
+  for (const userId of usuarios) {
+    try { await fn(userId); } catch (e) { console.error("[Push] erro usuário", userId, e); }
+  }
+}
+
+/** 8h/12h/17h — resumo dos lançamentos do dia. */
+async function enviarLancamentosDia(hora: number): Promise<void> {
+  const dia = diaBrasil();
+  if (travar(`lanc-${dia}-${hora}`)) return;
+  const ini = brtData(dia, "00:00:00");
+  const fim = brtData(dia, "23:59:59");
+  await paraCadaUsuarioComPush(async (userId) => {
+    const ciclosDia = (await getResumoDia(userId, dia))?.ciclos || 0;
+    const fin = await getResumoFinalizadosPeriodo(userId, ini, fim);
+    if (ciclosDia === 0 && fin.metas === 0) return; // sem atividade hoje
+    await sendPushToUser(userId, {
+      title: "🗒️ Lançamentos de hoje",
+      body: `${ciclosDia} ciclo(s) · ${fin.metas} meta(s) finalizada(s) · Lucro ${fmtBRL(fin.lucro)}`,
+      tag: `lanc-${dia}-${hora}`,
+      url: "/",
+    });
+  });
+}
+
+/** Relatório de período (dia/semana/mês) — lucro real das metas finalizadas. */
+async function enviarResumoFinalizados(titulo: string, prefixo: string, ini: Date, fim: Date, lockKey: string): Promise<void> {
+  if (travar(lockKey)) return;
+  await paraCadaUsuarioComPush(async (userId) => {
+    const fin = await getResumoFinalizadosPeriodo(userId, ini, fim);
+    if (fin.metas === 0) return;
+    await sendPushToUser(userId, {
+      title: titulo,
+      body: `${prefixo}: ${fin.metas} meta(s) · ${fin.lucro >= 0 ? "Lucro" : "Prejuízo"} ${fmtBRL(fin.lucro)}`,
+      tag: lockKey,
+      url: "/",
+    });
+  });
+}
+
+/** Agendador: prazos ~9h · lançamentos 8/12/17h · resumo 20h+23:59 · semanal (dom) · mensal. */
 export function iniciarAgendadorPush(): void {
   const tick = async () => {
     try {
-      const agora = new Date();
-      // servidor usa UTC; 12h UTC ≈ 9h no Brasil (UTC-3). Trava diária evita repetição.
-      if (agora.getUTCHours() >= 12) {
-        await checarPrazosEEnviar();
-      }
-      // 23h UTC ≈ 20h no Brasil — resumo do dia. Trava por dia (Brasil) evita repetição.
-      if (agora.getUTCHours() >= 23) {
-        await enviarResumoDiario();
+      const b = brtAgora();
+      const h = b.getUTCHours();       // hora de Brasília
+      const wd = b.getUTCDay();        // 0 = domingo
+      const dia = diaBrasil();
+
+      if (h >= 9) await checarPrazosEEnviar();                  // prazos das metas (~9h)
+      if (h === 8 || h === 12 || h === 17) await enviarLancamentosDia(h); // lançamentos do dia
+      if (h >= 20) await enviarResumoDiario();                  // resumo de ciclos (~20h, mantido)
+
+      if (h === 23) {
+        const ini = brtData(dia, "00:00:00");
+        const fim = brtData(dia, "23:59:59");
+        // Relatório do dia (lucro real)
+        await enviarResumoFinalizados("📊 Relatório do dia", "Hoje", ini, fim, `dia2359-${dia}`);
+        // Semanal — domingo (semana seg→dom)
+        if (wd === 0) {
+          const seg = new Date(b.getTime() - 6 * 86400000).toISOString().slice(0, 10);
+          await enviarResumoFinalizados("📈 Resultado da semana", "Esta semana", brtData(seg, "00:00:00"), fim, `sem-${dia}`);
+        }
+        // Mensal — último dia do mês
+        const amanha = new Date(b.getTime() + 86400000);
+        if (amanha.getUTCMonth() !== b.getUTCMonth()) {
+          const primeiro = dia.slice(0, 8) + "01";
+          await enviarResumoFinalizados("🏆 Resultado do mês", "Este mês", brtData(primeiro, "00:00:00"), fim, `mes-${dia}`);
+        }
       }
     } catch (e) {
       console.error("[Push] Erro no agendador:", e);
     }
   };
-  // primeira checagem após 1 min, depois a cada 60 min
   setTimeout(tick, 60 * 1000);
-  setInterval(tick, 60 * 60 * 1000);
+  setInterval(tick, 15 * 60 * 1000); // a cada 15 min (pega todos os horários)
   console.log("[Push] Agendador de notificações iniciado.");
 }

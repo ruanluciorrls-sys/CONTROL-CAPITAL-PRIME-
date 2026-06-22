@@ -578,6 +578,27 @@ export async function getResumoDia(userId: number, dia: string): Promise<{ lucro
   } catch { return null; }
 }
 
+/** Lucro REAL (soma dos ciclos + cooperação) e nº de metas finalizadas num período (por finalizadoEm). */
+export async function getResumoFinalizadosPeriodo(userId: number, ini: Date, fim: Date): Promise<{ lucro: number; metas: number }> {
+  const db = await getDb();
+  if (!db) return { lucro: 0, metas: 0 };
+  try {
+    const res: any = await db.execute(sql`
+      SELECT rows, cooperacao FROM relatorios
+      WHERE "userId" = ${userId} AND status = 'finalizado'
+        AND "finalizadoEm" >= ${ini} AND "finalizadoEm" <= ${fim}
+    `);
+    const linhas = (res as any).rows ?? res ?? [];
+    let lucro = 0;
+    for (const r of linhas) {
+      const rows = Array.isArray(r.rows) ? r.rows : [];
+      const soma = rows.reduce((s: number, row: any) => s + (Number(row?.resultado) || 0), 0);
+      lucro += soma + (Number(r.cooperacao) || 0);
+    }
+    return { lucro, metas: linhas.length };
+  } catch (e) { console.error("[Push] getResumoFinalizadosPeriodo:", e); return { lucro: 0, metas: 0 }; }
+}
+
 export async function getUsuariosComResumoDia(dia: string): Promise<number[]> {
   const db = await getDb();
   if (!db) return [];
