@@ -799,6 +799,7 @@ export default function Relatorios() {
                   onUpdateRow={(numero, row) =>
                     handleUpdateRow(selectedRelatorioId, numero, row)
                   }
+                  onRestoreRows={(rows) => updateRelatorio(selectedRelatorioId, { rows })}
                 />
                 <button
                   onClick={() => {

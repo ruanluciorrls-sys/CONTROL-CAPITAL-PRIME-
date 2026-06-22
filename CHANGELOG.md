@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.11.3] - 2026-06-19
+
+### Adicionado
+- **Botão "Desfazer" na planilha do relatório**: recupera a última ação na tabela de depósito/saque — inclusive **linha excluída sem querer** (na lixeirinha de ação), edições de valor, etc. Guarda até 30 ações e dá pra retroceder várias vezes. Fica embaixo da tabela.
+
 ## [1.11.2] - 2026-06-19
 
 ### Adicionado

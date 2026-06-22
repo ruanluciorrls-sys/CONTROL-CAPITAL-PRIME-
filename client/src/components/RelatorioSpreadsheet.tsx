@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAutoSave } from "@/hooks/useAutoSave";
-import { Plus, Trash2, Edit2, Check, X, ExternalLink, Copy, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus, Trash2, Edit2, Check, X, ExternalLink, Copy, TrendingUp, TrendingDown, Undo2 } from "lucide-react";
 import { setEditingActive } from "@/lib/syncLock";
 
 interface RelatorioRow {
@@ -30,6 +30,7 @@ interface RelatorioSpreadsheetProps {
   onAddRow: (row: RelatorioRow) => void;
   onDeleteRow: (numero: number) => void;
   onUpdateRow: (numero: number, row: RelatorioRow) => void;
+  onRestoreRows?: (rows: RelatorioRow[]) => void;
 }
 
 const fmt = (v: number) =>
@@ -39,7 +40,7 @@ const inputStyle = "w-full px-2 py-1.5 rounded-lg text-right text-sm text-white 
 
 export default function RelatorioSpreadsheet({
   casaNome, agente, prazo, login, cooperacao, onCooperacaoChange,
-  linkContaFilha, media = 0, meta = 0, rows, onAddRow, onDeleteRow, onUpdateRow,
+  linkContaFilha, media = 0, meta = 0, rows, onAddRow, onDeleteRow, onUpdateRow, onRestoreRows,
 }: RelatorioSpreadsheetProps) {
   const [newRow, setNewRow] = useState<RelatorioRow>({ numero: rows.length + 1, deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 });
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -70,6 +71,38 @@ export default function RelatorioSpreadsheet({
   useEffect(() => { setCooperacaoInput(isNaN(cooperacao) ? "0" : cooperacao.toString()); }, [cooperacao]);
   const proximoNumero = () => (rows.length ? Math.max(...rows.map((r) => r.numero || 0)) : 0) + 1;
   useEffect(() => { setNewRow({ numero: proximoNumero(), deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 }); }, [rows.length]);
+
+  // ── Histórico para DESFAZER (recupera linha excluída sem querer, edições, etc.) ──
+  const historicoRef = useRef<RelatorioRow[][]>([]);
+  const rowsAnteriorRef = useRef<RelatorioRow[]>(rows);
+  const restaurandoRef = useRef(false);
+  const [podeDesfazer, setPodeDesfazer] = useState(false);
+
+  useEffect(() => {
+    if (restaurandoRef.current) {
+      // mudança veio de um "desfazer" — não registra no histórico
+      restaurandoRef.current = false;
+      rowsAnteriorRef.current = rows;
+      return;
+    }
+    const anterior = rowsAnteriorRef.current;
+    if (JSON.stringify(anterior) !== JSON.stringify(rows)) {
+      historicoRef.current.push(anterior);
+      if (historicoRef.current.length > 30) historicoRef.current.shift();
+      rowsAnteriorRef.current = rows;
+      setPodeDesfazer(true);
+    }
+  }, [rows]);
+
+  const desfazer = () => {
+    const hist = historicoRef.current;
+    if (hist.length === 0 || !onRestoreRows) return;
+    const anterior = hist.pop()!;
+    restaurandoRef.current = true;
+    rowsAnteriorRef.current = anterior;
+    onRestoreRows(anterior);
+    setPodeDesfazer(hist.length > 0);
+  };
 
   const calc = (d: number, r: number, s: number, b: number) => s - d - r + b;
 
@@ -398,7 +431,20 @@ export default function RelatorioSpreadsheet({
             </tbody>
           </table>
           </div>
-          <p className="text-[9px] text-white/45 dark:text-white/30 px-4 py-2">Dica: clique numa linha para editar · arraste a tabela para o lado no celular</p>
+          <div className="flex items-center justify-between gap-2 px-4 py-2 flex-wrap">
+            <p className="text-[9px] text-white/45 dark:text-white/30">Dica: clique numa linha para editar · arraste a tabela para o lado no celular</p>
+            {onRestoreRows && (
+              <button
+                onClick={desfazer}
+                disabled={!podeDesfazer}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                style={{ background: "rgba(212,160,23,0.1)", color: "#f3d078", border: "1px solid rgba(212,160,23,0.3)" }}
+                title="Desfazer a última ação (recupera linha excluída, edição, etc.)"
+              >
+                <Undo2 size={13} /> Desfazer
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Painel Lateral */}
