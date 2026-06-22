@@ -46,6 +46,18 @@ export default function NotificationCenter() {
   const historicoQuery = trpc.push.historico.useQuery(undefined, { retry: false, refetchInterval: 30000 });
   const soCelularQuery = trpc.push.soCelular.useQuery(undefined, { retry: false });
   const setSoCelularMut = trpc.push.setSoCelular.useMutation();
+  const testResumoMut = trpc.push.testResumoDia.useMutation();
+
+  const handleTestarResumo = async () => {
+    try {
+      const r = await testResumoMut.mutateAsync();
+      if (r.sent > 0) toast.success("Resumo do dia enviado! Veja no seu celular.");
+      else if (r.total === 0) toast.error("Nenhum aparelho inscrito. Ative as notificações primeiro.");
+      else toast.error(`Falhou${r.lastError ? `: ${r.lastError}` : "."}`, { duration: 6000 });
+    } catch {
+      toast.error("Não foi possível enviar o resumo.");
+    }
+  };
   const [soCelular, setSoCelular] = useState(false);
   useEffect(() => { if (soCelularQuery.data) setSoCelular(soCelularQuery.data.soCelular); }, [soCelularQuery.data]);
 
@@ -361,6 +373,12 @@ export default function NotificationCenter() {
                       />
                     </button>
                   </label>
+                  <button onClick={handleTestarResumo} disabled={testResumoMut.isPending}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-all disabled:opacity-50 border border-[#d4a017]/30"
+                    style={{ background: "rgba(212,160,23,0.1)", color: "#f3d078" }}
+                  >
+                    {testResumoMut.isPending ? "Enviando..." : "📊 Ver resumo do dia (teste)"}
+                  </button>
                 </div>
               ) : (
                 <button onClick={handleAtivarPush} disabled={pushCarregando}

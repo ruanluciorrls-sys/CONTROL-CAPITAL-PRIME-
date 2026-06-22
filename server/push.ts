@@ -218,6 +218,21 @@ async function enviarResumoFinalizados(titulo: string, prefixo: string, ini: Dat
   });
 }
 
+/** Envia AGORA o resumo do dia (lucro real) para um usuário — usado no botão de teste. */
+export async function enviarResumoDiaTeste(userId: number): Promise<PushResult> {
+  const dia = diaBrasil();
+  const fin = await getResumoFinalizadosPeriodo(userId, brtData(dia, "00:00:00"), brtData(dia, "23:59:59"));
+  const body = fin.metas > 0
+    ? `Hoje você ${fin.lucro >= 0 ? "lucrou" : "teve prejuízo de"} ${fmtBRL(fin.lucro)} em ${fin.metas} meta(s) finalizada(s).`
+    : "Nenhuma meta finalizada hoje ainda — quando finalizar, o lucro real do dia aparece aqui.";
+  return sendPushToUser(userId, {
+    title: "📊 Resumo do dia (teste)",
+    body,
+    tag: `resumo-teste-${Date.now()}`,
+    url: "/",
+  });
+}
+
 /** Agendador: prazos ~9h · lançamentos 8/12/17h · resumo 20h+23:59 · semanal (dom) · mensal. */
 export function iniciarAgendadorPush(): void {
   const tick = async () => {
