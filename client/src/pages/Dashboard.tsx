@@ -23,6 +23,7 @@ export default function Dashboard() {
   const { data: totalGastosProxy = 0 } = trpc.gastosProxy.total.useQuery();
   const { data: gastosProxyList = [] } = trpc.gastosProxy.list.useQuery();
   const { data: contasData = [] } = trpc.contas.list.useQuery();
+  const { data: receitasList = [] } = trpc.receitas.list.useQuery();
 
   // Plataformas GLOBAIS (banco de dados, compartilhadas por todos os usuários)
   const { data: plataformasDb } = trpc.plataformas.list.useQuery();
@@ -47,6 +48,23 @@ export default function Dashboard() {
     return sum;
   }, 0);
   const lucroRealMes = lucroCaixa - gastosDoMes;
+
+  // Lucro de HOJE (real, com cooperação + receitas) — igual ao período "Hoje" do Faturamento
+  const ehDataHoje = (v?: string | Date | null) => {
+    if (!v) return false;
+    const s = typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v + "T12:00:00" : v;
+    const d = new Date(s as any);
+    return !isNaN(d.getTime()) &&
+      d.getFullYear() === hoje.getFullYear() && d.getMonth() === hoje.getMonth() && d.getDate() === hoje.getDate();
+  };
+  const lucroHoje =
+    relatoriosFinalizados
+      .filter((rel) => ehDataHoje((rel as any).finalizadoEm || rel.criadoEm))
+      .reduce((t, rel) => {
+        const res = (Array.isArray(rel.rows) ? rel.rows : []).reduce((s, r) => s + (Number(r.resultado) || 0), 0);
+        return t + res + (Number(rel.cooperacao) || 0);
+      }, 0)
+    + (receitasList as any[]).filter((r) => ehDataHoje(r.data)).reduce((s, r) => s + (Number(r.valor) || 0), 0);
 
   const diasSemana = ["DOMINGO","SEGUNDA-FEIRA","TERÇA-FEIRA","QUARTA-FEIRA","QUINTA-FEIRA","SEXTA-FEIRA","SÁBADO"];
   const diaSemanaHoje = diasSemana[hoje.getDay()];
@@ -135,6 +153,21 @@ export default function Dashboard() {
                 R$ {lucroCaixa.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
               <p className="text-xs text-white/25">Soma de todos os relatórios finalizados</p>
+
+              {/* Lucro de HOJE (real) */}
+              <div className="mt-3 inline-flex items-center gap-2.5 rounded-xl px-4 py-2 border"
+                style={{
+                  background: lucroHoje >= 0 ? "rgba(74,222,128,0.08)" : "rgba(248,113,113,0.08)",
+                  borderColor: lucroHoje >= 0 ? "rgba(74,222,128,0.25)" : "rgba(248,113,113,0.25)",
+                }}
+              >
+                <span className="text-[10px] font-black uppercase tracking-widest"
+                  style={{ color: lucroHoje >= 0 ? "rgba(74,222,128,0.7)" : "rgba(248,113,113,0.7)" }}
+                >Lucro de Hoje</span>
+                <span className="text-lg font-black" style={{ color: lucroHoje >= 0 ? "#4ade80" : "#f87171" }}>
+                  {lucroHoje >= 0 ? "+" : "-"}R$ {Math.abs(lucroHoje).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
 
               {/* Gasto/Despesa + Lucro Real */}
               {gastosDoMes > 0 && (

@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.12.3] - 2026-06-19
+
+### Adicionado
+- **"Lucro de Hoje" no Dashboard**: destaque no card "Lucro em Caixa" mostrando o **lucro real do dia** (relatórios finalizados hoje + receitas de hoje, já com cooperação) — o mesmo valor do período "Hoje" do Faturamento.
+
 ## [1.12.2] - 2026-06-19
 
 ### Adicionado
