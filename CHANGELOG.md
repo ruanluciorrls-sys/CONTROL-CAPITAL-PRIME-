@@ -7,6 +7,12 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.12.4] - 2026-06-19
+
+### Corrigido / Alterado
+- **Notificação de resumo do dia agora manda o LUCRO REAL** (metas finalizadas no dia + cooperação), não mais o resultado "cru" dos ciclos. Vale para o aviso das ~20h e o relatório das 23:59 — ambos com o lucro de verdade do dia.
+- **Removido o "Lucro de Hoje" do Dashboard** (a pedido — ele volta a ser só pela notificação no celular).
+
 ## [1.12.3] - 2026-06-19
 
 ### Adicionado

@@ -141,28 +141,24 @@ async function checarPrazosEEnviar(): Promise<void> {
 
 let ultimoResumoDiario = "";
 
-/** Resumo do dia: "Hoje você lucrou R$ X em N ciclos" — enviado uma vez à noite. */
+/** Resumo do dia — LUCRO REAL do dia (metas finalizadas hoje + cooperação). */
 async function enviarResumoDiario(): Promise<void> {
   const dia = diaBrasil();
   if (ultimoResumoDiario === dia) return; // já enviou hoje
-  const usuarios = await getUsuariosComResumoDia(dia);
-  for (const userId of usuarios) {
-    try {
-      const r = await getResumoDia(userId, dia);
-      if (!r || r.ciclos === 0) continue;
-      const sinal = r.lucro >= 0 ? "lucrou" : "teve prejuízo de";
-      await sendPushToUser(userId, {
-        title: r.lucro >= 0 ? "📊 Resumo do dia" : "📊 Resumo do dia",
-        body: `Hoje você ${sinal} ${fmtBRL(r.lucro)} em ${r.ciclos} ciclo${r.ciclos > 1 ? "s" : ""}.`,
-        tag: `resumo-${dia}`,
-        url: "/",
-      });
-    } catch (e) {
-      console.error("[Push] Erro no resumo diário do usuário", userId, e);
-    }
-  }
+  const ini = brtData(dia, "00:00:00");
+  const fim = brtData(dia, "23:59:59");
+  await paraCadaUsuarioComPush(async (userId) => {
+    const fin = await getResumoFinalizadosPeriodo(userId, ini, fim);
+    if (fin.metas === 0) return;
+    await sendPushToUser(userId, {
+      title: "📊 Resumo do dia",
+      body: `Hoje você ${fin.lucro >= 0 ? "lucrou" : "teve prejuízo de"} ${fmtBRL(fin.lucro)} em ${fin.metas} meta(s) finalizada(s).`,
+      tag: `resumo-${dia}`,
+      url: "/",
+    });
+  });
   ultimoResumoDiario = dia;
-  console.log("[Push] Resumo diário enviado:", dia);
+  console.log("[Push] Resumo diário (lucro real) enviado:", dia);
 }
 
 // ── Helpers de horário de Brasília (UTC-3) ──
