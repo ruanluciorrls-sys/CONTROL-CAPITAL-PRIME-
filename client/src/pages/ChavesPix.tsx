@@ -1,6 +1,8 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Copy, Trash2, Upload, Download, Search, RefreshCw, Key } from "lucide-react";
 import { toast } from "sonner";
+
+const CHAVES_PIX_KEY = "chaves-pix-v1";
 
 type PixType = "TELEFONE" | "CPF" | "EMAIL" | "EVP" | "DESCONHECIDO";
 
@@ -13,29 +15,48 @@ interface PixKey {
 
 const detectPixType = (key: string): PixType => {
   const cleanKey = key.trim();
-  
-  if (/^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(cleanKey) || /^\d{11}$/.test(cleanKey)) {
+  if (!cleanKey) return "DESCONHECIDO";
+
+  // EMAIL
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanKey)) return "EMAIL";
+
+  // EVP (chave aleatória — formato UUID)
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanKey)) return "EVP";
+
+  // CPF formatado (000.000.000-00)
+  if (/^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(cleanKey)) return "CPF";
+
+  const digitos = cleanKey.replace(/\D/g, "");
+  const temFormatoTelefone = /[()+\s-]/.test(cleanKey); // tem +, ( ), -, espaço
+
+  // Telefone com código do país (+55...) — 12 ou 13 dígitos começando com 55
+  if ((digitos.length === 12 || digitos.length === 13) && digitos.startsWith("55")) return "TELEFONE";
+
+  // 10 dígitos = telefone fixo (CPF tem 11)
+  if (digitos.length === 10) return "TELEFONE";
+
+  // 11 dígitos: pode ser CPF ou celular. Celular brasileiro = DDD válido + '9' + 8 dígitos.
+  if (digitos.length === 11) {
+    const ddd = parseInt(digitos.slice(0, 2), 10);
+    const ehCelular = digitos[2] === "9" && ddd >= 11 && ddd <= 99;
+    if (temFormatoTelefone || ehCelular) return "TELEFONE";
     return "CPF";
   }
-  
-  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanKey)) {
-    return "EMAIL";
-  }
-  
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanKey)) {
-    return "EVP";
-  }
-  
-  const phoneDigits = cleanKey.replace(/\D/g, '');
-  if (phoneDigits.length >= 10 && phoneDigits.length <= 15 && /^[\+\(\)0-9-\s]+$/.test(cleanKey)) {
-    return "TELEFONE";
-  }
-  
+
+  // Telefone com formatação e tamanho plausível
+  if (temFormatoTelefone && digitos.length >= 8 && digitos.length <= 15) return "TELEFONE";
+
   return "DESCONHECIDO";
 };
 
 export default function ChavesPix() {
-  const [keysList, setKeysList] = useState<PixKey[]>([]);
+  const [keysList, setKeysList] = useState<PixKey[]>(() => {
+    try { return JSON.parse(localStorage.getItem(CHAVES_PIX_KEY) || "[]"); } catch { return []; }
+  });
+  // Salva as chaves localmente para não perder ao recarregar
+  useEffect(() => {
+    try { localStorage.setItem(CHAVES_PIX_KEY, JSON.stringify(keysList)); } catch {}
+  }, [keysList]);
   const [importText, setImportText] = useState("");
   const [bankName, setBankName] = useState("");
   const [filterType, setFilterType] = useState<PixType | "TODOS">("TODOS");
@@ -63,22 +84,38 @@ export default function ChavesPix() {
     toast.success(`${newKeys.length} chave(s) importada(s) com sucesso`);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      if (content) {
-        setImportText(content);
-        toast.info("Arquivo lido com sucesso, clique em Importar para processar.");
+    const novas: PixKey[] = [];
+    for (const file of Array.from(files)) {
+      try {
+        const content = await file.text();
+        // Nome do arquivo (sem extensão) vira o nome do banco
+        const banco = file.name.replace(/\.[^.]+$/, "").trim();
+        const linhas = content.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+        for (const linha of linhas) {
+          novas.push({
+            id: crypto.randomUUID(),
+            key: linha,
+            type: detectPixType(linha),
+            bank: banco || undefined,
+          });
+        }
+      } catch {
+        toast.error(`Não foi possível ler o arquivo "${file.name}".`);
       }
-    };
-    reader.readAsText(file);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
     }
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    if (novas.length === 0) {
+      toast.error("Nenhuma chave encontrada nos arquivos.");
+      return;
+    }
+    setKeysList((prev) => [...prev, ...novas]);
+    toast.success(`${novas.length} chave(s) importada(s) de ${files.length} arquivo(s) — banco = nome do arquivo`);
   };
 
   const handleCopy = (text: string) => {
@@ -262,6 +299,7 @@ export default function ChavesPix() {
                   <input
                     type="file"
                     accept=".txt"
+                    multiple
                     ref={fileInputRef}
                     className="hidden"
                     onChange={handleFileUpload}
@@ -269,7 +307,7 @@ export default function ChavesPix() {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="rounded-xl px-4 flex items-center justify-center transition-colors border border-white/10 hover:bg-white/5"
-                    title="Importar de arquivo .txt"
+                    title="Importar 1 ou vários arquivos .txt (o nome de cada arquivo vira o banco)"
                   >
                     <Upload size={15} className="text-white/50" />
                     <span className="text-xs font-bold text-white/50 ml-1">.txt</span>

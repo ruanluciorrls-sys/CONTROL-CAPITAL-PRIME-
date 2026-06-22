@@ -7,6 +7,13 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.11.4] - 2026-06-19
+
+### Adicionado / Alterado (Chaves PIX)
+- **Importar vários arquivos de uma vez, com o nome do arquivo como banco**: ao importar `.txt`, dá pra selecionar **vários** arquivos; as chaves de cada um já entram com o **banco = nome do arquivo** (ex.: `Nubank.txt` → banco "Nubank").
+- **Detecção de tipo corrigida**: antes CPF e celular (ambos 11 dígitos) se confundiam. Agora distingue **CPF × telefone** (celular = DDD válido + '9'), trata fixo (10 díg.), +55 (12-13 díg.), além de email e chave aleatória (EVP).
+- **Chaves salvas localmente**: a lista de chaves não some mais ao recarregar (persiste no aparelho).
+
 ## [1.11.3] - 2026-06-19
 
 ### Adicionado
