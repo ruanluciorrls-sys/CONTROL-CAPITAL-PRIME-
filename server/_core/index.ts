@@ -7,7 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
-import { iniciarAgendadorPush } from "../push";
+import { iniciarAgendadorPush, executarTickAgendador } from "../push";
 import { ensurePushTable, ensureReceitasTable, ensureRelatorioPrazo } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -37,6 +37,15 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+  // Cron externo: dispara o agendador de notificações (acorda o servidor nos horários)
+  app.get("/api/cron", async (_req, res) => {
+    try {
+      await executarTickAgendador();
+      res.json({ ok: true, ts: new Date().toISOString() });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e) });
+    }
+  });
   // tRPC API
   app.use(
     "/api/trpc",

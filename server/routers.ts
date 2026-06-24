@@ -6,7 +6,7 @@ import { z } from "zod";
 import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, getRelatorioById, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma, seedPlataformasIfEmpty } from "./db";
 import { savePushSubscription, deletePushSubscription, acumularCicloDia, getPushSoCelular, setPushSoCelular, logPush, getPushLog } from "./db";
 import { getReceitasByUserId, createReceita, updateReceita, deleteReceita } from "./db";
-import { getPushPublicKey, sendPushToUser, fmtBRL, nomeDaMeta, enviarResumoDiaTeste } from "./push";
+import { getPushPublicKey, sendPushToUser, fmtBRL, nomeDaMeta, enviarResumoDiaTeste, enviarLancamentosTeste } from "./push";
 import { supabaseUploadJSON } from "./storage";
 import { InsertRelatorio } from "../drizzle/schema";
 import { nanoid } from "nanoid";
@@ -616,6 +616,10 @@ export const appRouter = router({
     // Teste: envia AGORA o resumo do dia (lucro real) para o próprio usuário
     testResumoDia: protectedProcedure.mutation(async ({ ctx }) => {
       return enviarResumoDiaTeste(ctx.user.id);
+    }),
+    // Teste: envia AGORA o aviso de lançamentos do dia
+    testLancamentos: protectedProcedure.mutation(async ({ ctx }) => {
+      return enviarLancamentosTeste(ctx.user.id);
     }),
     // Preferência "só celular" (não enviar para desktops)
     soCelular: protectedProcedure.query(async ({ ctx }) => {

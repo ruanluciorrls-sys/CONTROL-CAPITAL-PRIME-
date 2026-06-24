@@ -238,40 +238,58 @@ export async function enviarResumoDiaTeste(userId: number): Promise<PushResult> 
   });
 }
 
-/** Agendador: prazos ~9h · lançamentos 8/12/17h · resumo 20h+23:59 · semanal (dom) · mensal. */
-export function iniciarAgendadorPush(): void {
-  const tick = async () => {
-    try {
-      const b = brtAgora();
-      const h = b.getUTCHours();       // hora de Brasília
-      const wd = b.getUTCDay();        // 0 = domingo
-      const dia = diaBrasil();
+/** Envia AGORA o aviso de lançamentos do dia para um usuário — botão de teste. */
+export async function enviarLancamentosTeste(userId: number): Promise<PushResult> {
+  const dia = diaBrasil();
+  const ciclosDia = (await getResumoDia(userId, dia))?.ciclos || 0;
+  const { lucro, metas } = await lucroDoDia(userId, dia);
+  return sendPushToUser(userId, {
+    title: "🗒️ Lançamentos de hoje (teste)",
+    body: `${ciclosDia} ciclo(s) · ${metas} meta(s) finalizada(s) · Lucro ${fmtBRL(lucro)}`,
+    tag: `lanc-teste-${Date.now()}`,
+    url: "/",
+  });
+}
 
-      if (h >= 9) await checarPrazosEEnviar();                  // prazos das metas (~9h)
-      if (h === 8 || h === 12 || h === 17) await enviarLancamentosDia(h); // lançamentos do dia
-      if (h >= 20) await enviarResumoDiario();                  // resumo de ciclos (~20h, mantido)
+/** Executa um ciclo do agendador (chamado pelo setInterval interno E pelo cron externo).
+ *  Usa JANELAS de horário + travas por dia, então funciona mesmo se atrasar. */
+export async function executarTickAgendador(): Promise<void> {
+  try {
+    const b = brtAgora();
+    const h = b.getUTCHours();       // hora de Brasília
+    const wd = b.getUTCDay();        // 0 = domingo
+    const dia = diaBrasil();
 
-      if (h === 23) {
-        const fim = brtData(dia, "23:59:59");
-        // Relatório do dia (lucro real)
-        await enviarResumoFinalizados("📊 Relatório do dia", "Hoje", brtData(dia, "00:00:00"), fim, dia, dia, `dia2359-${dia}`);
-        // Semanal — domingo (semana seg→dom)
-        if (wd === 0) {
-          const seg = new Date(b.getTime() - 6 * 86400000).toISOString().slice(0, 10);
-          await enviarResumoFinalizados("📈 Resultado da semana", "Esta semana", brtData(seg, "00:00:00"), fim, seg, dia, `sem-${dia}`);
-        }
-        // Mensal — último dia do mês
-        const amanha = new Date(b.getTime() + 86400000);
-        if (amanha.getUTCMonth() !== b.getUTCMonth()) {
-          const primeiro = dia.slice(0, 8) + "01";
-          await enviarResumoFinalizados("🏆 Resultado do mês", "Este mês", brtData(primeiro, "00:00:00"), fim, primeiro, dia, `mes-${dia}`);
-        }
+    if (h >= 9) await checarPrazosEEnviar();                          // prazos das metas (~9h)
+
+    // Lançamentos do dia — janelas (resistente a atraso do cron)
+    if (h >= 8 && h < 12) await enviarLancamentosDia(8);
+    else if (h >= 12 && h < 17) await enviarLancamentosDia(12);
+    else if (h >= 17 && h < 20) await enviarLancamentosDia(17);
+
+    if (h >= 20) await enviarResumoDiario();                          // resumo do dia (~20h)
+
+    if (h >= 23) {
+      const fim = brtData(dia, "23:59:59");
+      await enviarResumoFinalizados("📊 Relatório do dia", "Hoje", brtData(dia, "00:00:00"), fim, dia, dia, `dia2359-${dia}`);
+      if (wd === 0) { // domingo → semana
+        const seg = new Date(b.getTime() - 6 * 86400000).toISOString().slice(0, 10);
+        await enviarResumoFinalizados("📈 Resultado da semana", "Esta semana", brtData(seg, "00:00:00"), fim, seg, dia, `sem-${dia}`);
       }
-    } catch (e) {
-      console.error("[Push] Erro no agendador:", e);
+      const amanha = new Date(b.getTime() + 86400000);
+      if (amanha.getUTCMonth() !== b.getUTCMonth()) { // último dia do mês → mês
+        const primeiro = dia.slice(0, 8) + "01";
+        await enviarResumoFinalizados("🏆 Resultado do mês", "Este mês", brtData(primeiro, "00:00:00"), fim, primeiro, dia, `mes-${dia}`);
+      }
     }
-  };
-  setTimeout(tick, 60 * 1000);
-  setInterval(tick, 15 * 60 * 1000); // a cada 15 min (pega todos os horários)
+  } catch (e) {
+    console.error("[Push] Erro no agendador:", e);
+  }
+}
+
+/** Inicia o agendador interno (a cada 15 min). O cron externo também chama executarTickAgendador. */
+export function iniciarAgendadorPush(): void {
+  setTimeout(executarTickAgendador, 60 * 1000);
+  setInterval(executarTickAgendador, 15 * 60 * 1000);
   console.log("[Push] Agendador de notificações iniciado.");
 }

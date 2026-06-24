@@ -1,0 +1,16 @@
+name: Cron Notificacoes Push
+
+# Aciona o agendador no servidor (Fly) de hora em hora. O servidor decide o
+# que enviar pela hora de Brasília (lançamentos 8/12/17h, resumo 20h/23:59,
+# semanal e mensal). Garante o envio mesmo se a máquina estiver ociosa.
+on:
+  schedule:
+    - cron: "0 * * * *" # toda hora (UTC)
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acordar agendador
+        run: curl -fsS --max-time 90 "https://cpa-report-2026.fly.dev/api/cron" || true

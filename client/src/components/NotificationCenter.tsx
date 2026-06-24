@@ -47,16 +47,20 @@ export default function NotificationCenter() {
   const soCelularQuery = trpc.push.soCelular.useQuery(undefined, { retry: false });
   const setSoCelularMut = trpc.push.setSoCelular.useMutation();
   const testResumoMut = trpc.push.testResumoDia.useMutation();
+  const testLancamentosMut = trpc.push.testLancamentos.useMutation();
 
+  const tratarTeste = (r: { sent: number; total: number; lastError?: string }, nome: string) => {
+    if (r.sent > 0) toast.success(`${nome} enviado! Veja no seu celular.`);
+    else if (r.total === 0) toast.error("Nenhum aparelho inscrito. Ative as notificações primeiro.");
+    else toast.error(`Falhou${r.lastError ? `: ${r.lastError}` : "."}`, { duration: 6000 });
+  };
   const handleTestarResumo = async () => {
-    try {
-      const r = await testResumoMut.mutateAsync();
-      if (r.sent > 0) toast.success("Resumo do dia enviado! Veja no seu celular.");
-      else if (r.total === 0) toast.error("Nenhum aparelho inscrito. Ative as notificações primeiro.");
-      else toast.error(`Falhou${r.lastError ? `: ${r.lastError}` : "."}`, { duration: 6000 });
-    } catch {
-      toast.error("Não foi possível enviar o resumo.");
-    }
+    try { tratarTeste(await testResumoMut.mutateAsync(), "Resumo do dia"); }
+    catch { toast.error("Não foi possível enviar o resumo."); }
+  };
+  const handleTestarLancamentos = async () => {
+    try { tratarTeste(await testLancamentosMut.mutateAsync(), "Lançamentos do dia"); }
+    catch { toast.error("Não foi possível enviar."); }
   };
   const [soCelular, setSoCelular] = useState(false);
   useEffect(() => { if (soCelularQuery.data) setSoCelular(soCelularQuery.data.soCelular); }, [soCelularQuery.data]);
@@ -373,12 +377,20 @@ export default function NotificationCenter() {
                       />
                     </button>
                   </label>
-                  <button onClick={handleTestarResumo} disabled={testResumoMut.isPending}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-all disabled:opacity-50 border border-[#d4a017]/30"
-                    style={{ background: "rgba(212,160,23,0.1)", color: "#f3d078" }}
-                  >
-                    {testResumoMut.isPending ? "Enviando..." : "📊 Ver resumo do dia (teste)"}
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={handleTestarLancamentos} disabled={testLancamentosMut.isPending}
+                      className="flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 border border-[#d4a017]/30"
+                      style={{ background: "rgba(212,160,23,0.1)", color: "#f3d078" }}
+                    >
+                      {testLancamentosMut.isPending ? "..." : "🗒️ Lançamentos"}
+                    </button>
+                    <button onClick={handleTestarResumo} disabled={testResumoMut.isPending}
+                      className="flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 border border-[#d4a017]/30"
+                      style={{ background: "rgba(212,160,23,0.1)", color: "#f3d078" }}
+                    >
+                      {testResumoMut.isPending ? "..." : "📊 Resumo do dia"}
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <button onClick={handleAtivarPush} disabled={pushCarregando}
