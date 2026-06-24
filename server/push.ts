@@ -1,6 +1,6 @@
 // @ts-ignore - web-push não tem tipos embutidos
 import webpush from "web-push";
-import { getPushSubscriptionsByUser, getAllPushSubscriptions, deletePushSubscription, getCasasByUserId, getPushSoCelular, getUsuariosComResumoDia, getResumoDia, getResumoFinalizadosPeriodo, getReceitasPeriodo, diaBrasil } from "./db";
+import { getPushSubscriptionsByUser, getAllPushSubscriptions, deletePushSubscription, getCasasByUserId, getPushSoCelular, getUsuariosComResumoDia, getResumoDia, getResumoFinalizadosPeriodo, getReceitasPeriodo, getPlataformas, diaBrasil } from "./db";
 
 // Chaves VAPID — usa variáveis de ambiente (Fly secrets) se existirem,
 // senão usa as chaves padrão (geradas para este app).
@@ -238,6 +238,51 @@ export async function enviarResumoDiaTeste(userId: number): Promise<PushResult> 
   });
 }
 
+// ── Plataformas que lançam hoje (pelo dia da semana do calendário) ──
+const DIAS_SEMANA = ["DOMINGO", "SEGUNDA-FEIRA", "TERÇA-FEIRA", "QUARTA-FEIRA", "QUINTA-FEIRA", "SEXTA-FEIRA", "SÁBADO"];
+
+async function plataformasDeHoje(): Promise<{ nomes: string[]; diaSemana: string }> {
+  const wd = brtAgora().getUTCDay();
+  const diaHoje = DIAS_SEMANA[wd];
+  const plats = await getPlataformas();
+  const nomes = Array.from(new Set(
+    (plats || [])
+      .filter((p: any) => String(p.dia || "").toUpperCase().trim() === diaHoje)
+      .map((p: any) => p.nome)
+  ));
+  return { nomes, diaSemana: diaHoje.replace("-FEIRA", "").toLowerCase() };
+}
+
+/** Aviso diário (manhã): plataformas que lançam hoje — lembrete do calendário. */
+async function enviarPlataformasDoDia(): Promise<void> {
+  const dia = diaBrasil();
+  if (travar(`plats-${dia}`)) return;
+  const { nomes, diaSemana } = await plataformasDeHoje();
+  if (nomes.length === 0) return;
+  await paraCadaUsuarioComPush(async (userId) => {
+    await sendPushToUser(userId, {
+      title: `🗓️ Lançamentos de hoje (${nomes.length})`,
+      body: `Plataformas de ${diaSemana}: ${nomes.join(", ")}`,
+      tag: `plats-${dia}`,
+      url: "/",
+    });
+  });
+}
+
+/** Teste: envia AGORA as plataformas que lançam hoje. */
+export async function enviarPlataformasTeste(userId: number): Promise<PushResult> {
+  const { nomes, diaSemana } = await plataformasDeHoje();
+  const body = nomes.length
+    ? `Plataformas de ${diaSemana}: ${nomes.join(", ")}`
+    : `Nenhuma plataforma cadastrada para ${diaSemana} no calendário.`;
+  return sendPushToUser(userId, {
+    title: `🗓️ Lançamentos de hoje (teste)`,
+    body,
+    tag: `plats-teste-${Date.now()}`,
+    url: "/",
+  });
+}
+
 /** Envia AGORA o aviso de lançamentos do dia para um usuário — botão de teste. */
 export async function enviarLancamentosTeste(userId: number): Promise<PushResult> {
   const dia = diaBrasil();
@@ -260,6 +305,7 @@ export async function executarTickAgendador(): Promise<void> {
     const wd = b.getUTCDay();        // 0 = domingo
     const dia = diaBrasil();
 
+    if (h >= 7) await enviarPlataformasDoDia();                       // plataformas que lançam hoje (manhã)
     if (h >= 9) await checarPrazosEEnviar();                          // prazos das metas (~9h)
 
     // Lançamentos do dia — janelas (resistente a atraso do cron)

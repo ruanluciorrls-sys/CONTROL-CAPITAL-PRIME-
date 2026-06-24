@@ -48,6 +48,7 @@ export default function NotificationCenter() {
   const setSoCelularMut = trpc.push.setSoCelular.useMutation();
   const testResumoMut = trpc.push.testResumoDia.useMutation();
   const testLancamentosMut = trpc.push.testLancamentos.useMutation();
+  const testPlataformasMut = trpc.push.testPlataformas.useMutation();
 
   const tratarTeste = (r: { sent: number; total: number; lastError?: string }, nome: string) => {
     if (r.sent > 0) toast.success(`${nome} enviado! Veja no seu celular.`);
@@ -60,6 +61,10 @@ export default function NotificationCenter() {
   };
   const handleTestarLancamentos = async () => {
     try { tratarTeste(await testLancamentosMut.mutateAsync(), "Lançamentos do dia"); }
+    catch { toast.error("Não foi possível enviar."); }
+  };
+  const handleTestarPlataformas = async () => {
+    try { tratarTeste(await testPlataformasMut.mutateAsync(), "Plataformas de hoje"); }
     catch { toast.error("Não foi possível enviar."); }
   };
   const [soCelular, setSoCelular] = useState(false);
@@ -377,18 +382,24 @@ export default function NotificationCenter() {
                       />
                     </button>
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button onClick={handleTestarLancamentos} disabled={testLancamentosMut.isPending}
-                      className="flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 border border-[#d4a017]/30"
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <button onClick={handleTestarPlataformas} disabled={testPlataformasMut.isPending}
+                      className="flex items-center justify-center py-2 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 border border-[#d4a017]/30"
                       style={{ background: "rgba(212,160,23,0.1)", color: "#f3d078" }}
                     >
-                      {testLancamentosMut.isPending ? "..." : "🗒️ Lançamentos"}
+                      {testPlataformasMut.isPending ? "..." : "🗓️ Plataf."}
+                    </button>
+                    <button onClick={handleTestarLancamentos} disabled={testLancamentosMut.isPending}
+                      className="flex items-center justify-center py-2 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 border border-[#d4a017]/30"
+                      style={{ background: "rgba(212,160,23,0.1)", color: "#f3d078" }}
+                    >
+                      {testLancamentosMut.isPending ? "..." : "🗒️ Lançam."}
                     </button>
                     <button onClick={handleTestarResumo} disabled={testResumoMut.isPending}
-                      className="flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 border border-[#d4a017]/30"
+                      className="flex items-center justify-center py-2 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 border border-[#d4a017]/30"
                       style={{ background: "rgba(212,160,23,0.1)", color: "#f3d078" }}
                     >
-                      {testResumoMut.isPending ? "..." : "📊 Resumo do dia"}
+                      {testResumoMut.isPending ? "..." : "📊 Resumo"}
                     </button>
                   </div>
                 </div>
