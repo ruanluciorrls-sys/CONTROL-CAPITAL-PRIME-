@@ -187,12 +187,11 @@ async function enviarLancamentosDia(hora: number): Promise<void> {
   const dia = diaBrasil();
   if (travar(`lanc-${dia}-${hora}`)) return;
   await paraCadaUsuarioComPush(async (userId) => {
-    const ciclosDia = (await getResumoDia(userId, dia))?.ciclos || 0;
-    const { lucro, metas } = await lucroDoDia(userId, dia);
-    if (ciclosDia === 0 && metas === 0 && lucro === 0) return; // sem atividade hoje
+    const { ativas, finalizadas, lucro } = await resumoLancamentos(userId, dia);
+    if (ativas === 0 && finalizadas === 0 && lucro === 0) return; // sem nada pra avisar
     await sendPushToUser(userId, {
       title: "🗒️ Lançamentos de hoje",
-      body: `${ciclosDia} ciclo(s) · ${metas} meta(s) finalizada(s) · Lucro ${fmtBRL(lucro)}`,
+      body: `${ativas} meta(s) ativa(s) · ${finalizadas} finalizada(s) hoje · Lucro ${fmtBRL(lucro)}`,
       tag: `lanc-${dia}-${hora}`,
       url: "/",
     });
@@ -221,6 +220,14 @@ async function lucroDoDia(userId: number, dia: string): Promise<{ lucro: number;
   const fin = await getResumoFinalizadosPeriodo(userId, brtData(dia, "00:00:00"), brtData(dia, "23:59:59"));
   const receitas = await getReceitasPeriodo(userId, dia, dia);
   return { lucro: fin.lucro + receitas, metas: fin.metas };
+}
+
+/** Resumo de "lançamentos de hoje": metas ativas · finalizadas hoje · lucro de hoje. */
+async function resumoLancamentos(userId: number, dia: string): Promise<{ ativas: number; finalizadas: number; lucro: number }> {
+  const casas = await getCasasByUserId(userId);
+  const ativas = casas.filter((c) => c.status === "ativa").length;
+  const { lucro, metas } = await lucroDoDia(userId, dia);
+  return { ativas, finalizadas: metas, lucro };
 }
 
 /** Envia AGORA o resumo do dia (lucro real, igual ao Faturamento) — usado no botão de teste. */
@@ -286,11 +293,10 @@ export async function enviarPlataformasTeste(userId: number): Promise<PushResult
 /** Envia AGORA o aviso de lançamentos do dia para um usuário — botão de teste. */
 export async function enviarLancamentosTeste(userId: number): Promise<PushResult> {
   const dia = diaBrasil();
-  const ciclosDia = (await getResumoDia(userId, dia))?.ciclos || 0;
-  const { lucro, metas } = await lucroDoDia(userId, dia);
+  const { ativas, finalizadas, lucro } = await resumoLancamentos(userId, dia);
   return sendPushToUser(userId, {
     title: "🗒️ Lançamentos de hoje (teste)",
-    body: `${ciclosDia} ciclo(s) · ${metas} meta(s) finalizada(s) · Lucro ${fmtBRL(lucro)}`,
+    body: `${ativas} meta(s) ativa(s) · ${finalizadas} finalizada(s) hoje · Lucro ${fmtBRL(lucro)}`,
     tag: `lanc-teste-${Date.now()}`,
     url: "/",
   });
@@ -318,14 +324,14 @@ export async function executarTickAgendador(): Promise<void> {
     if (h >= 23) {
       const fim = brtData(dia, "23:59:59");
       await enviarResumoFinalizados("📊 Relatório do dia", "Hoje", brtData(dia, "00:00:00"), fim, dia, dia, `dia2359-${dia}`);
-      if (wd === 0) { // domingo → semana
-        const seg = new Date(b.getTime() - 6 * 86400000).toISOString().slice(0, 10);
-        await enviarResumoFinalizados("📈 Resultado da semana", "Esta semana", brtData(seg, "00:00:00"), fim, seg, dia, `sem-${dia}`);
+      if (wd === 0) { // domingo → últimos 7 dias
+        const ini7 = new Date(b.getTime() - 6 * 86400000).toISOString().slice(0, 10);
+        await enviarResumoFinalizados("📈 Resultado de 7 dias", "Últimos 7 dias", brtData(ini7, "00:00:00"), fim, ini7, dia, `sem-${dia}`);
       }
       const amanha = new Date(b.getTime() + 86400000);
-      if (amanha.getUTCMonth() !== b.getUTCMonth()) { // último dia do mês → mês
-        const primeiro = dia.slice(0, 8) + "01";
-        await enviarResumoFinalizados("🏆 Resultado do mês", "Este mês", brtData(primeiro, "00:00:00"), fim, primeiro, dia, `mes-${dia}`);
+      if (amanha.getUTCMonth() !== b.getUTCMonth()) { // fim do mês → últimos 30 dias
+        const ini30 = new Date(b.getTime() - 29 * 86400000).toISOString().slice(0, 10);
+        await enviarResumoFinalizados("🏆 Resultado de 30 dias", "Últimos 30 dias", brtData(ini30, "00:00:00"), fim, ini30, dia, `mes-${dia}`);
       }
     }
   } catch (e) {
