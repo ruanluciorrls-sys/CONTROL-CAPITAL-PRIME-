@@ -15,9 +15,11 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useConfirm } from "@/hooks/useConfirm";
 
 export default function CasasFinalizadas() {
   const { state, updateCasa, deletePermanentementeCasa, esvaziarLixeiraCasas } = useApp();
+  const { confirm, confirmEl } = useConfirm();
   const { data: totalGastosProxy = 0 } = trpc.gastosProxy.total.useQuery();
   const [editingCasa, setEditingCasa] = useState<any>(null);
   const [editData, setEditData] = useState<any>(null);
@@ -140,8 +142,8 @@ export default function CasasFinalizadas() {
     setSelectedLixeira(nextSelected);
   };
 
-  const handleDeleteMultiple = () => {
-    if (confirm(`Deletar permanentemente ${selectedLixeira.size} casa(s)?`)) {
+  const handleDeleteMultiple = async () => {
+    if (await confirm({ mensagem: `Deletar permanentemente ${selectedLixeira.size} casa(s)?`, confirmar: "Deletar", perigo: true })) {
       const quantidade = selectedLixeira.size;
       selectedLixeira.forEach((id) => deletePermanentementeCasa(id));
       setSelectedLixeira(new Set());
@@ -149,16 +151,16 @@ export default function CasasFinalizadas() {
     }
   };
 
-  const handleEsvaziarLixeira = () => {
-    if (confirm(`Esvaziar lixeira? ${casasLixeira.length} casa(s) serao deletada(s) permanentemente.`)) {
+  const handleEsvaziarLixeira = async () => {
+    if (await confirm({ mensagem: `Esvaziar lixeira? ${casasLixeira.length} casa(s) serão deletadas permanentemente.`, confirmar: "Esvaziar", perigo: true })) {
       esvaziarLixeiraCasas();
       toast.success("Lixeira esvaziada com sucesso!");
     }
   };
 
-  const handleRecoverMultiple = () => {
+  const handleRecoverMultiple = async () => {
     if (selectedLixeira.size === 0) return;
-    if (confirm(`Recuperar ${selectedLixeira.size} casa(s)? Serao movidas para Casas Ativas.`)) {
+    if (await confirm({ mensagem: `Recuperar ${selectedLixeira.size} casa(s)? Serão movidas para Casas Ativas.`, confirmar: "Recuperar" })) {
       const quantidade = selectedLixeira.size;
       selectedLixeira.forEach((id) => updateCasa(id, { status: "ativa" }));
       setSelectedLixeira(new Set());
@@ -205,6 +207,7 @@ export default function CasasFinalizadas() {
 
   return (
     <div className="space-y-8">
+      {confirmEl}
       <div
         className="flex w-fit gap-1.5 rounded-2xl border border-white/10 p-1.5 shadow-[0_10px_34px_rgba(0,0,0,0.24)]"
         style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025))" }}
@@ -425,8 +428,8 @@ export default function CasasFinalizadas() {
                               <RotateCcw size={16} className="mx-auto" />
                             </button>
                             <button
-                              onClick={() => {
-                                if (confirm("Tem certeza que deseja mover esta casa para a lixeira?")) {
+                              onClick={async () => {
+                                if (await confirm({ mensagem: "Mover esta casa para a lixeira?", confirmar: "Mover", perigo: true })) {
                                   updateCasa(casa.id, { status: "lixeira" });
                                   toast.success("Casa movida para a lixeira");
                                 }
@@ -540,8 +543,8 @@ export default function CasasFinalizadas() {
                             <RotateCcw size={18} />
                           </button>
                           <button
-                            onClick={() => {
-                              if (confirm("Tem certeza que deseja deletar permanentemente esta casa?")) {
+                            onClick={async () => {
+                              if (await confirm({ mensagem: "Deletar permanentemente esta casa?", confirmar: "Deletar", perigo: true })) {
                                 deletePermanentementeCasa(casa.id);
                                 toast.success("Casa deletada permanentemente");
                               }

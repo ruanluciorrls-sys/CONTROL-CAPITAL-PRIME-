@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import RelatorioSpreadsheet from "@/components/RelatorioSpreadsheet";
 import AbaProgresso from "@/components/AbaProgresso";
 import { usePageTransition } from "@/hooks/usePageTransition";
+import { useConfirm } from "@/hooks/useConfirm";
 
 // ----- Sub-component: card individual de relatório -----
 interface RelatorioCardProps {
@@ -420,6 +421,7 @@ function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
 
 export default function Relatorios() {
   const { state, addRelatorio, updateRelatorio, deleteRelatorio, finalizarRelatorio, finalizarCasa, duplicarRelatorio, esvaziarLixeira } = useApp();
+  const { confirm, confirmEl } = useConfirm();
   const [finalizarDialogId, setFinalizarDialogId] = useState<string | null>(null);
   const [jogosTexto, setJogosTexto] = useState("");
   const [etiquetaDialogId, setEtiquetaDialogId] = useState<string | null>(null);
@@ -464,10 +466,10 @@ export default function Relatorios() {
     setSelectMode(false);
   };
 
-  const excluirSelecionados = () => {
+  const excluirSelecionados = async () => {
     const ids = [...selecionados];
     if (ids.length === 0) return;
-    if (!confirm(`Mover ${ids.length} relatório(s) para a lixeira?`)) return;
+    if (!(await confirm({ mensagem: `Mover ${ids.length} relatório(s) para a lixeira?`, confirmar: "Mover", perigo: true }))) return;
     ids.forEach((id) => updateRelatorio(id, { status: "lixeira" }));
     toast.success(`${ids.length} relatório(s) movido(s) para a lixeira.`);
     setSelecionados(new Set());
@@ -573,9 +575,8 @@ export default function Relatorios() {
     toast.success("Relatório restaurado!");
   };
 
-  const handlePermanentlyDeleteRelatorio = (relatorioId: string) => {
-    // Deletar permanentemente
-    if (confirm("Tem certeza que deseja deletar permanentemente este relatório?")) {
+  const handlePermanentlyDeleteRelatorio = async (relatorioId: string) => {
+    if (await confirm({ mensagem: "Deletar permanentemente este relatório?", confirmar: "Deletar", perigo: true })) {
       deleteRelatorio(relatorioId);
       toast.success("Relatório deletado permanentemente");
     }
@@ -921,8 +922,8 @@ export default function Relatorios() {
               <h2 className="text-2xl font-bold text-foreground dark:text-white">Lixeira</h2>
               {relatoriosLixeira.length > 0 && (
                 <button
-                  onClick={() => {
-                    if (confirm("Tem certeza que deseja esvaziar a lixeira completamente?")) {
+                  onClick={async () => {
+                    if (await confirm({ mensagem: "Esvaziar a lixeira completamente? Os relatórios serão apagados de vez.", confirmar: "Esvaziar", perigo: true })) {
                       esvaziarLixeira();
                       toast.success("Lixeira esvaziada!");
                     }
@@ -987,6 +988,8 @@ export default function Relatorios() {
             )}
           </div>
         )}
+
+        {confirmEl}
 
         {/* Modal: etiqueta do relatório */}
         {etiquetaDialogId && (
