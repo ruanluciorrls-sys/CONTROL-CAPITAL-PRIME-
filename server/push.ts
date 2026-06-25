@@ -260,17 +260,17 @@ async function plataformasDeHoje(): Promise<{ nomes: string[]; diaSemana: string
   return { nomes, diaSemana: diaHoje.replace("-FEIRA", "").toLowerCase() };
 }
 
-/** Aviso diário (manhã): plataformas que lançam hoje — lembrete do calendário. */
-async function enviarPlataformasDoDia(): Promise<void> {
+/** Aviso: plataformas que lançam hoje — lembrete do calendário (enviado 9h e 17h). */
+async function enviarPlataformasDoDia(hora: number): Promise<void> {
   const dia = diaBrasil();
-  if (travar(`plats-${dia}`)) return;
+  if (travar(`plats-${dia}-${hora}`)) return;
   const { nomes, diaSemana } = await plataformasDeHoje();
   if (nomes.length === 0) return;
   await paraCadaUsuarioComPush(async (userId) => {
     await sendPushToUser(userId, {
       title: `🗓️ Lançamentos de hoje (${nomes.length})`,
       body: `Plataformas de ${diaSemana}: ${nomes.join(", ")}`,
-      tag: `plats-${dia}`,
+      tag: `plats-${dia}-${hora}`,
       url: "/",
     });
   });
@@ -311,15 +311,14 @@ export async function executarTickAgendador(): Promise<void> {
     const wd = b.getUTCDay();        // 0 = domingo
     const dia = diaBrasil();
 
-    if (h >= 7) await enviarPlataformasDoDia();                       // plataformas que lançam hoje (manhã)
-    if (h >= 9) await checarPrazosEEnviar();                          // prazos das metas (~9h)
+    // 8h → metas ativas / lançamentos do dia
+    if (h >= 8 && h < 9) await enviarLancamentosDia(8);
 
-    // Lançamentos do dia — janelas (resistente a atraso do cron)
-    if (h >= 8 && h < 12) await enviarLancamentosDia(8);
-    else if (h >= 12 && h < 17) await enviarLancamentosDia(12);
-    else if (h >= 17 && h < 20) await enviarLancamentosDia(17);
+    // 9h → plataformas de hoje + prazos das metas
+    if (h >= 9 && h < 12) { await enviarPlataformasDoDia(9); await checarPrazosEEnviar(); }
 
-    if (h >= 20) await enviarResumoDiario();                          // resumo do dia (~20h)
+    // 17h → plataformas de hoje (de novo)
+    if (h >= 17 && h < 20) await enviarPlataformasDoDia(17);
 
     if (h >= 23) {
       const fim = brtData(dia, "23:59:59");
