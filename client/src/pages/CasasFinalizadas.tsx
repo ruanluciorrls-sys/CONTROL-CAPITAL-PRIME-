@@ -608,12 +608,12 @@ export default function CasasFinalizadas() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-white/70">Agente</label>
+                <label className="mb-1 block text-sm font-medium text-white/70">Agente <span className="text-[10px] text-white/30">(do relatório vinculado)</span></label>
                 <input
                   type="text"
-                  value={editData.agente || ""}
-                  onChange={(e) => setEditData({ ...editData, agente: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-white outline-none transition focus:border-[#d4a017]/60 focus:ring-2 focus:ring-[#d4a017]/15"
+                  readOnly
+                  value={editData.agente || "—"}
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-white/60 outline-none cursor-default"
                 />
               </div>
 
@@ -622,7 +622,7 @@ export default function CasasFinalizadas() {
                 <input
                   type="number"
                   value={editData.meta || 0}
-                  onChange={(e) => setEditData({ ...editData, meta: parseFloat(e.target.value) })}
+                  onChange={(e) => setEditData({ ...editData, meta: parseFloat(e.target.value) || 0 })}
                   className="w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-white outline-none transition focus:border-[#d4a017]/60 focus:ring-2 focus:ring-[#d4a017]/15"
                 />
               </div>
