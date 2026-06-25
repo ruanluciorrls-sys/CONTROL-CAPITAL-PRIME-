@@ -281,7 +281,8 @@ export async function ensureRelatorioPrazo(): Promise<void> {
   try {
     await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS prazo text`);
     await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS "finalizadoEm" timestamp`);
-    console.log("[Relatorios] Colunas prazo/finalizadoEm prontas.");
+    await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS etiqueta text`);
+    console.log("[Relatorios] Colunas extras prontas.");
   } catch (e) {
     console.error("[Relatorios] Falha ao criar colunas:", e);
   }

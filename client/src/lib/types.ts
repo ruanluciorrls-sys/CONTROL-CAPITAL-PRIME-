@@ -37,6 +37,7 @@ export interface RelatorioData {
   criadoEm: string;
   atualizadoEm?: string;
   finalizadoEm?: string;
+  etiqueta?: string;
 }
 
 export interface AppState {

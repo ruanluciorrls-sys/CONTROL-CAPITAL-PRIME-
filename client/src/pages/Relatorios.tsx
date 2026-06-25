@@ -1,6 +1,6 @@
 import { useApp } from "@/contexts/AppContext";
 import { trpc } from "@/lib/trpc";
-import { Plus, Trash2, Copy, Clock, ChevronDown, X, Check, CheckCircle2, Circle, CheckCheck } from "lucide-react";
+import { Plus, Trash2, Copy, Clock, ChevronDown, X, Check, CheckCircle2, Circle, CheckCheck, Tag } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ interface RelatorioCardProps {
   onSelect: () => void;
   onDuplicate: (e: React.MouseEvent) => void;
   onDelete: (e: React.MouseEvent) => void;
+  onEtiqueta?: (e: React.MouseEvent) => void;
   selectMode?: boolean;
   checked?: boolean;
   onToggleCheck?: (e: React.MouseEvent) => void;
@@ -29,7 +30,7 @@ interface RelatorioCardProps {
 
 function RelatorioCard({
   rel, accent, isSelected, nome, loginCasa, lucroTotal,
-  prazoDate, isVencido, countdown, onSelect, onDuplicate, onDelete,
+  prazoDate, isVencido, countdown, onSelect, onDuplicate, onDelete, onEtiqueta,
   selectMode, checked, onToggleCheck,
 }: RelatorioCardProps) {
   const [loginCopiado, setLoginCopiado] = useState(false);
@@ -68,6 +69,17 @@ function RelatorioCard({
 
       {/* Barra de cor no topo */}
       <div className="h-[2px] w-full" style={{ background: accent }} />
+
+      {/* Etiqueta (nota livre) na frente do card */}
+      {rel.etiqueta && (
+        <div className="px-5 pt-3">
+          <span className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-black uppercase tracking-wider"
+            style={{ background: "rgba(212,160,23,0.18)", color: "#f3d078", border: "1px solid rgba(212,160,23,0.4)" }}
+          >
+            <Tag size={10} /> {rel.etiqueta}
+          </span>
+        </div>
+      )}
 
       <div className="p-5">
         {/* Nome */}
@@ -145,6 +157,16 @@ function RelatorioCard({
 
         {/* Ações */}
         <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+          {onEtiqueta && (
+            <button
+              onClick={onEtiqueta}
+              className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-white/8 text-white/30 hover:text-[#d4a017] hover:border-[#d4a017]/30"
+              style={{ background: "rgba(255,255,255,0.04)" }}
+              title="Etiqueta"
+            >
+              <Tag size={14} />
+            </button>
+          )}
           <button
             onClick={onDuplicate}
             className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-white/8 text-white/30 hover:text-[#60a5fa] hover:border-[#60a5fa]/30"
@@ -397,6 +419,8 @@ function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
 export default function Relatorios() {
   const { state, addRelatorio, updateRelatorio, deleteRelatorio, finalizarRelatorio, finalizarCasa, duplicarRelatorio, esvaziarLixeira } = useApp();
   const [finalizarDialogId, setFinalizarDialogId] = useState<string | null>(null);
+  const [etiquetaDialogId, setEtiquetaDialogId] = useState<string | null>(null);
+  const [etiquetaTexto, setEtiquetaTexto] = useState("");
   const [selectedRelatorioId, setSelectedRelatorioId] = useState<string>("");
   const [showNewForm, setShowNewForm] = useState(false);
   const [activeTab, setActiveTab] = useState<"relatorio" | "progresso" | "lixeira">("relatorio");
@@ -426,6 +450,30 @@ export default function Relatorios() {
     toast.success(`${ids.length} relatório(s) finalizado(s)!`);
     setSelecionados(new Set());
     setSelectMode(false);
+  };
+
+  const excluirSelecionados = () => {
+    const ids = [...selecionados];
+    if (ids.length === 0) return;
+    if (!confirm(`Mover ${ids.length} relatório(s) para a lixeira?`)) return;
+    ids.forEach((id) => updateRelatorio(id, { status: "lixeira" }));
+    toast.success(`${ids.length} relatório(s) movido(s) para a lixeira.`);
+    setSelecionados(new Set());
+    setSelectMode(false);
+  };
+
+  const salvarEtiqueta = () => {
+    if (!etiquetaDialogId) return;
+    updateRelatorio(etiquetaDialogId, { etiqueta: etiquetaTexto.trim() });
+    setEtiquetaDialogId(null);
+    setEtiquetaTexto("");
+    toast.success(etiquetaTexto.trim() ? "Etiqueta salva!" : "Etiqueta removida.");
+  };
+
+  const abrirEtiqueta = (id: string) => {
+    const rel = state.relatorios.find((r) => r.id === id);
+    setEtiquetaTexto(rel?.etiqueta || "");
+    setEtiquetaDialogId(id);
   };
 
   useEffect(() => {
@@ -723,14 +771,24 @@ export default function Relatorios() {
                         className="ml-3 text-[10px] font-bold text-[#d4a017] hover:underline"
                       >Marcar todos</button>
                     </span>
-                    <button
-                      onClick={finalizarSelecionados}
-                      disabled={selecionados.size === 0}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-black text-[#050b18] transition-all hover:scale-[1.02] disabled:opacity-40"
-                      style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
-                    >
-                      <Check size={14} /> Finalizar selecionados
-                    </button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={excluirSelecionados}
+                        disabled={selecionados.size === 0}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-black text-red-300 border border-red-500/30 transition-all hover:bg-red-500/10 disabled:opacity-40"
+                        style={{ background: "rgba(239,68,68,0.08)" }}
+                      >
+                        <Trash2 size={14} /> Excluir selecionados
+                      </button>
+                      <button
+                        onClick={finalizarSelecionados}
+                        disabled={selecionados.size === 0}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-black text-[#050b18] transition-all hover:scale-[1.02] disabled:opacity-40"
+                        style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                      >
+                        <Check size={14} /> Finalizar selecionados
+                      </button>
+                    </div>
                   </div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -766,6 +824,7 @@ export default function Relatorios() {
                           onSelect={() => setSelectedRelatorioId(rel.id)}
                           onDuplicate={(e) => { e.stopPropagation(); duplicarRelatorio(rel.id); }}
                           onDelete={(e) => { e.stopPropagation(); handleDeleteRelatorio(rel.id); }}
+                          onEtiqueta={(e) => { e.stopPropagation(); abrirEtiqueta(rel.id); }}
                           selectMode={selectMode}
                           checked={selecionados.has(rel.id)}
                           onToggleCheck={() => toggleSelecionado(rel.id)}
@@ -904,6 +963,49 @@ export default function Relatorios() {
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Modal: etiqueta do relatório */}
+        {etiquetaDialogId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
+            onClick={() => setEtiquetaDialogId(null)}
+          >
+            <div className="w-full max-w-md rounded-2xl p-6 space-y-4"
+              style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)", border: "1px solid rgba(212,160,23,0.25)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[#050b18]"
+                  style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                ><Tag size={16} /></div>
+                <h3 className="text-base font-black text-white">Etiqueta do relatório</h3>
+              </div>
+              <p className="text-xs text-white/45">Uma nota curta que aparece na frente do card. Ex.: "Só falta sacar", "Aguardando bônus".</p>
+              <input
+                type="text"
+                autoFocus
+                maxLength={40}
+                placeholder="Digite a etiqueta..."
+                value={etiquetaTexto}
+                onChange={(e) => setEtiquetaTexto(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") salvarEtiqueta(); }}
+                className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-white focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
+              />
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => { setEtiquetaTexto(""); }}
+                  className="px-3 py-2.5 rounded-xl font-medium text-xs text-white/40 border border-white/12 hover:bg-white/5"
+                >Limpar</button>
+                <button onClick={() => setEtiquetaDialogId(null)}
+                  className="flex-1 py-2.5 rounded-xl font-medium text-sm text-white/50 border border-white/12 hover:bg-white/5"
+                >Cancelar</button>
+                <button onClick={salvarEtiqueta}
+                  className="flex-1 py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.01]"
+                  style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+                >Salvar</button>
+              </div>
+            </div>
           </div>
         )}
 
