@@ -4,23 +4,20 @@ import TabNavigation from "@/components/TabNavigation";
 import MobileNav from "@/components/MobileNav";
 import { AppProvider, useApp } from "@/contexts/AppContext";
 import { SupabaseProvider } from "@/contexts/SupabaseContext";
-import CasasFinalizadas from "@/pages/CasasFinalizadas";
-import Contas from "@/pages/Contas";
-import Dashboard from "@/pages/Dashboard";
-import EditarDados from "@/pages/EditarDados";
-import GerenciarCasas from "@/pages/GerenciarCasas";
-import MinhasOperacoes from "@/pages/MinhasOperacoes";
-import Relatorios from "@/pages/Relatorios";
-import RelatoriosFinalizados from "@/pages/RelatoriosFinalizados";
-import Calendario from "@/pages/Calendario";
-import Faturamento from "@/pages/Faturamento";
-import GastoProxy from "@/pages/GastoProxy";
-import AdminPanel from "@/pages/AdminPanel";
 import Login from "@/pages/Login";
-import Slots from "@/pages/Slots";
-import ChavesPix from "@/pages/ChavesPix";
+// Páginas carregadas sob demanda (code-splitting) — deixa a 1ª carga mais leve
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Faturamento = lazy(() => import("@/pages/Faturamento"));
+const GastoProxy = lazy(() => import("@/pages/GastoProxy"));
+const MinhasOperacoes = lazy(() => import("@/pages/MinhasOperacoes"));
+const Contas = lazy(() => import("@/pages/Contas"));
+const ChavesPix = lazy(() => import("@/pages/ChavesPix"));
+const Calendario = lazy(() => import("@/pages/Calendario"));
+const EditarDados = lazy(() => import("@/pages/EditarDados"));
+const Slots = lazy(() => import("@/pages/Slots"));
+const AdminPanel = lazy(() => import("@/pages/AdminPanel"));
 import { CheckCircle, Edit3, Home, FileText, Moon, Sun, LogOut, Zap, Shield, Crown, Wallet, Key, DollarSign, RefreshCw, CalendarDays, Flame, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -336,7 +333,13 @@ function AppContent() {
             isVisible && !isRefreshing ? "page-transition-enter" : "page-transition-exit"
           }`}
         >
-          {renderContent(renderedTab)}
+          <Suspense fallback={
+            <div className="flex items-center justify-center py-24">
+              <div style={{ width: 36, height: 36, border: "3px solid rgba(212,160,23,0.2)", borderTopColor: "#d4a017", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+            </div>
+          }>
+            {renderContent(renderedTab)}
+          </Suspense>
         </main>
       </div>
 
