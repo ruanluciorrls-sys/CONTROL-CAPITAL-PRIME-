@@ -223,6 +223,7 @@ export const appRouter = router({
         agente: z.string().optional(),
         prazo: z.string().optional(),
         etiqueta: z.string().optional(),
+        jogos: z.string().optional(),
         finalizadoEm: z.string().optional(), // usado na migração do localStorage
         rows: z.array(z.record(z.string(), z.any())).optional(),
         cooperacao: z.string().optional(),
@@ -235,6 +236,7 @@ export const appRouter = router({
         if (input.agente !== undefined) updateData.agente = input.agente;
         if (input.prazo !== undefined) updateData.prazo = input.prazo || null;
         if (input.etiqueta !== undefined) (updateData as any).etiqueta = input.etiqueta || null;
+        if (input.jogos !== undefined) (updateData as any).jogos = input.jogos || null;
         if (input.rows !== undefined) updateData.rows = input.rows;
         if (input.cooperacao !== undefined) updateData.cooperacao = input.cooperacao;
         if (input.status !== undefined) updateData.status = input.status;

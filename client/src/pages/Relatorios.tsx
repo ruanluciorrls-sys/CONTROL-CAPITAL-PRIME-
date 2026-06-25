@@ -70,14 +70,16 @@ function RelatorioCard({
       {/* Barra de cor no topo */}
       <div className="h-[2px] w-full" style={{ background: accent }} />
 
-      {/* Etiqueta (nota livre) na frente do card */}
+      {/* Etiquetas (várias) na frente do card */}
       {rel.etiqueta && (
-        <div className="px-5 pt-3">
-          <span className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-black uppercase tracking-wider"
-            style={{ background: "rgba(212,160,23,0.18)", color: "#f3d078", border: "1px solid rgba(212,160,23,0.4)" }}
-          >
-            <Tag size={10} /> {rel.etiqueta}
-          </span>
+        <div className="px-5 pt-3 flex flex-wrap gap-1.5">
+          {String(rel.etiqueta).split(",").map((t: string) => t.trim()).filter(Boolean).map((t: string, i: number) => (
+            <span key={i} className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-black uppercase tracking-wider"
+              style={{ background: "rgba(212,160,23,0.18)", color: "#f3d078", border: "1px solid rgba(212,160,23,0.4)" }}
+            >
+              <Tag size={9} /> {t}
+            </span>
+          ))}
         </div>
       )}
 
@@ -419,8 +421,18 @@ function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
 export default function Relatorios() {
   const { state, addRelatorio, updateRelatorio, deleteRelatorio, finalizarRelatorio, finalizarCasa, duplicarRelatorio, esvaziarLixeira } = useApp();
   const [finalizarDialogId, setFinalizarDialogId] = useState<string | null>(null);
+  const [jogosTexto, setJogosTexto] = useState("");
   const [etiquetaDialogId, setEtiquetaDialogId] = useState<string | null>(null);
   const [etiquetaTexto, setEtiquetaTexto] = useState("");
+  const [novaTag, setNovaTag] = useState("");
+  const tagsEtiqueta = etiquetaTexto.split(",").map((t) => t.trim()).filter(Boolean);
+  const adicionarTag = () => {
+    const t = novaTag.trim();
+    if (!t) return;
+    setEtiquetaTexto([...tagsEtiqueta, t].join(", "));
+    setNovaTag("");
+  };
+  const removerTag = (i: number) => setEtiquetaTexto(tagsEtiqueta.filter((_, idx) => idx !== i).join(", "));
   const [selectedRelatorioId, setSelectedRelatorioId] = useState<string>("");
   const [showNewForm, setShowNewForm] = useState(false);
   const [activeTab, setActiveTab] = useState<"relatorio" | "progresso" | "lixeira">("relatorio");
@@ -464,15 +476,19 @@ export default function Relatorios() {
 
   const salvarEtiqueta = () => {
     if (!etiquetaDialogId) return;
-    updateRelatorio(etiquetaDialogId, { etiqueta: etiquetaTexto.trim() });
+    const pendente = novaTag.trim();
+    const valor = [...tagsEtiqueta, ...(pendente ? [pendente] : [])].join(", ");
+    updateRelatorio(etiquetaDialogId, { etiqueta: valor });
     setEtiquetaDialogId(null);
     setEtiquetaTexto("");
-    toast.success(etiquetaTexto.trim() ? "Etiqueta salva!" : "Etiqueta removida.");
+    setNovaTag("");
+    toast.success(valor ? "Etiquetas salvas!" : "Etiquetas removidas.");
   };
 
   const abrirEtiqueta = (id: string) => {
     const rel = state.relatorios.find((r) => r.id === id);
     setEtiquetaTexto(rel?.etiqueta || "");
+    setNovaTag("");
     setEtiquetaDialogId(id);
   };
 
@@ -862,7 +878,13 @@ export default function Relatorios() {
                   onRestoreRows={(rows) => updateRelatorio(selectedRelatorioId, { rows })}
                 />
                 <button
-                  onClick={() => { if (selectedRelatorioId) setFinalizarDialogId(selectedRelatorioId); }}
+                  onClick={() => {
+                    if (selectedRelatorioId) {
+                      const rel = relatoriosAtivos.find((r) => r.id === selectedRelatorioId);
+                      setJogosTexto(rel?.jogos || "");
+                      setFinalizarDialogId(selectedRelatorioId);
+                    }
+                  }}
                   className="mt-6 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
                 >
                   ✓ Finalizar Relatório
@@ -982,21 +1004,40 @@ export default function Relatorios() {
                 ><Tag size={16} /></div>
                 <h3 className="text-base font-black text-white">Etiqueta do relatório</h3>
               </div>
-              <p className="text-xs text-white/45">Uma nota curta que aparece na frente do card. Ex.: "Só falta sacar", "Aguardando bônus".</p>
-              <input
-                type="text"
-                autoFocus
-                maxLength={40}
-                placeholder="Digite a etiqueta..."
-                value={etiquetaTexto}
-                onChange={(e) => setEtiquetaTexto(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") salvarEtiqueta(); }}
-                className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-white focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
-              />
+              <p className="text-xs text-white/45">Notas curtas que aparecem na frente do card. Ex.: "Só falta sacar", "Gates of Olympus". Pode colocar várias.</p>
+
+              {/* Etiquetas atuais (chips) */}
+              {tagsEtiqueta.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {tagsEtiqueta.map((t, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold"
+                      style={{ background: "rgba(212,160,23,0.15)", color: "#f3d078", border: "1px solid rgba(212,160,23,0.35)" }}
+                    >
+                      {t}
+                      <button onClick={() => removerTag(i)} className="text-white/40 hover:text-red-400"><X size={11} /></button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  autoFocus
+                  maxLength={40}
+                  placeholder="Nova etiqueta..."
+                  value={novaTag}
+                  onChange={(e) => setNovaTag(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") adicionarTag(); }}
+                  className="flex-1 px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-white focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
+                />
+                <button onClick={adicionarTag}
+                  className="px-4 rounded-lg text-sm font-bold text-[#050b18]"
+                  style={{ background: "rgba(212,160,23,0.85)" }}
+                >+ Add</button>
+              </div>
+
               <div className="flex gap-2 pt-1">
-                <button onClick={() => { setEtiquetaTexto(""); }}
-                  className="px-3 py-2.5 rounded-xl font-medium text-xs text-white/40 border border-white/12 hover:bg-white/5"
-                >Limpar</button>
                 <button onClick={() => setEtiquetaDialogId(null)}
                   className="flex-1 py-2.5 rounded-xl font-medium text-sm text-white/50 border border-white/12 hover:bg-white/5"
                 >Cancelar</button>
@@ -1016,10 +1057,12 @@ export default function Relatorios() {
           const nomeCasa = (casa?.nome || "a meta").replace(/[\s-]+$/, "").trim();
           const casaJaFinalizada = casa?.status !== "ativa";
           const finalizar = (comCasa: boolean) => {
+            if (jogosTexto.trim() !== (rel?.jogos || "")) updateRelatorio(finalizarDialogId, { jogos: jogosTexto.trim() });
             finalizarRelatorio(finalizarDialogId);
             if (comCasa && rel?.casaId) finalizarCasa(rel.casaId);
             setSelectedRelatorioId("");
             setFinalizarDialogId(null);
+            setJogosTexto("");
             toast.success(comCasa ? "Relatório e meta finalizados!" : "Relatório finalizado!");
           };
           return (
@@ -1047,6 +1090,20 @@ export default function Relatorios() {
                       : "Finalizar a meta tira ela da Operação CPA e move para Casas Finalizadas."}
                   </span>
                 </p>
+
+                {/* Quais jogos você fez nessa cooperação? */}
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#d4a017]/70 block mb-1">🎰 Quais jogos você fez?</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Ex.: Gates of Olympus, Touro, Fortune Tiger..."
+                    value={jogosTexto}
+                    onChange={(e) => setJogosTexto(e.target.value)}
+                    className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-white focus:outline-none focus:ring-1 focus:ring-[#d4a017] resize-none"
+                  />
+                  <p className="text-[10px] text-white/30 mt-1">Fica salvo no relatório pra você consultar depois e ver os melhores jogos.</p>
+                </div>
+
                 <div className="flex flex-col gap-2">
                   <button onClick={() => finalizar(true)}
                     className="w-full py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.01]"

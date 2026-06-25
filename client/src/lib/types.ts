@@ -38,6 +38,7 @@ export interface RelatorioData {
   atualizadoEm?: string;
   finalizadoEm?: string;
   etiqueta?: string;
+  jogos?: string;
 }
 
 export interface AppState {

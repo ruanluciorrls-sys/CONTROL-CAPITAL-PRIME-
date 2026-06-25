@@ -339,6 +339,20 @@ export default function RelatoriosFinalizados() {
                         selectedRelatorio.agente || "-"
                       )}
                     </p>
+                    {/* Etiquetas */}
+                    {selectedRelatorio.etiqueta && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {String(selectedRelatorio.etiqueta).split(",").map((t: string) => t.trim()).filter(Boolean).map((t: string, i: number) => (
+                          <span key={i} className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-black uppercase tracking-wider"
+                            style={{ background: "rgba(212,160,23,0.18)", color: "#f3d078", border: "1px solid rgba(212,160,23,0.4)" }}
+                          >{t}</span>
+                        ))}
+                      </div>
+                    )}
+                    {/* Jogos feitos */}
+                    {selectedRelatorio.jogos && (
+                      <p className="mt-2 text-sm text-white/50">🎰 Jogos: <span className="font-medium text-white/75">{selectedRelatorio.jogos}</span></p>
+                    )}
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-left sm:text-right">
                     <p className="text-xs font-bold uppercase tracking-widest text-white/35">Prazo</p>

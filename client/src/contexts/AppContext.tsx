@@ -409,6 +409,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 ...(relatorio.status !== undefined ? { status: relatorio.status } : {}),
                 ...(relatorio.prazo !== undefined ? { prazo: relatorio.prazo } : {}),
                 ...(relatorio.etiqueta !== undefined ? { etiqueta: relatorio.etiqueta } : {}),
+                ...(relatorio.jogos !== undefined ? { jogos: relatorio.jogos } : {}),
               }
             : r
         ),
@@ -420,6 +421,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...(relatorio.agente !== undefined ? { agente: relatorio.agente } : {}),
         ...(relatorio.status !== undefined ? { status: relatorio.status } : {}),
         ...(relatorio.etiqueta !== undefined ? { etiqueta: relatorio.etiqueta } : {}),
+        ...(relatorio.jogos !== undefined ? { jogos: relatorio.jogos } : {}),
       });
 
       // Deep copy dos rows para evitar compartilhamento
@@ -430,6 +432,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         agente: relatorio.agente,
         prazo: relatorio.prazo,
         etiqueta: relatorio.etiqueta,
+        jogos: relatorio.jogos,
         cooperacao: relatorio.cooperacao?.toString(),
         rows: rowsCopy as any,
         status: relatorio.status,

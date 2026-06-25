@@ -42,6 +42,14 @@ export default function CasasFinalizadas() {
     border: "1px solid rgba(255,255,255,0.10)",
   };
 
+  // Agente da casa = puxado do relatório vinculado (mais recente). A casa não guarda agente.
+  const getAgenteCasa = (casaId: string): string => {
+    const rels = state.relatorios.filter((r) => r.casaId === casaId && r.agente);
+    if (rels.length === 0) return "";
+    rels.sort((a, b) => new Date(b.finalizadoEm || b.criadoEm).getTime() - new Date(a.finalizadoEm || a.criadoEm).getTime());
+    return rels[0].agente || "";
+  };
+
   const getNomeInicial = (nome: string) => nome.trim().split(/\s+/)[0].toUpperCase();
 
   const casasFinalizadas = state.casas.filter((c) => c.status === "finalizada");
@@ -99,7 +107,8 @@ export default function CasasFinalizadas() {
 
   const handleEditClick = (casa: any) => {
     setEditingCasa(casa);
-    setEditData({ ...casa });
+    // Pré-preenche o agente vindo do relatório vinculado (a casa não guarda agente)
+    setEditData({ ...casa, agente: casa.agente || getAgenteCasa(casa.id) });
   };
 
   const handleSaveEdit = () => {
@@ -510,7 +519,7 @@ export default function CasasFinalizadas() {
                         </button>
                       </td>
                       <td className="px-4 py-3 font-bold text-white/85">{casa.nome}</td>
-                      <td className="px-4 py-3 text-white/55">-</td>
+                      <td className="px-4 py-3 text-white/55">{getAgenteCasa(casa.id) || "-"}</td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex justify-center gap-2">
                           <button
