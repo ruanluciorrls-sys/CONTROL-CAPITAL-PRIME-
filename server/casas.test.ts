@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
+// Testes de integração: precisam de um banco real (DATABASE_URL). Pulam sem ele.
+const temBanco = !!process.env.DATABASE_URL;
+const describeDb = (temBanco ? describe : describe.skip) as typeof describe;
+
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
 function createAuthContext(): { ctx: TrpcContext } {
@@ -31,7 +35,7 @@ function createAuthContext(): { ctx: TrpcContext } {
   return { ctx };
 }
 
-describe("casas.create", () => {
+describeDb("casas.create", () => {
   it("should create a casa with required fields", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
@@ -68,7 +72,7 @@ describe("casas.create", () => {
   });
 });
 
-describe("casas.list", () => {
+describeDb("casas.list", () => {
   it("should return empty list for new user", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
@@ -79,7 +83,7 @@ describe("casas.list", () => {
   });
 });
 
-describe("relatorios.create", () => {
+describeDb("relatorios.create", () => {
   it("should create a relatorio with required fields", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
@@ -129,7 +133,7 @@ describe("relatorios.create", () => {
   });
 });
 
-describe("relatorios.list", () => {
+describeDb("relatorios.list", () => {
   it("should return empty list for new user", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);

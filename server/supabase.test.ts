@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 
-describe("Supabase Connection", () => {
+// Pula quando as variáveis de ambiente não estão presentes (ex.: rodando local sem .env)
+const temEnv = !!process.env.SUPABASE_URL && !!process.env.SUPABASE_ANON_KEY;
+
+describe.skipIf(!temEnv)("Supabase Connection", () => {
   it("should connect to Supabase with valid credentials", async () => {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
