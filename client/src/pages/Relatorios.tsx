@@ -995,7 +995,7 @@ export default function Relatorios() {
         {etiquetaDialogId && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
             style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
-            onClick={() => setEtiquetaDialogId(null)}
+            onMouseDown={(e) => { if (e.target === e.currentTarget) setEtiquetaDialogId(null); }}
           >
             <div className="w-full max-w-md rounded-2xl p-6 space-y-4"
               style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)", border: "1px solid rgba(212,160,23,0.25)" }}
@@ -1071,7 +1071,7 @@ export default function Relatorios() {
           return (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
               style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
-              onClick={() => setFinalizarDialogId(null)}
+              onMouseDown={(e) => { if (e.target === e.currentTarget) setFinalizarDialogId(null); }}
             >
               <div className="w-full max-w-md rounded-2xl p-6 space-y-5"
                 style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)", border: "1px solid rgba(212,160,23,0.25)" }}

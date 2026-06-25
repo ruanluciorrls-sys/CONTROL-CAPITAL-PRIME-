@@ -18,7 +18,7 @@ export function useConfirm() {
   const confirmEl = pendente ? (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
-      onClick={() => fechar(false)}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) fechar(false); }}
     >
       <div className="w-full max-w-sm rounded-2xl p-6 space-y-4"
         style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)", border: `1px solid ${pendente.perigo ? "rgba(248,113,113,0.3)" : "rgba(212,160,23,0.25)"}` }}
