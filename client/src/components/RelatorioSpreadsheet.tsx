@@ -208,12 +208,14 @@ export default function RelatorioSpreadsheet({
         </div>
 
         {/* Casa Nome */}
-        <div className="rounded-2xl p-5 border border-emerald-500/20 flex items-center justify-center"
+        <div className="relative overflow-hidden rounded-2xl p-5 border border-emerald-500/20 flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/35"
           style={{ background: "linear-gradient(145deg, rgba(7, 26, 18, 0.75), rgba(12, 42, 30, 0.5))" }}
         >
-          <div>
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
+          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-emerald-400/10 blur-2xl pointer-events-none" />
+          <div className="relative">
             <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400/70 dark:text-emerald-400/50 mb-1 text-center">Meta</p>
-            <p className="font-black text-2xl text-emerald-300 dark:text-emerald-200 text-center">{casaNomeLimpo}</p>
+            <p className="font-black text-2xl text-emerald-300 dark:text-emerald-200 text-center" style={{ textShadow: "0 0 24px rgba(74,222,128,0.3)" }}>{casaNomeLimpo}</p>
           </div>
         </div>
 
@@ -253,7 +255,7 @@ export default function RelatorioSpreadsheet({
       {/* Cards de Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Qtd DEP */}
-        <div className="rounded-2xl p-5 border"
+        <div className="rounded-2xl p-5 border transition-all duration-300 hover:-translate-y-0.5"
           style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)", borderLeft: "3px solid #60a5fa" }}
         >
           <p className="text-[9px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 mb-2">Quantidade de DEP</p>
@@ -262,7 +264,7 @@ export default function RelatorioSpreadsheet({
         </div>
 
         {/* Montante */}
-        <div className="rounded-2xl p-5 border border-emerald-500/20"
+        <div className="rounded-2xl p-5 border border-emerald-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/35"
           style={{ background: "linear-gradient(145deg, rgba(7, 26, 18, 0.75), rgba(12, 42, 30, 0.5))", borderLeft: "3px solid #4ade80" }}
         >
           <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400/70 dark:text-emerald-400/50 mb-2">Montante a Atingir</p>
@@ -274,7 +276,7 @@ export default function RelatorioSpreadsheet({
             <div className="mt-3">
               <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(74,222,128,0.1)" }}>
                 <div className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${progressoPct}%`, background: "#4ade80" }} />
+                  style={{ width: `${progressoPct}%`, background: "linear-gradient(90deg, #34d399, #4ade80)", boxShadow: "0 0 10px rgba(74,222,128,0.6)" }} />
               </div>
               <p className="text-[9px] text-emerald-400/55 dark:text-emerald-400/40 mt-1">{progressoPct.toFixed(1)}% do montante</p>
             </div>
@@ -282,7 +284,7 @@ export default function RelatorioSpreadsheet({
         </div>
 
         {/* Progresso Cooperação */}
-        <div className="rounded-2xl p-5 border border-[#a78bfa]/20"
+        <div className="rounded-2xl p-5 border border-[#a78bfa]/20 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#a78bfa]/35"
           style={{ background: "linear-gradient(145deg, rgba(13, 7, 32, 0.75), rgba(21, 11, 46, 0.5))", borderLeft: "3px solid #a78bfa" }}
         >
           <p className="text-[9px] font-black uppercase tracking-widest text-[#a78bfa]/70 dark:text-[#a78bfa]/50 mb-2">Cooperação</p>
@@ -460,23 +462,29 @@ export default function RelatorioSpreadsheet({
               color: "#a78bfa", isText: true,
             },
           ].map(({ label, value, color, isText }) => (
-            <div key={label} className="rounded-xl p-4 border border-white/8"
+            <div key={label} className="rounded-2xl p-4 border border-white/8 transition-all duration-300 hover:-translate-y-0.5 hover:border-white/15"
               style={{ background: "rgba(255,255,255,0.03)", borderLeft: `3px solid ${color}` }}
             >
-              <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-1">{label}</p>
-              <p className="text-xl font-black" style={{ color }}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
+                <p className="text-[9px] font-black uppercase tracking-widest text-white/30">{label}</p>
+              </div>
+              <p className="text-xl font-black"
+                style={{ background: `linear-gradient(135deg, #ffffff 30%, ${color})`, WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}
+              >
                 {isText ? value : fmt(value as number)}
               </p>
             </div>
           ))}
 
           {/* Resultado */}
-          <div className="rounded-xl p-4 border overflow-hidden relative"
+          <div className="rounded-2xl p-4 border overflow-hidden relative transition-all duration-300 hover:-translate-y-0.5"
             style={{
               background: totals.resultado >= 0 ? "rgba(74,222,128,0.08)" : "rgba(248,113,113,0.08)",
               borderColor: totals.resultado >= 0 ? "rgba(74,222,128,0.3)" : "rgba(248,113,113,0.3)",
             }}
           >
+            <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${totals.resultado >= 0 ? "rgba(74,222,128,0.6)" : "rgba(248,113,113,0.6)"}, transparent)` }} />
             <div className="flex items-center gap-1.5 mb-2">
               {totals.resultado >= 0
                 ? <TrendingUp size={14} className="text-emerald-400" />
@@ -492,14 +500,16 @@ export default function RelatorioSpreadsheet({
           </div>
 
           {/* Resultado Final + Cooperação */}
-          <div className="rounded-xl p-4 border overflow-hidden"
+          <div className="rounded-2xl p-4 border overflow-hidden relative transition-all duration-300 hover:-translate-y-0.5"
             style={{
               background: resultadoFinal >= 0 ? "rgba(212,160,23,0.1)" : "rgba(248,113,113,0.08)",
               borderColor: resultadoFinal >= 0 ? "rgba(212,160,23,0.35)" : "rgba(248,113,113,0.3)",
             }}
           >
-            <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-2">RESULTADO + COOP.</p>
-            <p className="text-2xl font-black" style={{ color: resultadoFinal >= 0 ? "#d4a017" : "#f87171" }}>
+            <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${resultadoFinal >= 0 ? "rgba(212,160,23,0.7)" : "rgba(248,113,113,0.6)"}, transparent)` }} />
+            <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full blur-2xl pointer-events-none" style={{ background: resultadoFinal >= 0 ? "rgba(212,160,23,0.12)" : "rgba(248,113,113,0.1)" }} />
+            <p className="relative text-[9px] font-black uppercase tracking-widest text-white/40 mb-2">RESULTADO + COOP.</p>
+            <p className="relative text-2xl font-black" style={{ color: resultadoFinal >= 0 ? "#d4a017" : "#f87171", textShadow: resultadoFinal >= 0 ? "0 0 22px rgba(212,160,23,0.35)" : "0 0 22px rgba(248,113,113,0.3)" }}>
               {fmt(resultadoFinal)}
             </p>
           </div>
