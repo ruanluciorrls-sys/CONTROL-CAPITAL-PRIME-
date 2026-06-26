@@ -284,14 +284,24 @@ export default function RelatoriosFinalizados() {
                             }
                       }
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black transition-transform group-hover:scale-105"
+                          style={
+                            isSelected
+                              ? { background: "linear-gradient(135deg, #f3d078, #d4a017)", color: "#050b18", boxShadow: "0 4px 12px rgba(212,160,23,0.4)" }
+                              : { background: "rgba(212,160,23,0.12)", color: "#f3d078", border: "1px solid rgba(212,160,23,0.25)" }
+                          }
+                        >
+                          {getCasaNome(relatorio.casaId).replace(/[\s-]+$/, "").trim()[0]?.toUpperCase() || "?"}
+                        </div>
+                        <div className="min-w-0 flex-1">
                           <p className="truncate font-black text-white/88">
                             {getCasaNome(relatorio.casaId).replace(/[\s-]+$/, "").trim()}
                             {relatorio.agente ? ` - ${relatorio.agente}` : ""}
                           </p>
-                          <p className="mt-1 text-xs text-white/38">
-                            {relatorio.agente || "Sem agente"} - {new Date(relatorio.criadoEm).toLocaleDateString("pt-BR")}
+                          <p className="mt-0.5 text-xs text-white/38">
+                            {relatorio.agente || "Sem agente"} · {new Date(relatorio.criadoEm).toLocaleDateString("pt-BR")}
                           </p>
                         </div>
                         <span className="shrink-0 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 font-mono text-[11px] font-black text-emerald-300">
@@ -501,9 +511,15 @@ export default function RelatoriosFinalizados() {
               </div>
             </div>
           ) : (
-            <div className={`${subtlePanelClass} p-12 text-center`}>
-              <FileText size={32} className="mx-auto mb-4 text-[#d4a017]/65" />
-              <p className="text-sm text-white/35">Selecione um relatorio para visualizar os detalhes</p>
+            <div className={`${subtlePanelClass} flex min-h-[320px] flex-col items-center justify-center p-12 text-center`}>
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/30 to-transparent" />
+              <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-[#d4a017]/20"
+                style={{ background: "radial-gradient(circle at 50% 30%, rgba(212,160,23,0.18), rgba(212,160,23,0.04))" }}
+              >
+                <FileText size={34} className="text-[#d4a017]/75" />
+              </div>
+              <p className="text-base font-bold text-white/55">Nenhum relatório selecionado</p>
+              <p className="mt-1 text-sm text-white/30">Clique em um relatório à esquerda para ver os detalhes</p>
             </div>
           )}
         </div>
@@ -518,7 +534,7 @@ export default function RelatoriosFinalizados() {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
             style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
-            onClick={() => setReutilizarDialogId(null)}
+            onMouseDown={(e) => { if (e.target === e.currentTarget) setReutilizarDialogId(null); }}
           >
             <div className="w-full max-w-md rounded-2xl p-6 space-y-5"
               style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)", border: "1px solid rgba(212,160,23,0.25)" }}

@@ -380,9 +380,19 @@ export default function CasasFinalizadas() {
                       <div className="absolute -right-10 -top-12 h-28 w-28 rounded-full bg-[#d4a017]/8 blur-2xl" />
                       <div className="relative">
                         <div className="mb-4 flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Casa</p>
-                            <h4 className="mt-1 truncate text-lg font-black text-white">{casa.nome}</h4>
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-base font-black text-[#050b18]"
+                              style={{ background: "linear-gradient(135deg, #f3d078, #d4a017)", boxShadow: "0 4px 14px rgba(212,160,23,0.35)" }}
+                            >
+                              {casa.nome.trim()[0]?.toUpperCase() || "?"}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Casa</p>
+                              <h4 className="truncate text-lg font-black text-white">{casa.nome}</h4>
+                              {getAgenteCasa(casa.id) && (
+                                <p className="truncate text-[11px] font-semibold text-[#d4a017]/70">👤 {getAgenteCasa(casa.id)}</p>
+                              )}
+                            </div>
                           </div>
                           <span
                             className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide ${
