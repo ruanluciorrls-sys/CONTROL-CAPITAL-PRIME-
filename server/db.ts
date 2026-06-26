@@ -289,6 +289,7 @@ export async function ensureRelatorioPrazo(): Promise<void> {
     await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS "finalizadoEm" timestamp`);
     await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS etiqueta text`);
     await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS jogos text`);
+    await db.execute(sql`ALTER TABLE casas ADD COLUMN IF NOT EXISTS "redeNome" text`);
     console.log("[Relatorios] Colunas extras prontas.");
   } catch (e) {
     console.error("[Relatorios] Falha ao criar colunas:", e);

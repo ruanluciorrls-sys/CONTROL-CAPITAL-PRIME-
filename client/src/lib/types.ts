@@ -3,6 +3,7 @@ export interface CasaData {
   nome: string;
   login: string;
   senha: string;
+  redeNome?: string;
   meta: number;
   media: number;
   prazo: string;

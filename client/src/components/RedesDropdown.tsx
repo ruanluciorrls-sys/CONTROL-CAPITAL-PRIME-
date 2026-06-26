@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { COR_DIA, DIAS_ORDER } from "@/lib/prazo";
 
 interface RedesDropdownProps {
@@ -12,6 +12,7 @@ interface RedesDropdownProps {
 
 export default function RedesDropdown({ plataformas, onSelect, value }: RedesDropdownProps) {
   const [open, setOpen] = useState(false);
+  const [busca, setBusca] = useState("");
   const [selected, setSelected] = useState<{ id?: string; nome: string; diasPrazo: number; dia: string } | null>(value ?? null);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -26,7 +27,9 @@ export default function RedesDropdown({ plataformas, onSelect, value }: RedesDro
     setCoords({ top: r.bottom + 6, left: r.left, width: r.width });
   };
 
-  const abrir = () => { atualizarPosicao(); setOpen(true); };
+  const abrir = () => { setBusca(""); atualizarPosicao(); setOpen(true); };
+
+  const q = busca.trim().toLowerCase();
 
   useEffect(() => {
     if (!open) return;
@@ -95,13 +98,26 @@ export default function RedesDropdown({ plataformas, onSelect, value }: RedesDro
           <div className="absolute top-0 left-0 w-full h-[1px]"
             style={{ background: "linear-gradient(to right, transparent, rgba(212,160,23,0.4), transparent)" }}
           />
+          {/* Busca: digitar para achar a rede */}
+          <div className="sticky top-0 z-10 p-2 border-b border-white/8" style={{ background: "#0a1428" }}>
+            <div className="relative">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30" />
+              <input
+                autoFocus
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Digite para achar a rede..."
+                className="w-full pl-8 pr-3 py-2 rounded-lg text-sm bg-transparent text-white border border-white/15 focus:outline-none focus:border-[#d4a017]"
+              />
+            </div>
+          </div>
           {DIAS_ORDER.map((dia) => {
-            const plats = plataformas.filter((p: any) => p.dia === dia);
+            const plats = plataformas.filter((p: any) => p.dia === dia && (!q || String(p.nome).toLowerCase().includes(q)));
             if (!plats.length) return null;
             const cor = COR_DIA[dia];
             return (
               <div key={dia}>
-                <div className="px-4 py-2 flex items-center gap-2 border-b border-white/5 sticky top-0"
+                <div className="px-4 py-2 flex items-center gap-2 border-b border-white/5"
                   style={{ background: "#0a1428" }}
                 >
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: cor }} />
@@ -136,6 +152,9 @@ export default function RedesDropdown({ plataformas, onSelect, value }: RedesDro
               </div>
             );
           })}
+          {q && plataformas.filter((p: any) => String(p.nome).toLowerCase().includes(q)).length === 0 && (
+            <div className="px-4 py-6 text-center text-xs text-white/30">Nenhuma rede encontrada</div>
+          )}
         </div>,
         document.body
       )}

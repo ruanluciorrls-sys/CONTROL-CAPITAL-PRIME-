@@ -39,6 +39,7 @@ export const casas = pgTable("casas", {
   nome: text("nome").notNull(),
   login: text("login"),
   senha: text("senha"),
+  redeNome: text("redeNome"), // rede do calendário (VOY, EK...) — usada pra lembrar jogos por rede (ALTER automático)
   media: text("media"),
   linkCasa: text("linkCasa"),
   linkContaFina: text("linkContaFina"),

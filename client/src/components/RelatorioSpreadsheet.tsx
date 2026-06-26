@@ -26,6 +26,8 @@ interface RelatorioSpreadsheetProps {
   linkContaFilha?: string;
   media?: number;
   meta?: number;
+  /** Jogos da última vez nesta rede — lembrete fixo enquanto faz o relatório */
+  jogosUltimaVez?: string;
   rows: RelatorioRow[];
   onAddRow: (row: RelatorioRow) => void;
   onDeleteRow: (numero: number) => void;
@@ -40,7 +42,7 @@ const inputStyle = "w-full px-2 py-1.5 rounded-lg text-right text-sm text-white 
 
 export default function RelatorioSpreadsheet({
   casaNome, agente, prazo, login, cooperacao, onCooperacaoChange,
-  linkContaFilha, media = 0, meta = 0, rows, onAddRow, onDeleteRow, onUpdateRow, onRestoreRows,
+  linkContaFilha, media = 0, meta = 0, jogosUltimaVez = "", rows, onAddRow, onDeleteRow, onUpdateRow, onRestoreRows,
 }: RelatorioSpreadsheetProps) {
   const [newRow, setNewRow] = useState<RelatorioRow>({ numero: rows.length + 1, deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 });
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -171,6 +173,23 @@ export default function RelatorioSpreadsheet({
         >
           <div className="w-1.5 h-1.5 rounded-full bg-[#d4a017] animate-pulse" />
           <p className="text-xs text-[#d4a017]/70 font-bold">Salvando...</p>
+        </div>
+      )}
+
+      {/* Lembrete: jogos da última vez nesta rede/casa */}
+      {jogosUltimaVez && jogosUltimaVez.trim() && (
+        <div className="rounded-2xl p-3 border border-[#d4a017]/20 flex items-start gap-2.5" style={{ background: "rgba(212,160,23,0.06)" }}>
+          <span className="text-base leading-none mt-0.5">🕑</span>
+          <div className="min-w-0">
+            <p className="text-[9px] font-black uppercase tracking-widest text-[#d4a017]/70 mb-1">🎰 Jogos da última vez nesta {casaNomeLimpo}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {jogosUltimaVez.split(",").map((j) => j.trim()).filter(Boolean).map((j, i) => (
+                <span key={i} className="px-2 py-0.5 rounded-md text-[11px] font-bold text-[#f3d078]"
+                  style={{ background: "rgba(212,160,23,0.14)", border: "1px solid rgba(212,160,23,0.3)" }}
+                >{j}</span>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

@@ -60,12 +60,30 @@ export default function GerenciarCasas() {
     linkContaFilha: "",
   });
 
+  // Rede selecionada no formulário de EDIÇÃO (separado do formData pra não mexer no resto)
+  const [editRede, setEditRede] = useState<{ nome: string; dia: string; diasPrazo: number }>({ nome: "", dia: "", diasPrazo: 0 });
+
   const casasAtivas = state.casas.filter((c) => c.status === "ativa");
   const casasLixeira = state.casas.filter((c) => c.status === "lixeira");
 
   // Plataformas GLOBAIS (calendário) — para o seletor de Rede
   const { data: plataformasDb } = trpc.plataformas.list.useQuery();
   const plataformasRede = (plataformasDb && plataformasDb.length > 0) ? plataformasDb : PLATAFORMAS_PADRAO;
+
+  // ── Memória de jogos por REDE (VOY, EK...) ──
+  const getNomeInicial = (nome: string) => (nome || "").trim().split(/\s+/)[0].toUpperCase();
+  const redeDaCasa = (casaId: string) => {
+    const c = state.casas.find((x) => x.id === casaId);
+    return ((c?.redeNome || "").trim().toUpperCase()) || getNomeInicial(c?.nome || "");
+  };
+  const jogosUltimaVezRede = (rede?: string): string => {
+    const key = (rede || "").trim().toUpperCase();
+    if (!key) return "";
+    const lista = state.relatorios
+      .filter((r: any) => r.status === "finalizado" && r.jogos && redeDaCasa(r.casaId) === key)
+      .sort((a: any, b: any) => new Date(b.finalizadoEm || b.criadoEm).getTime() - new Date(a.finalizadoEm || a.criadoEm).getTime());
+    return lista[0]?.jogos || "";
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -181,6 +199,7 @@ export default function GerenciarCasas() {
           nome: form.nome,
           login: form.login,
           senha: form.senha,
+          redeNome: form.redeNome,
           meta: form.meta,
           media: form.media,
           prazo: form.prazo,
@@ -209,7 +228,7 @@ export default function GerenciarCasas() {
 
     try {
       if (editingId) {
-        await updateCasa(editingId, formData);
+        await updateCasa(editingId, { ...formData, redeNome: editRede.nome } as any);
         toast.success("Casa atualizada com sucesso!");
       } else {
         await addCasa({ ...formData, status: "ativa" } as any);
@@ -246,6 +265,7 @@ export default function GerenciarCasas() {
       linkCasa: casa.linkCasa,
       linkContaFilha: casa.linkContaFilha,
     });
+    setEditRede({ nome: casa.redeNome || "", dia: "", diasPrazo: 0 });
     setEditingId(casa.id);
     setShowModal(true);
   };
@@ -607,6 +627,26 @@ export default function GerenciarCasas() {
                     {errors.nome && <p className="text-red-400 text-xs mt-1">{errors.nome}</p>}
                   </div>
 
+                  {/* Rede (calendário) */}
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Rede (calendário)</label>
+                    <RedesDropdown
+                      plataformas={plataformasRede}
+                      value={editRede.nome ? { nome: editRede.nome, dia: editRede.dia, diasPrazo: editRede.diasPrazo } : null}
+                      onSelect={(dia, diasPrazo, nome) => {
+                        setEditRede({ nome, dia, diasPrazo });
+                        const prazo = calcularPrazo(dia, diasPrazo);
+                        setFormData((f) => ({ ...f, prazo }));
+                      }}
+                    />
+                    {(() => { const jg = jogosUltimaVezRede(editRede.nome); return jg ? (
+                      <div className="mt-2 rounded-lg px-3 py-2 border border-emerald-500/20" style={{ background: "rgba(74,222,128,0.06)" }}>
+                        <p className="text-[9px] font-black uppercase tracking-wider text-emerald-400/70 mb-1">🎰 Jogos da última {editRede.nome}</p>
+                        <p className="text-[11px] font-semibold text-emerald-200/80">{jg}</p>
+                      </div>
+                    ) : null; })()}
+                  </div>
+
                   {/* Login | Senha */}
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -781,6 +821,14 @@ export default function GerenciarCasas() {
                           </div>
                         </div>
                       )}
+
+                      {/* Lembrete: jogos usados na última vez nesta rede */}
+                      {(() => { const jg = jogosUltimaVezRede(form.redeNome); return jg ? (
+                        <div className="rounded-lg px-3 py-2 border border-emerald-500/20" style={{ background: "rgba(74,222,128,0.06)" }}>
+                          <p className="text-[9px] font-black uppercase tracking-wider text-emerald-400/70 mb-1">🎰 Jogos da última {form.redeNome}</p>
+                          <p className="text-[11px] font-semibold text-emerald-200/80">{jg}</p>
+                        </div>
+                      ) : null; })()}
 
                       {/* 2. Login da Casa | Senha da Casa */}
                       <div className="grid grid-cols-2 gap-2">

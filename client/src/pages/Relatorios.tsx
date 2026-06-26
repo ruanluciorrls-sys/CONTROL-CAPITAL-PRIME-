@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import RelatorioSpreadsheet from "@/components/RelatorioSpreadsheet";
+import SeletorJogos from "@/components/SeletorJogos";
 import AbaProgresso from "@/components/AbaProgresso";
 import { usePageTransition } from "@/hooks/usePageTransition";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -622,6 +623,21 @@ export default function Relatorios() {
 
   const currentRelatorio = selectedRelatorioId ? relatoriosAtivos.find((r) => r.id === selectedRelatorioId) : null;
 
+  // ── Memória de jogos por REDE (VOY, EK...) — usa a rede da casa, com fallback no nome ──
+  const getNomeInicialR = (nome: string) => (nome || "").trim().split(/\s+/)[0].toUpperCase();
+  const redeDaCasaR = (casaId: string) => {
+    const c = state.casas.find((x) => x.id === casaId);
+    return ((c?.redeNome || "").trim().toUpperCase()) || getNomeInicialR(c?.nome || "");
+  };
+  const getJogosUltimaVez = (casaId: string, excludeRelId?: string): string => {
+    const key = redeDaCasaR(casaId);
+    if (!key) return "";
+    const lista = state.relatorios
+      .filter((r) => r.status === "finalizado" && (r as any).jogos && r.id !== excludeRelId && redeDaCasaR(r.casaId) === key)
+      .sort((a, b) => new Date((b as any).finalizadoEm || b.criadoEm).getTime() - new Date((a as any).finalizadoEm || a.criadoEm).getTime());
+    return (lista[0] as any)?.jogos || "";
+  };
+
   return (
     <div className="space-y-4 md:space-y-8">
       {/* Abas de Navegação */}
@@ -870,6 +886,7 @@ export default function Relatorios() {
                   linkContaFilha={getCasaLinks(currentRelatorio.casaId).linkContaFilha}
                   media={state.casas.find((c) => c.id === currentRelatorio.casaId)?.media || 0}
                   meta={state.casas.find((c) => c.id === currentRelatorio.casaId)?.meta || 0}
+                  jogosUltimaVez={getJogosUltimaVez(currentRelatorio.casaId, currentRelatorio.id)}
                   rows={currentRelatorio.rows}
                   onAddRow={(row) => handleAddRow(selectedRelatorioId, row)}
                   onDeleteRow={(numero) => handleDeleteRow(selectedRelatorioId, numero)}
@@ -1073,7 +1090,7 @@ export default function Relatorios() {
               style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
               onMouseDown={(e) => { if (e.target === e.currentTarget) setFinalizarDialogId(null); }}
             >
-              <div className="w-full max-w-md rounded-2xl p-6 space-y-5"
+              <div className="w-full max-w-lg max-h-[88vh] overflow-y-auto rounded-2xl p-6 space-y-5"
                 style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)", border: "1px solid rgba(212,160,23,0.25)" }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -1096,13 +1113,11 @@ export default function Relatorios() {
 
                 {/* Quais jogos você fez nessa cooperação? */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#d4a017]/70 block mb-1">🎰 Quais jogos você fez?</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Ex.: Gates of Olympus, Touro, Fortune Tiger..."
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#d4a017]/70 block mb-2">🎰 Quais jogos você fez?</label>
+                  <SeletorJogos
                     value={jogosTexto}
-                    onChange={(e) => setJogosTexto(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-white focus:outline-none focus:ring-1 focus:ring-[#d4a017] resize-none"
+                    onChange={setJogosTexto}
+                    sugestoes={(rel ? getJogosUltimaVez(rel.casaId, rel.id) : "").split(",").map((s) => s.trim()).filter(Boolean)}
                   />
                   <p className="text-[10px] text-white/30 mt-1">Fica salvo no relatório pra você consultar depois e ver os melhores jogos.</p>
                 </div>
