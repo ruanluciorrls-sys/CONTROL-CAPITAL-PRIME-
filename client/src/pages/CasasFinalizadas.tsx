@@ -4,7 +4,6 @@ import {
   Archive,
   CalendarDays,
   CheckSquare2,
-  Download,
   Edit2,
   Eye,
   EyeOff,
@@ -168,43 +167,6 @@ export default function CasasFinalizadas() {
     }
   };
 
-  const handleExportarCasas = () => {
-    const casasParaExportar =
-      activeTab === "finalizadas"
-        ? casasFiltradas
-        : Array.from(selectedLixeira)
-            .map((id) => casasLixeira.find((casa) => casa.id === id))
-            .filter(Boolean);
-
-    if (casasParaExportar.length === 0) {
-      toast.error("Nenhuma casa para exportar!");
-      return;
-    }
-
-    const csv = [
-      ["Nome", "Login", "Senha", "Status", "Lucro", "Criada em"],
-      ...casasParaExportar.map((casa: any) => [
-        casa.nome,
-        casa.login || "-",
-        casa.senha || "-",
-        casa.status,
-        calculateCasaLucros(casa.id).toFixed(2),
-        casa.criadoEm ? new Date(casa.criadoEm).toLocaleDateString("pt-BR") : "-",
-      ]),
-    ]
-      .map((row) => row.map((cell) => `"${cell}"`).join(","))
-      .join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `casas-${new Date().toISOString().split("T")[0]}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-    toast.success("CSV exportado com sucesso!");
-  };
-
   return (
     <div className="space-y-8">
       {confirmEl}
@@ -278,13 +240,6 @@ export default function CasasFinalizadas() {
               </div>
             )}
           </div>
-
-          <button
-            onClick={handleExportarCasas}
-            className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-4 py-2.5 text-sm font-bold text-white/70 backdrop-blur transition-colors hover:bg-white/8 hover:text-white"
-          >
-            <Download size={16} /> Exportar CSV
-          </button>
 
           <div className={`${subtlePanelClass} p-5`}>
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/35 to-transparent" />
