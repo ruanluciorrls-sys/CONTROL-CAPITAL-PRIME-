@@ -362,7 +362,8 @@ export default function GerenciarCasas() {
             {casasAtivas.map((casa, index) => (
               <div
                 key={casa.id}
-                className={`${colors[index % colors.length]} rounded-lg p-4 border-2 cursor-pointer hover:shadow-lg transition-all min-h-[280px] flex flex-col ${selectedCasas.includes(casa.id) ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}
+                className={`${colors[index % colors.length]} rounded-2xl p-4 border-2 cursor-pointer transition-all duration-300 min-h-[280px] flex flex-col backdrop-blur-sm hover:-translate-y-1 hover:shadow-2xl ${selectedCasas.includes(casa.id) ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}
+                style={{ boxShadow: "0 6px 24px rgba(0,0,0,0.28)" }}
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1 flex gap-3 items-start">
@@ -462,22 +463,38 @@ export default function GerenciarCasas() {
                   </div>
                 )}
 
-                {casa.meta > 0 && (
-                  <div className="mb-2 text-xs">
-                    <p className="text-muted-foreground">Meta: <span className="font-semibold text-foreground">{casa.meta}</span></p>
+                {(casa.meta > 0 || casa.media > 0) && (
+                  <div className="mb-2 flex gap-2">
+                    {casa.meta > 0 && (
+                      <div className="flex-1 rounded-xl px-3 py-2 text-center"
+                        style={{ background: "rgba(212,160,23,0.12)", border: "1px solid rgba(212,160,23,0.28)" }}
+                      >
+                        <p className="text-[8px] font-black uppercase tracking-[0.15em] text-[#d4a017]/80 mb-0.5">Meta</p>
+                        <p className="text-sm font-black text-foreground leading-none">{casa.meta}</p>
+                      </div>
+                    )}
+                    {casa.media > 0 && (
+                      <div className="flex-1 rounded-xl px-3 py-2 text-center"
+                        style={{ background: "rgba(74,222,128,0.10)", border: "1px solid rgba(74,222,128,0.24)" }}
+                      >
+                        <p className="text-[8px] font-black uppercase tracking-[0.15em] text-emerald-400/80 mb-0.5">Média</p>
+                        <p className="text-sm font-black text-foreground leading-none">{casa.media}</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 <div className="flex gap-2 mt-auto pt-3">
                   <button
                     onClick={() => handleEdit(casa)}
-                    className="flex-1 px-3 py-2 bg-primary/20 text-primary rounded text-xs font-semibold hover:bg-primary/30 transition-colors"
+                    className="flex-1 px-3 py-2.5 bg-primary/15 text-primary rounded-xl text-xs font-bold hover:bg-primary/30 hover:scale-[1.02] transition-all border border-primary/20"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => setConfirmDialog({ isOpen: true, type: "finalize", casaId: casa.id })}
-                    className="flex-1 px-3 py-2 bg-green-500/20 text-green-600 rounded text-xs font-semibold hover:bg-green-500/30 transition-colors"
+                    className="flex-1 px-3 py-2.5 rounded-xl text-xs font-bold text-[#050b18] hover:scale-[1.02] transition-all"
+                    style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)", boxShadow: "0 4px 14px rgba(34,197,94,0.3)" }}
                   >
                     Finalizar
                   </button>
