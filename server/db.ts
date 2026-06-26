@@ -11,7 +11,13 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      const client = postgres(process.env.DATABASE_URL, { ssl: "require" });
+      const client = postgres(process.env.DATABASE_URL, {
+        ssl: "require",
+        max: 5,                 // no máximo 5 conexões por instância (evita estourar o limite do Supabase)
+        idle_timeout: 20,       // fecha conexões ociosas após 20s (libera vagas em deploys seguidos)
+        max_lifetime: 60 * 30,  // recicla conexões a cada 30min
+        connect_timeout: 15,    // falha rápido em vez de travar
+      });
       _db = drizzle(client);
       
       // Auto-create slots table if it does not exist
