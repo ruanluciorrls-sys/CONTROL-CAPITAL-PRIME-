@@ -110,18 +110,29 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen p-4 md:p-6">
+      <style>{`
+        @keyframes dashShine { 0% { transform: translateX(-60%) skewX(-16deg); } 60%,100% { transform: translateX(360%) skewX(-16deg); } }
+        .dash-shine { animation: dashShine 7s ease-in-out infinite; }
+        @keyframes dashAura { 0%,100% { opacity: .07; transform: scale(1); } 50% { opacity: .14; transform: scale(1.08); } }
+        .dash-aura { animation: dashAura 5s ease-in-out infinite; }
+      `}</style>
       <div className="max-w-7xl mx-auto space-y-6">
 
 
         {/* Lucro em Caixa — card principal */}
-        <div className="relative overflow-hidden rounded-3xl p-6 md:p-8 border border-emerald-500/15 group transition-all duration-300 hover:border-emerald-500/25"
+        <div className="relative overflow-hidden rounded-3xl p-6 md:p-8 border border-emerald-500/15 group transition-all duration-300 hover:border-emerald-500/30"
           style={{ background: "linear-gradient(145deg, #070e20 0%, #071a12 100%)" }}
         >
           {/* Linhas decorativas */}
           <div className="absolute top-0 left-0 w-full h-[1px]"
             style={{ background: "linear-gradient(to right, transparent, rgba(74,222,128,0.4), transparent)" }} />
-          <div className="absolute -right-20 -top-20 w-64 h-64 rounded-full opacity-5 pointer-events-none"
+          <div className="dash-aura absolute -right-20 -top-20 w-64 h-64 rounded-full pointer-events-none"
             style={{ background: "radial-gradient(circle, #4ade80, transparent)" }} />
+          {/* Reflexo animado */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
+            <div className="dash-shine absolute -inset-y-4 left-0 w-1/4"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(74,222,128,0.06), transparent)" }} />
+          </div>
 
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex-1">
@@ -130,7 +141,13 @@ export default function Dashboard() {
                 <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-400/60">Lucro em Caixa</p>
               </div>
               <p className="text-5xl md:text-6xl font-black tracking-tighter mb-2"
-                style={{ color: "#4ade80", textShadow: "0 0 40px rgba(74,222,128,0.25)" }}
+                style={{
+                  background: "linear-gradient(135deg, #a7f3c8 0%, #4ade80 55%, #22d3a5 100%)",
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  filter: "drop-shadow(0 0 26px rgba(74,222,128,0.35))",
+                }}
               >
                 R$ {lucroCaixa.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
@@ -183,7 +200,13 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-baseline gap-1.5">
                   <span className="font-mono text-4xl xl:text-5xl font-black tabular-nums tracking-tight"
-                    style={{ color: "#4ade80", textShadow: "0 0 30px rgba(74,222,128,0.3)" }}
+                    style={{
+                      background: "linear-gradient(135deg, #a7f3c8, #4ade80)",
+                      WebkitBackgroundClip: "text",
+                      backgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      filter: "drop-shadow(0 0 20px rgba(74,222,128,0.3))",
+                    }}
                   >
                     {hh}:{mm}
                   </span>
@@ -230,7 +253,14 @@ export default function Dashboard() {
                   </div>
 
                   <p className="relative text-[9px] font-black uppercase tracking-widest text-white/35 mb-1">{m.title}</p>
-                  <p className="relative text-2xl font-black text-white">{m.value}</p>
+                  <p className="relative text-2xl font-black"
+                    style={{
+                      background: `linear-gradient(135deg, #ffffff 35%, ${m.color})`,
+                      WebkitBackgroundClip: "text",
+                      backgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                    }}
+                  >{m.value}</p>
                   <p className="relative text-[9px] text-white/20 mt-0.5">{m.desc}</p>
                 </button>
               );
