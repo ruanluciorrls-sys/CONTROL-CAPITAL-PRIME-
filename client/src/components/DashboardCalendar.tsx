@@ -110,39 +110,84 @@ export default function DashboardCalendar({ plataformas: plataformasProp }: Dash
     return coresPorPlataforma[nome] || "bg-muted/50 border-border/50 text-muted-foreground hover:bg-muted";
   };
 
+  // Cor por dia da semana (combina com o resto do dashboard)
+  const COR_DIA: Record<string, string> = {
+    "SEGUNDA-FEIRA": "#60a5fa", "TERÇA-FEIRA": "#34d399", "QUARTA-FEIRA": "#a78bfa",
+    "QUINTA-FEIRA": "#f59e0b", "SEXTA-FEIRA": "#f87171", "SÁBADO": "#fb923c", "DOMINGO": "#e879f9",
+  };
+  const diasJS = ["DOMINGO", "SEGUNDA-FEIRA", "TERÇA-FEIRA", "QUARTA-FEIRA", "QUINTA-FEIRA", "SEXTA-FEIRA", "SÁBADO"];
+  const hojeDia = diasJS[new Date().getDay()];
+
   return (
-    <div className="mt-8 bg-card border border-border/60 rounded-2xl shadow-sm p-6">
-      <div className="flex items-center gap-3 mb-8">
-        <h2 className="text-xl font-bold text-foreground">📅 Calendário de Casas</h2>
+    <div className="relative mt-8 overflow-hidden rounded-3xl border border-white/10 p-6 shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur-xl"
+      style={{ background: "linear-gradient(145deg, rgba(7,14,32,0.92), rgba(12,21,36,0.85))" }}
+    >
+      {/* Linha multicolor no topo */}
+      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-cyan-400 via-emerald-400 via-amber-400 via-rose-400 to-fuchsia-400" />
+
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10"
+          style={{ background: "linear-gradient(135deg, rgba(212,160,23,0.15), rgba(245,158,11,0.05))", color: "#d4a017", boxShadow: "0 0 10px rgba(212,160,23,0.2)" }}
+        >
+          📅
+        </div>
+        <div>
+          <h2 className="text-base font-black text-white">Calendário de Casas</h2>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/35">Lançamentos da semana</p>
+        </div>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {plataformasPorDia.map((dia) => (
-          <div
-            key={dia.dia}
-            className="bg-background/40 backdrop-blur-sm border border-border/40 rounded-xl p-5 hover:border-border/80 transition-colors"
-          >
-            <h3 className="text-sm tracking-widest font-bold text-muted-foreground mb-4">{dia.dia}</h3>
-            
-            {dia.plataformas.length > 0 ? (
-              <div className="flex flex-wrap gap-2.5">
-                {dia.plataformas.map((plat) => (
-                  <div
-                    key={plat.id}
-                    className={`${getCorPlataforma(plat.nome)} border rounded-lg px-3 py-1.5 text-xs font-bold transition-all hover:shadow-lg cursor-pointer flex items-center gap-2`}
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {plataformasPorDia.map((dia) => {
+          const cor = COR_DIA[dia.dia] || "#d4a017";
+          const isHoje = dia.dia === hojeDia;
+          return (
+            <div
+              key={dia.dia}
+              className="relative overflow-hidden rounded-2xl border p-5 transition-all duration-300 hover:-translate-y-1"
+              style={{
+                background: isHoje ? `linear-gradient(145deg, ${cor}14, rgba(255,255,255,0.02))` : "rgba(255,255,255,0.022)",
+                borderColor: isHoje ? `${cor}66` : "rgba(255,255,255,0.08)",
+                boxShadow: isHoje ? `0 12px 34px ${cor}1f` : "none",
+              }}
+            >
+              {/* Acento de cor no topo */}
+              <div className="absolute inset-x-0 top-0 h-[2px]" style={{ background: `linear-gradient(to right, transparent, ${cor}, transparent)`, opacity: isHoje ? 1 : 0.4 }} />
+
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="flex items-center gap-2 text-sm font-black tracking-widest" style={{ color: cor }}>
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
+                  {dia.dia}
+                </h3>
+                {isHoje && (
+                  <span className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider"
+                    style={{ background: `${cor}22`, color: cor, border: `1px solid ${cor}55` }}
                   >
-                    <span className="tracking-wide">{plat.nome}</span>
-                    <span className="bg-background/30 rounded-full px-2 py-0.5 opacity-90">
-                      {plat.diasPrazo}d
-                    </span>
-                  </div>
-                ))}
+                    Hoje
+                  </span>
+                )}
               </div>
-            ) : (
-              <p className="text-muted-foreground/60 text-xs italic">Nenhuma casa agendada</p>
-            )}
-          </div>
-        ))}
+
+              {dia.plataformas.length > 0 ? (
+                <div className="flex flex-wrap gap-2.5">
+                  {dia.plataformas.map((plat) => (
+                    <div
+                      key={plat.id}
+                      className={`${getCorPlataforma(plat.nome)} flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all hover:-translate-y-0.5 hover:shadow-lg`}
+                    >
+                      <span className="tracking-wide">{plat.nome}</span>
+                      <span className="rounded-full bg-background/30 px-2 py-0.5 opacity-90">
+                        {plat.diasPrazo}d
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs italic text-white/25">Nenhuma casa agendada</p>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
