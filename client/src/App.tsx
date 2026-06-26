@@ -267,28 +267,41 @@ function AppContent() {
         </nav>
 
         {/* Sidebar Footer with user info & quick actions */}
-        <div className="p-3 border-t border-white/5 flex flex-col gap-2.5"
-          style={{ background: "linear-gradient(180deg, transparent, rgba(5,11,24,0.8))", backdropFilter: "blur(12px)" }}
+        <div className="p-3 border-t border-white/8 flex flex-col gap-2.5"
+          style={{ background: "linear-gradient(180deg, transparent, rgba(5,11,24,0.9))", backdropFilter: "blur(12px)" }}
         >
           {/* User card */}
           {user && (
-            <div className="flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-xl border border-white/8"
-              style={{ background: "rgba(255,255,255,0.03)" }}
+            <div className="relative flex items-center gap-3 px-3 py-3 rounded-2xl overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, rgba(212,160,23,0.10), rgba(255,255,255,0.02))",
+                border: "1px solid rgba(212,160,23,0.18)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+              }}
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm text-[#050b18] shrink-0"
-                  style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+              {/* brilho decorativo no canto */}
+              <div className="absolute -top-8 -right-6 w-24 h-24 rounded-full opacity-30 pointer-events-none"
+                style={{ background: "radial-gradient(circle, rgba(212,160,23,0.55), transparent 70%)" }} />
+
+              {/* avatar com indicador online */}
+              <div className="relative shrink-0">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-[#050b18]"
+                  style={{ background: "linear-gradient(135deg, #f3d078, #d4a017)", boxShadow: "0 4px 12px rgba(212,160,23,0.45)" }}
                 >
                   {(user.email || user.name || "?")[0].toUpperCase()}
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[8px] text-white/25 uppercase tracking-widest font-black leading-tight">Logado como</span>
-                  <span className="text-[11px] font-bold text-white/70 truncate leading-tight">{user.email || user.name}</span>
-                </div>
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#070e20]"
+                  style={{ background: "#22c55e", boxShadow: "0 0 6px rgba(34,197,94,0.9)" }} />
               </div>
+
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-[8px] text-[#d4a017]/80 uppercase tracking-[0.18em] font-black leading-tight">Logado como</span>
+                <span className="text-[11px] font-bold text-white/85 truncate leading-tight">{user.email || user.name}</span>
+              </div>
+
               <button
                 onClick={() => setIsChangePasswordOpen(true)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center border border-white/10 bg-white/5 text-white/55 hover:text-[#d4a017] hover:border-[#d4a017]/30 hover:bg-[#d4a017]/10 transition-all shrink-0"
+                className="relative w-7 h-7 rounded-lg flex items-center justify-center border border-white/10 bg-white/5 text-white/55 hover:text-[#d4a017] hover:border-[#d4a017]/40 hover:bg-[#d4a017]/10 transition-all shrink-0"
                 title="Alterar Senha"
               >
                 <Key size={13} />
@@ -303,8 +316,8 @@ function AppContent() {
             <button
               onClick={handleRefreshSite}
               disabled={isRefreshing}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider text-[#050b18] transition-all duration-300 hover:scale-[1.02] disabled:opacity-60"
-              style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)", boxShadow: "0 4px 14px rgba(212,160,23,0.25)" }}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-[0.15em] text-[#050b18] transition-all duration-300 hover:scale-[1.02] disabled:opacity-60"
+              style={{ background: "linear-gradient(135deg, #f3d078, #d4a017)", boxShadow: "0 4px 16px rgba(212,160,23,0.35)" }}
               title="Atualizar dados"
             >
               <RefreshCw size={13} className={isRefreshing ? "animate-spin" : ""} />
@@ -315,12 +328,18 @@ function AppContent() {
 
             <button
               onClick={logout}
-              className="w-11 shrink-0 flex items-center justify-center rounded-xl transition-all duration-300 hover:scale-[1.05] border border-red-500/20 text-red-400 hover:text-red-300 hover:border-red-500/40"
+              className="w-11 shrink-0 flex items-center justify-center rounded-xl transition-all duration-300 hover:scale-[1.05] border border-red-500/25 text-red-400 hover:text-red-300 hover:border-red-500/50 hover:bg-red-500/15"
               style={{ background: "rgba(239,68,68,0.08)" }}
               title="Fazer logout"
             >
               <LogOut size={15} />
             </button>
+          </div>
+
+          {/* status: online + atualizações globais automáticas */}
+          <div className="flex items-center justify-center gap-1.5 pt-0.5">
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#22c55e", boxShadow: "0 0 6px rgba(34,197,94,0.9)" }} />
+            <span className="text-[9px] text-white/35 font-semibold tracking-wide">online · atualizações globais automáticas</span>
           </div>
         </div>
       </aside>
