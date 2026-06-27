@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Search, Flame, Award, Heart, Check, Copy, RefreshCw, Layers, Plus, X } from "lucide-react";
+import { Search, Flame, Award, Heart, Check, Copy, RefreshCw, Layers, Plus, X, Edit2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../_core/hooks/useAuth";
+import { useConfirm } from "@/hooks/useConfirm";
 import slotsData from "./slots_data.json";
 import { trpc } from "@/lib/trpc";
 
@@ -11,10 +12,14 @@ interface SlotGame {
   name: string;
   tag: string;
   image?: string;
+  id?: number;            // id no banco (slots customizados/editados)
+  isStatic?: boolean;     // veio do catálogo fixo (slots_data.json)
+  shadowsStatic?: boolean; // é um override de um item do catálogo fixo
 }
 
 export default function Slots() {
   const { user } = useAuth();
+  const { confirm, confirmEl } = useConfirm();
   const isAdmin = user?.role === "admin";
   const [activeTab, setActiveTab] = useState<"catalogo" | "favoritos">("catalogo");
   const [search, setSearch] = useState("");
@@ -26,22 +31,28 @@ export default function Slots() {
     refetchInterval: 5000,
   });
 
-  // Combine static slots with DB-stored slots
+  // Combina catálogo fixo (slots_data.json) com slots do banco.
+  // Regras: um slot do banco com mesmo nome SUBSTITUI o fixo; com hidden=true, REMOVE.
   const dbGames = slotsQuery.data || [];
-  const games = React.useMemo(() => {
-    const allGames = [...slotsData];
-    dbGames.forEach((cg) => {
-      if (!allGames.some(g => g.name.toLowerCase() === cg.name.toLowerCase())) {
-        allGames.push({
-          provider: cg.provider,
-          performance: cg.performance,
-          name: cg.name,
-          tag: cg.tag ?? "",
-          image: cg.image ?? "",
-        });
-      }
+  const games: SlotGame[] = React.useMemo(() => {
+    const staticNames = new Set((slotsData as SlotGame[]).map((g) => g.name.toLowerCase()));
+    const map = new Map<string, SlotGame>();
+    (slotsData as SlotGame[]).forEach((g) => map.set(g.name.toLowerCase(), { ...g, isStatic: true }));
+    dbGames.forEach((cg: any) => {
+      const key = cg.name.toLowerCase();
+      if (cg.hidden) { map.delete(key); return; }
+      map.set(key, {
+        provider: cg.provider,
+        performance: cg.performance,
+        name: cg.name,
+        tag: cg.tag ?? "",
+        image: cg.image ?? "",
+        id: cg.id,
+        isStatic: false,
+        shadowsStatic: staticNames.has(key),
+      });
     });
-    return allGames;
+    return [...map.values()];
   }, [dbGames]);
 
   const [favoritos, setFavoritos] = useState<string[]>(() => {
@@ -92,43 +103,89 @@ export default function Slots() {
     toast.success(`Nome "${name}" copiado para o teclado!`);
   };
 
+  // Jogo em edição (null = modal em modo "adicionar")
+  const [editGame, setEditGame] = useState<SlotGame | null>(null);
+
+  const resetGameForm = () => setNewGame({ name: "", provider: "PG", performance: "ALTA", tag: "", image: "" });
+  const fecharModal = () => { setIsAddModalOpen(false); setEditGame(null); resetGameForm(); };
+  const abrirAdicionar = () => { setEditGame(null); resetGameForm(); setIsAddModalOpen(true); };
+  const abrirEditar = (game: SlotGame) => {
+    setEditGame(game);
+    setNewGame({ name: game.name, provider: game.provider, performance: game.performance, tag: game.tag || "", image: game.image || "" });
+    setIsAddModalOpen(true);
+  };
+
   const addGameMutation = trpc.slots.create.useMutation({
     onSuccess: () => {
-      toast.success("Novo jogo adicionado com sucesso!");
+      toast.success(editGame ? "Jogo atualizado com sucesso!" : "Novo jogo adicionado com sucesso!");
       slotsQuery.refetch();
-      setIsAddModalOpen(false);
-      setNewGame({
-        name: "",
-        provider: "PG",
-        performance: "ALTA",
-        tag: "",
-        image: ""
-      });
+      fecharModal();
     },
     onError: (err) => {
-      toast.error(err.message || "Erro ao adicionar o jogo");
+      toast.error(err.message || "Erro ao salvar o jogo");
     }
+  });
+
+  const updateGameMutation = trpc.slots.update.useMutation({
+    onSuccess: () => {
+      toast.success("Jogo atualizado com sucesso!");
+      slotsQuery.refetch();
+      fecharModal();
+    },
+    onError: (err) => { toast.error(err.message || "Erro ao atualizar o jogo"); }
+  });
+
+  const deleteGameMutation = trpc.slots.delete.useMutation({
+    onSuccess: () => { toast.success("Jogo excluído!"); slotsQuery.refetch(); },
+    onError: (err) => { toast.error(err.message || "Erro ao excluir o jogo"); }
+  });
+
+  const hideGameMutation = trpc.slots.hide.useMutation({
+    onSuccess: () => { toast.success("Jogo removido do catálogo!"); slotsQuery.refetch(); },
+    onError: (err) => { toast.error(err.message || "Erro ao remover o jogo"); }
   });
 
   const handleAddGame = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newGame.name.trim()) {
+    const nome = newGame.name.trim();
+    if (!nome) {
       toast.error("Por favor, insira o nome do jogo");
       return;
     }
 
-    if (games.some(g => g.name.toLowerCase() === newGame.name.trim().toLowerCase())) {
-      toast.error("Já existe um jogo com este nome!");
-      return;
-    }
-
-    addGameMutation.mutate({
-      name: newGame.name.trim(),
+    const payload = {
+      name: nome,
       provider: newGame.provider,
       performance: newGame.performance,
       tag: newGame.tag.trim(),
       image: newGame.image?.trim() || undefined,
-    });
+    };
+
+    if (editGame) {
+      if (editGame.id) {
+        updateGameMutation.mutate({ id: editGame.id, ...payload });
+      } else {
+        // Editando um item do catálogo fixo → cria um "override" no banco (mesmo nome)
+        addGameMutation.mutate(payload);
+      }
+      return;
+    }
+
+    if (games.some(g => g.name.toLowerCase() === nome.toLowerCase())) {
+      toast.error("Já existe um jogo com este nome!");
+      return;
+    }
+    addGameMutation.mutate(payload);
+  };
+
+  const handleDeleteGame = async (game: SlotGame) => {
+    const ok = await confirm({ titulo: "Excluir jogo", mensagem: `Remover "${game.name}" do catálogo?`, confirmar: "Excluir", perigo: true });
+    if (!ok) return;
+    if (game.id && !game.shadowsStatic) {
+      deleteGameMutation.mutate({ id: game.id });           // slot 100% customizado → apaga de vez
+    } else {
+      hideGameMutation.mutate({ name: game.name, provider: game.provider, performance: game.performance }); // catálogo fixo → oculta
+    }
   };
 
   // Filter games logic
@@ -173,6 +230,7 @@ export default function Slots() {
 
   return (
     <div className="min-h-screen text-white p-4 md:p-6 font-sans">
+      {confirmEl}
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
@@ -244,7 +302,7 @@ export default function Slots() {
 
             {isAdmin && (
               <button
-                onClick={() => setIsAddModalOpen(true)}
+                onClick={abrirAdicionar}
                 className="px-4 py-2.5 rounded-lg text-xs font-black bg-[#d4a017]/10 text-[#d4a017] hover:bg-[#d4a017] hover:text-[#050b18] border border-[#d4a017]/20 transition-all flex items-center gap-1.5 shrink-0"
               >
                 <Plus size={13} />
@@ -353,6 +411,26 @@ export default function Slots() {
                     >
                       <Heart size={14} className={isFav ? "fill-red-400 text-red-400" : ""} />
                     </button>
+
+                    {/* Ações de admin: editar / excluir */}
+                    {isAdmin && (
+                      <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); abrirEditar(game); }}
+                          title="Editar jogo"
+                          className="w-8 h-8 rounded-lg flex items-center justify-center border border-white/10 bg-black/60 text-white/55 hover:text-[#d4a017] hover:bg-black/85 transition-colors backdrop-blur-md"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteGame(game); }}
+                          title="Excluir jogo"
+                          className="w-8 h-8 rounded-lg flex items-center justify-center border border-white/10 bg-black/60 text-white/55 hover:text-red-400 hover:bg-black/85 transition-colors backdrop-blur-md"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-4 flex flex-col justify-between flex-1">
@@ -398,7 +476,7 @@ export default function Slots() {
           }}
           onMouseUp={(e) => {
             if (e.target === e.currentTarget && mouseDownOnBackdrop) {
-              setIsAddModalOpen(false);
+              fecharModal();
             }
             setMouseDownOnBackdrop(false);
           }}
@@ -415,12 +493,12 @@ export default function Slots() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-[#d4a017]/10 text-[#d4a017] border border-[#d4a017]/30">
-                  <Plus size={16} />
+                  {editGame ? <Edit2 size={16} /> : <Plus size={16} />}
                 </div>
-                <h3 className="text-base font-black tracking-tight text-white">Adicionar Novo Slot</h3>
+                <h3 className="text-base font-black tracking-tight text-white">{editGame ? "Editar Slot" : "Adicionar Novo Slot"}</h3>
               </div>
-              <button 
-                onClick={() => setIsAddModalOpen(false)}
+              <button
+                onClick={fecharModal}
                 className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/5 transition-all"
               >
                 <X size={16} />
@@ -435,9 +513,13 @@ export default function Slots() {
                   required
                   placeholder="Ex: Fortune Tiger"
                   value={newGame.name}
+                  readOnly={!!(editGame && editGame.isStatic)}
                   onChange={(e) => setNewGame({ ...newGame, name: e.target.value })}
-                  className="w-full h-11 px-4 rounded-xl border border-white/10 bg-black/35 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-[#d4a017]/70"
+                  className={`w-full h-11 px-4 rounded-xl border border-white/10 bg-black/35 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-[#d4a017]/70 ${editGame && editGame.isStatic ? "opacity-60 cursor-not-allowed" : ""}`}
                 />
+                {editGame && editGame.isStatic && (
+                  <p className="text-[9px] text-white/30">Item do catálogo fixo — o nome não pode ser alterado (mas dá pra mudar provedor, performance, tag e imagem).</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -494,7 +576,7 @@ export default function Slots() {
                 type="submit"
                 className="w-full h-11 mt-4 rounded-xl bg-[#d4a017] text-[#050b18] hover:bg-[#c39010] text-xs font-black tracking-wider uppercase transition-all shadow-[0_4px_12px_rgba(212,160,23,0.2)]"
               >
-                Confirmar e Adicionar
+                {editGame ? "Salvar Alterações" : "Confirmar e Adicionar"}
               </button>
             </form>
           </div>

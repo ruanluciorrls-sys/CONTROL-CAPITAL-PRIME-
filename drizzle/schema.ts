@@ -1,4 +1,4 @@
-import { integer, pgEnum, pgTable, serial, text, timestamp, varchar, decimal, jsonb, date } from "drizzle-orm/pg-core";
+import { integer, pgEnum, pgTable, serial, text, timestamp, varchar, decimal, jsonb, date, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 // Enums PostgreSQL
@@ -195,6 +195,7 @@ export const slots = pgTable("slots", {
   name: text("name").notNull().unique(),
   tag: text("tag").default("").notNull(),
   image: text("image"),
+  hidden: boolean("hidden").default(false).notNull(), // oculta um slot (inclusive do catálogo fixo) — ALTER automático
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
 });
 

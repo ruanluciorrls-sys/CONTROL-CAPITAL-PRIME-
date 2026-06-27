@@ -290,6 +290,7 @@ export async function ensureRelatorioPrazo(): Promise<void> {
     await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS etiqueta text`);
     await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS jogos text`);
     await db.execute(sql`ALTER TABLE casas ADD COLUMN IF NOT EXISTS "redeNome" text`);
+    await db.execute(sql`ALTER TABLE slots ADD COLUMN IF NOT EXISTS hidden boolean DEFAULT false NOT NULL`);
     console.log("[Relatorios] Colunas extras prontas.");
   } catch (e) {
     console.error("[Relatorios] Falha ao criar colunas:", e);
@@ -473,6 +474,30 @@ export async function createSlot(slot: InsertSlot): Promise<Slot | null> {
   if (!db) return null;
   await db.insert(slots).values(slot);
   return db.select().from(slots).where(eq(slots.name, slot.name)).limit(1).then(r => r[0] || null);
+}
+
+export async function updateSlot(id: number, data: Partial<InsertSlot>): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(slots).set(data).where(eq(slots.id, id));
+}
+
+export async function deleteSlot(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(slots).where(eq(slots.id, id));
+}
+
+/** Oculta um slot pelo nome (usado p/ esconder um item do catálogo fixo). */
+export async function hideSlotByName(name: string, provider: string, performance: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const existing = await db.select().from(slots).where(eq(slots.name, name)).limit(1).then(r => r[0]);
+  if (existing) {
+    await db.update(slots).set({ hidden: true }).where(eq(slots.id, existing.id));
+  } else {
+    await db.insert(slots).values({ name, provider, performance, tag: "", hidden: true });
+  }
 }
 
 // Queries para plataformas
