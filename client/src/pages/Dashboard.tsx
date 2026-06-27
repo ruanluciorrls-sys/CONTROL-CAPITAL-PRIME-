@@ -23,6 +23,7 @@ export default function Dashboard() {
   const { data: totalGastosProxy = 0 } = trpc.gastosProxy.total.useQuery();
   const { data: gastosProxyList = [] } = trpc.gastosProxy.list.useQuery();
   const { data: contasData = [] } = trpc.contas.list.useQuery();
+  const { data: receitasList = [] } = trpc.receitas.list.useQuery();
 
   // Plataformas GLOBAIS (banco de dados, compartilhadas por todos os usuários)
   const { data: plataformasDb } = trpc.plataformas.list.useQuery();
@@ -32,12 +33,15 @@ export default function Dashboard() {
 
   // Dados
   const relatoriosFinalizados = state.relatorios.filter((r) => r.status === "finalizado");
-  const lucroCaixa = relatoriosFinalizados.reduce((total, rel) => {
+  const lucroRelatorios = relatoriosFinalizados.reduce((total, rel) => {
     if (!Array.isArray(rel.rows)) return total;
     const resultado = rel.rows.reduce((s, row) => s + (Number(row.resultado || 0) || 0), 0);
     const coop = Number(rel.cooperacao || 0);
     return total + resultado + (isNaN(coop) ? 0 : coop);
   }, 0);
+  // Receitas manuais (bônus, %, rebate...) — entram no lucro geral igual no Faturamento
+  const totalReceitas = (receitasList as any[]).reduce((s, r) => s + (Number(r.valor) || 0), 0);
+  const lucroCaixa = lucroRelatorios + totalReceitas;
 
   const hoje = new Date();
   const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -151,7 +155,7 @@ export default function Dashboard() {
               >
                 R$ {lucroCaixa.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-xs text-white/25">Soma de todos os relatórios finalizados</p>
+              <p className="text-xs text-white/25">Relatórios finalizados + receitas (bônus)</p>
 
               {/* Gasto/Despesa + Lucro Real */}
               {gastosDoMes > 0 && (
