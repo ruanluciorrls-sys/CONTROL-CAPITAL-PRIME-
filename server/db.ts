@@ -1,7 +1,7 @@
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, inArray, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, casas, relatorios, contas, userSettings, gastosProxy, Casa, Relatorio, InsertCasa, InsertRelatorio, Conta, InsertConta, UserSettings, GastoProxy, InsertGastoProxy, slots, Slot, InsertSlot, plataformas, PlataformaDb, InsertPlataforma, pushConfig, PushConfig, pushSubscriptions, PushSubscriptionRow, InsertPushSubscription, receitas, Receita, InsertReceita } from "../drizzle/schema";
+import { InsertUser, users, casas, relatorios, contas, userSettings, gastosProxy, Casa, Relatorio, InsertCasa, InsertRelatorio, Conta, InsertConta, UserSettings, GastoProxy, InsertGastoProxy, slots, Slot, InsertSlot, plataformas, PlataformaDb, InsertPlataforma, pushConfig, PushConfig, pushSubscriptions, PushSubscriptionRow, InsertPushSubscription, receitas, Receita, InsertReceita, pixTags, chavesPix, PixTag, ChavePix, InsertPixTag, InsertChavePix } from "../drizzle/schema";
 import bcrypt from "bcryptjs";
 import { ENV } from './_core/env';
 
@@ -498,6 +498,78 @@ export async function hideSlotByName(name: string, provider: string, performance
   } else {
     await db.insert(slots).values({ name, provider, performance, tag: "", hidden: true });
   }
+}
+
+// ── Chaves PIX & Tags ──────────────────────────────────────────────────────
+export async function ensureChavesPixTables(): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS pix_tags (
+      id varchar(64) PRIMARY KEY,
+      "userId" integer NOT NULL,
+      nome text NOT NULL,
+      cor text NOT NULL,
+      "criadoEm" timestamp DEFAULT now() NOT NULL
+    )`);
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS chaves_pix (
+      id varchar(64) PRIMARY KEY,
+      "userId" integer NOT NULL,
+      chave text NOT NULL,
+      tipo text NOT NULL,
+      banco text,
+      "tagId" varchar(64),
+      "criadoEm" timestamp DEFAULT now() NOT NULL
+    )`);
+    console.log("[ChavesPix] Tabelas prontas.");
+  } catch (e) {
+    console.error("[ChavesPix] Falha ao criar tabelas:", e);
+  }
+}
+
+export async function getPixTags(userId: number): Promise<PixTag[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pixTags).where(eq(pixTags.userId, userId)).orderBy(desc(pixTags.criadoEm));
+}
+
+export async function createPixTag(tag: InsertPixTag): Promise<PixTag | null> {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(pixTags).values(tag);
+  return db.select().from(pixTags).where(eq(pixTags.id, tag.id)).limit(1).then(r => r[0] || null);
+}
+
+export async function deletePixTag(userId: number, id: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  // Remove a tag das chaves que a usavam e apaga a tag
+  await db.update(chavesPix).set({ tagId: null }).where(and(eq(chavesPix.userId, userId), eq(chavesPix.tagId, id)));
+  await db.delete(pixTags).where(and(eq(pixTags.userId, userId), eq(pixTags.id, id)));
+}
+
+export async function getChavesPix(userId: number): Promise<ChavePix[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(chavesPix).where(eq(chavesPix.userId, userId)).orderBy(desc(chavesPix.criadoEm));
+}
+
+export async function createChavesPix(list: InsertChavePix[]): Promise<void> {
+  const db = await getDb();
+  if (!db || list.length === 0) return;
+  await db.insert(chavesPix).values(list);
+}
+
+export async function deleteChavesPix(userId: number, ids: string[]): Promise<void> {
+  const db = await getDb();
+  if (!db || ids.length === 0) return;
+  await db.delete(chavesPix).where(and(eq(chavesPix.userId, userId), inArray(chavesPix.id, ids)));
+}
+
+export async function setTagChaves(userId: number, ids: string[], tagId: string | null): Promise<void> {
+  const db = await getDb();
+  if (!db || ids.length === 0) return;
+  await db.update(chavesPix).set({ tagId }).where(and(eq(chavesPix.userId, userId), inArray(chavesPix.id, ids)));
 }
 
 // Queries para plataformas

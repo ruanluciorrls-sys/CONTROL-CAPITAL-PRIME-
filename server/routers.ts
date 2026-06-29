@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, getRelatorioById, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, updateSlot, deleteSlot, hideSlotByName, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma, seedPlataformasIfEmpty } from "./db";
+import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, getRelatorioById, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, updateSlot, deleteSlot, hideSlotByName, getPixTags, createPixTag, deletePixTag, getChavesPix, createChavesPix, deleteChavesPix, setTagChaves, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma, seedPlataformasIfEmpty } from "./db";
 import { savePushSubscription, deletePushSubscription, acumularCicloDia, getPushSoCelular, setPushSoCelular, logPush, getPushLog } from "./db";
 import { getReceitasByUserId, createReceita, updateReceita, deleteReceita } from "./db";
 import { getPushPublicKey, sendPushToUser, fmtBRL, nomeDaMeta, enviarResumoDiaTeste, enviarLancamentosTeste, enviarPlataformasTeste } from "./push";
@@ -547,6 +547,56 @@ export const appRouter = router({
       .input(z.object({ name: z.string(), provider: z.string(), performance: z.string() }))
       .mutation(async ({ input }) => {
         await hideSlotByName(input.name, input.provider, input.performance);
+        return { success: true };
+      }),
+  }),
+
+  // Tags das Chaves PIX (por usuário)
+  pixTags: router({
+    list: protectedProcedure.query(({ ctx }) => getPixTags(ctx.user.id)),
+    create: protectedProcedure
+      .input(z.object({ nome: z.string().min(1), cor: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        return createPixTag({ id: nanoid(), userId: ctx.user.id, nome: input.nome, cor: input.cor });
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        await deletePixTag(ctx.user.id, input.id);
+        return { success: true };
+      }),
+  }),
+
+  // Chaves PIX salvas (por usuário)
+  chavesPix: router({
+    list: protectedProcedure.query(({ ctx }) => getChavesPix(ctx.user.id)),
+    importMany: protectedProcedure
+      .input(z.object({
+        chaves: z.array(z.object({
+          chave: z.string(),
+          tipo: z.string(),
+          banco: z.string().optional(),
+          tagId: z.string().nullish(),
+        })),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const list = input.chaves.map((c) => ({
+          id: nanoid(), userId: ctx.user.id, chave: c.chave, tipo: c.tipo,
+          banco: c.banco || null, tagId: c.tagId || null,
+        }));
+        await createChavesPix(list);
+        return { count: list.length };
+      }),
+    delete: protectedProcedure
+      .input(z.object({ ids: z.array(z.string()) }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteChavesPix(ctx.user.id, input.ids);
+        return { success: true };
+      }),
+    setTag: protectedProcedure
+      .input(z.object({ ids: z.array(z.string()), tagId: z.string().nullable() }))
+      .mutation(async ({ ctx, input }) => {
+        await setTagChaves(ctx.user.id, input.ids, input.tagId);
         return { success: true };
       }),
   }),

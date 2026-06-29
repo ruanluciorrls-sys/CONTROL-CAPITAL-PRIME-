@@ -214,6 +214,30 @@ export const plataformas = pgTable("plataformas", {
 export type PlataformaDb = typeof plataformas.$inferSelect;
 export type InsertPlataforma = typeof plataformas.$inferInsert;
 
+// Tags personalizadas das chaves PIX (por usuário)
+export const pixTags = pgTable("pix_tags", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: integer("userId").notNull(),
+  nome: text("nome").notNull(),
+  cor: text("cor").notNull(),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+});
+export type PixTag = typeof pixTags.$inferSelect;
+export type InsertPixTag = typeof pixTags.$inferInsert;
+
+// Chaves PIX salvas (por usuário)
+export const chavesPix = pgTable("chaves_pix", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: integer("userId").notNull(),
+  chave: text("chave").notNull(),
+  tipo: text("tipo").notNull(),
+  banco: text("banco"),
+  tagId: varchar("tagId", { length: 64 }),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+});
+export type ChavePix = typeof chavesPix.$inferSelect;
+export type InsertChavePix = typeof chavesPix.$inferInsert;
+
 // Config de push (chaves VAPID) — uma linha global
 export const pushConfig = pgTable("push_config", {
   id: integer("id").primaryKey().default(1),
