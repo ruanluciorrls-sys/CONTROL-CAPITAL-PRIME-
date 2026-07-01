@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { Plus, Trash2, Edit2, Check, X, ExternalLink, Copy, TrendingUp, TrendingDown, Undo2 } from "lucide-react";
 import { setEditingActive } from "@/lib/syncLock";
+import AvisoRede from "@/components/AvisoRede";
 
 interface RelatorioRow {
   numero: number;
@@ -28,6 +29,8 @@ interface RelatorioSpreadsheetProps {
   meta?: number;
   /** Jogos da última vez nesta rede — lembrete fixo enquanto faz o relatório */
   jogosUltimaVez?: string;
+  /** Rede da casa (VOY, EK...) — para o aviso compartilhado */
+  rede?: string;
   rows: RelatorioRow[];
   onAddRow: (row: RelatorioRow) => void;
   onDeleteRow: (numero: number) => void;
@@ -42,7 +45,7 @@ const inputStyle = "w-full px-2 py-1.5 rounded-lg text-right text-sm text-white 
 
 export default function RelatorioSpreadsheet({
   casaNome, agente, prazo, login, cooperacao, onCooperacaoChange,
-  linkContaFilha, media = 0, meta = 0, jogosUltimaVez = "", rows, onAddRow, onDeleteRow, onUpdateRow, onRestoreRows,
+  linkContaFilha, media = 0, meta = 0, jogosUltimaVez = "", rede = "", rows, onAddRow, onDeleteRow, onUpdateRow, onRestoreRows,
 }: RelatorioSpreadsheetProps) {
   const [newRow, setNewRow] = useState<RelatorioRow>({ numero: rows.length + 1, deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 });
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -192,6 +195,9 @@ export default function RelatorioSpreadsheet({
           </div>
         </div>
       )}
+
+      {/* Aviso compartilhado da rede (todos os operadores veem/editam) */}
+      {rede && <AvisoRede rede={rede} />}
 
       {/* Header — Info do Relatório */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -238,6 +238,17 @@ export const chavesPix = pgTable("chaves_pix", {
 export type ChavePix = typeof chavesPix.$inferSelect;
 export type InsertChavePix = typeof chavesPix.$inferInsert;
 
+// Avisos/observações COMPARTILHADOS por rede (todos os operadores veem e editam)
+export const redeNotas = pgTable("rede_notas", {
+  rede: varchar("rede", { length: 80 }).primaryKey(),
+  texto: text("texto"),
+  tom: text("tom").default("neutro").notNull(), // 'bom' | 'ruim' | 'neutro'
+  atualizadoPor: text("atualizadoPor"),
+  atualizadoEm: timestamp("atualizadoEm").defaultNow().notNull(),
+});
+export type RedeNota = typeof redeNotas.$inferSelect;
+export type InsertRedeNota = typeof redeNotas.$inferInsert;
+
 // Config de push (chaves VAPID) — uma linha global
 export const pushConfig = pgTable("push_config", {
   id: integer("id").primaryKey().default(1),

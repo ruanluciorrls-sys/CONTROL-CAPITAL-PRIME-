@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Plus, Trash2, Eye, EyeOff, X, Copy, Check, Clock } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import RedesDropdown from "@/components/RedesDropdown";
+import AvisoRede from "@/components/AvisoRede";
 import { calcularPrazo, calcCountdown } from "@/lib/prazo";
 import { PLATAFORMAS_PADRAO } from "@/lib/plataformas";
 
@@ -645,6 +646,7 @@ export default function GerenciarCasas() {
                         <p className="text-[11px] font-semibold text-emerald-200/80">{jg}</p>
                       </div>
                     ) : null; })()}
+                    {editRede.nome && <div className="mt-2"><AvisoRede rede={editRede.nome} /></div>}
                   </div>
 
                   {/* Login | Senha */}
@@ -829,6 +831,9 @@ export default function GerenciarCasas() {
                           <p className="text-[11px] font-semibold text-emerald-200/80">{jg}</p>
                         </div>
                       ) : null; })()}
+
+                      {/* Aviso compartilhado da rede */}
+                      {form.redeNome && <AvisoRede rede={form.redeNome} />}
 
                       {/* 2. Login da Casa | Senha da Casa */}
                       <div className="grid grid-cols-2 gap-2">

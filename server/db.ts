@@ -1,7 +1,7 @@
 import { eq, desc, sql, inArray, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, casas, relatorios, contas, userSettings, gastosProxy, Casa, Relatorio, InsertCasa, InsertRelatorio, Conta, InsertConta, UserSettings, GastoProxy, InsertGastoProxy, slots, Slot, InsertSlot, plataformas, PlataformaDb, InsertPlataforma, pushConfig, PushConfig, pushSubscriptions, PushSubscriptionRow, InsertPushSubscription, receitas, Receita, InsertReceita, pixTags, chavesPix, PixTag, ChavePix, InsertPixTag, InsertChavePix } from "../drizzle/schema";
+import { InsertUser, users, casas, relatorios, contas, userSettings, gastosProxy, Casa, Relatorio, InsertCasa, InsertRelatorio, Conta, InsertConta, UserSettings, GastoProxy, InsertGastoProxy, slots, Slot, InsertSlot, plataformas, PlataformaDb, InsertPlataforma, pushConfig, PushConfig, pushSubscriptions, PushSubscriptionRow, InsertPushSubscription, receitas, Receita, InsertReceita, pixTags, chavesPix, PixTag, ChavePix, InsertPixTag, InsertChavePix, redeNotas, RedeNota } from "../drizzle/schema";
 import bcrypt from "bcryptjs";
 import { ENV } from './_core/env';
 
@@ -524,6 +524,13 @@ export async function ensureChavesPixTables(): Promise<void> {
       "tagId" varchar(64),
       "criadoEm" timestamp DEFAULT now() NOT NULL
     )`);
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS rede_notas (
+      rede varchar(80) PRIMARY KEY,
+      texto text,
+      tom text DEFAULT 'neutro' NOT NULL,
+      "atualizadoPor" text,
+      "atualizadoEm" timestamp DEFAULT now() NOT NULL
+    )`);
     console.log("[ChavesPix] Tabelas prontas.");
   } catch (e) {
     console.error("[ChavesPix] Falha ao criar tabelas:", e);
@@ -573,6 +580,21 @@ export async function setTagChaves(userId: number, ids: string[], tagId: string 
   const db = await getDb();
   if (!db || ids.length === 0) return;
   await db.update(chavesPix).set({ tagId }).where(and(eq(chavesPix.userId, userId), inArray(chavesPix.id, ids)));
+}
+
+// ── Avisos compartilhados por rede ─────────────────────────────────────────
+export async function getRedeNotas(): Promise<RedeNota[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(redeNotas);
+}
+
+export async function upsertRedeNota(rede: string, texto: string, tom: string, autor: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(redeNotas)
+    .values({ rede, texto, tom, atualizadoPor: autor, atualizadoEm: new Date() })
+    .onConflictDoUpdate({ target: redeNotas.rede, set: { texto, tom, atualizadoPor: autor, atualizadoEm: new Date() } });
 }
 
 // Queries para plataformas

@@ -24,6 +24,7 @@ export default function Dashboard() {
   const { data: gastosProxyList = [] } = trpc.gastosProxy.list.useQuery();
   const { data: contasData = [] } = trpc.contas.list.useQuery();
   const { data: receitasList = [] } = trpc.receitas.list.useQuery();
+  const { data: notasRede = [] } = trpc.notasRede.list.useQuery();
 
   // Plataformas GLOBAIS (banco de dados, compartilhadas por todos os usuários)
   const { data: plataformasDb } = trpc.plataformas.list.useQuery();
@@ -361,6 +362,34 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        {/* Avisos das Redes (compartilhados por todos os operadores) */}
+        {(notasRede as any[]).filter((n) => n.texto && n.texto.trim()).length > 0 && (
+          <div className="rounded-2xl p-5 border border-white/8 relative overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(8,14,32,0.95), rgba(12,21,36,0.85))" }}>
+            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#d4a017]/50 to-transparent" />
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-base">📣</span>
+              <h2 className="text-sm font-black text-white">Avisos das Redes</h2>
+              <span className="text-[10px] text-white/30 font-bold uppercase tracking-wider">compartilhados por todos</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {(notasRede as any[]).filter((n) => n.texto && n.texto.trim()).map((n) => {
+                const cor = n.tom === "bom" ? "#4ade80" : n.tom === "ruim" ? "#f87171" : "#94a3b8";
+                const emoji = n.tom === "bom" ? "🟢" : n.tom === "ruim" ? "🔴" : "⚪";
+                return (
+                  <div key={n.rede} className="rounded-xl p-3 border flex items-start gap-2" style={{ borderColor: `${cor}33`, background: `${cor}0f` }}>
+                    <span className="text-sm leading-none mt-0.5">{emoji}</span>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: cor }}>{n.rede}</p>
+                      <p className="text-xs text-white/80 break-words whitespace-pre-wrap">{n.texto}</p>
+                      {n.atualizadoPor && <p className="text-[9px] text-white/25 mt-0.5">por {n.atualizadoPor}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Calendário */}
         <DashboardCalendar plataformas={plataformas} />

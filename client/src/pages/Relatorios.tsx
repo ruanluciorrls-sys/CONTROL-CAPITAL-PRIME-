@@ -887,6 +887,7 @@ export default function Relatorios() {
                   media={state.casas.find((c) => c.id === currentRelatorio.casaId)?.media || 0}
                   meta={state.casas.find((c) => c.id === currentRelatorio.casaId)?.meta || 0}
                   jogosUltimaVez={getJogosUltimaVez(currentRelatorio.casaId, currentRelatorio.id)}
+                  rede={redeDaCasaR(currentRelatorio.casaId)}
                   rows={currentRelatorio.rows}
                   onAddRow={(row) => handleAddRow(selectedRelatorioId, row)}
                   onDeleteRow={(numero) => handleDeleteRow(selectedRelatorioId, numero)}

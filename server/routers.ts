@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, getRelatorioById, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, updateSlot, deleteSlot, hideSlotByName, getPixTags, createPixTag, deletePixTag, getChavesPix, createChavesPix, deleteChavesPix, setTagChaves, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma, seedPlataformasIfEmpty } from "./db";
+import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, getRelatorioById, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, updateSlot, deleteSlot, hideSlotByName, getPixTags, createPixTag, deletePixTag, getChavesPix, createChavesPix, deleteChavesPix, setTagChaves, getRedeNotas, upsertRedeNota, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma, seedPlataformasIfEmpty } from "./db";
 import { savePushSubscription, deletePushSubscription, acumularCicloDia, getPushSoCelular, setPushSoCelular, logPush, getPushLog } from "./db";
 import { getReceitasByUserId, createReceita, updateReceita, deleteReceita } from "./db";
 import { getPushPublicKey, sendPushToUser, fmtBRL, nomeDaMeta, enviarResumoDiaTeste, enviarLancamentosTeste, enviarPlataformasTeste } from "./push";
@@ -597,6 +597,18 @@ export const appRouter = router({
       .input(z.object({ ids: z.array(z.string()), tagId: z.string().nullable() }))
       .mutation(async ({ ctx, input }) => {
         await setTagChaves(ctx.user.id, input.ids, input.tagId);
+        return { success: true };
+      }),
+  }),
+
+  // Avisos compartilhados por rede (todos os operadores veem/editam)
+  notasRede: router({
+    list: protectedProcedure.query(() => getRedeNotas()),
+    upsert: protectedProcedure
+      .input(z.object({ rede: z.string().min(1), texto: z.string(), tom: z.enum(["bom", "ruim", "neutro"]) }))
+      .mutation(async ({ ctx, input }) => {
+        const autor = (ctx.user as any).name || (ctx.user as any).email || "operador";
+        await upsertRedeNota(input.rede.trim().toUpperCase(), input.texto, input.tom, autor);
         return { success: true };
       }),
   }),
