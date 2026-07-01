@@ -474,8 +474,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ),
       }));
       patchRelCache(id, { status: "finalizado" });
-      // Sincroniza em segundo plano
-      updateRelatorioMutation.mutateAsync({ id, status: "finalizado" }).catch((error) => {
+      // Sincroniza em segundo plano — envia a data de finalização pra ela sempre ficar salva no banco
+      updateRelatorioMutation.mutateAsync({ id, status: "finalizado", finalizadoEm: new Date().toISOString() }).catch((error) => {
         console.error("Erro ao finalizar relatório:", error);
         relatoriosQuery.refetch();
       });

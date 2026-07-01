@@ -291,6 +291,9 @@ export async function ensureRelatorioPrazo(): Promise<void> {
     await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS jogos text`);
     await db.execute(sql`ALTER TABLE casas ADD COLUMN IF NOT EXISTS "redeNome" text`);
     await db.execute(sql`ALTER TABLE slots ADD COLUMN IF NOT EXISTS hidden boolean DEFAULT false NOT NULL`);
+    // Backfill: relatórios finalizados que ficaram sem data de finalização recebem a última atualização
+    // (evita que o lucro seja atribuído à data de CRIAÇÃO no Faturamento). Só toca em quem está NULL.
+    await db.execute(sql`UPDATE relatorios SET "finalizadoEm" = "atualizadoEm" WHERE status = 'finalizado' AND "finalizadoEm" IS NULL`);
     console.log("[Relatorios] Colunas extras prontas.");
   } catch (e) {
     console.error("[Relatorios] Falha ao criar colunas:", e);

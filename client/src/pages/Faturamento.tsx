@@ -131,8 +131,8 @@ export default function Faturamento() {
   const getDataFaturamento = (relatorio: typeof relatoriosFinalizados[number]) => {
     return (
       parseLocalDate(relatorio.finalizadoEm) ||
-      parseLocalDate(relatorio.criadoEm) ||
-      parseLocalDate(relatorio.atualizadoEm)
+      parseLocalDate(relatorio.atualizadoEm) || // atualização fica bem próxima de quando foi finalizado
+      parseLocalDate(relatorio.criadoEm)
     );
   };
 
