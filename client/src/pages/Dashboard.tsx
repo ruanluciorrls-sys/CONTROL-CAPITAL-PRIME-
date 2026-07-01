@@ -34,24 +34,36 @@ export default function Dashboard() {
 
   // Dados
   const relatoriosFinalizados = state.relatorios.filter((r) => r.status === "finalizado");
-  const lucroRelatorios = relatoriosFinalizados.reduce((total, rel) => {
-    if (!Array.isArray(rel.rows)) return total;
-    const resultado = rel.rows.reduce((s, row) => s + (Number(row.resultado || 0) || 0), 0);
-    const coop = Number(rel.cooperacao || 0);
-    return total + resultado + (isNaN(coop) ? 0 : coop);
-  }, 0);
-  // Receitas manuais (bônus, %, rebate...) — entram no lucro geral igual no Faturamento
-  const totalReceitas = (receitasList as any[]).reduce((s, r) => s + (Number(r.valor) || 0), 0);
-  const lucroCaixa = lucroRelatorios + totalReceitas;
 
   const hoje = new Date();
   const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+
+  // Data em que o relatório foi finalizado (com fallback) — pra saber se conta neste mês
+  const dataFinalizacao = (rel: any) => new Date(rel.finalizadoEm || rel.atualizadoEm || rel.criadoEm);
+  const ehDesteMes = (d: Date) => !isNaN(d.getTime()) && d >= inicioMes;
+
+  // Lucro APENAS do mês atual (zera quando o mês vira). O histórico completo fica no Faturamento.
+  const lucroRelatorios = relatoriosFinalizados
+    .filter((rel) => ehDesteMes(dataFinalizacao(rel)))
+    .reduce((total, rel) => {
+      if (!Array.isArray(rel.rows)) return total;
+      const resultado = rel.rows.reduce((s, row) => s + (Number(row.resultado || 0) || 0), 0);
+      const coop = Number(rel.cooperacao || 0);
+      return total + resultado + (isNaN(coop) ? 0 : coop);
+    }, 0);
+  // Receitas manuais (bônus, %, rebate...) deste mês
+  const totalReceitas = (receitasList as any[])
+    .filter((r) => ehDesteMes(new Date(String(r.data).length <= 10 ? `${r.data}T12:00:00` : r.data)))
+    .reduce((s, r) => s + (Number(r.valor) || 0), 0);
+  const lucroCaixa = lucroRelatorios + totalReceitas;
+
   const gastosDoMes = (gastosProxyList as any[]).reduce((sum, g) => {
     const d = new Date(g.data + "T12:00:00");
     if (d >= inicioMes) return sum + parseFloat(g.valor?.toString() || "0");
     return sum;
   }, 0);
   const lucroRealMes = lucroCaixa - gastosDoMes;
+  const nomeMes = hoje.toLocaleString("pt-BR", { month: "long" });
 
   const diasSemana = ["DOMINGO","SEGUNDA-FEIRA","TERÇA-FEIRA","QUARTA-FEIRA","QUINTA-FEIRA","SEXTA-FEIRA","SÁBADO"];
   const diaSemanaHoje = diasSemana[hoje.getDay()];
@@ -143,7 +155,7 @@ export default function Dashboard() {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-400/60">Lucro em Caixa</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-400/60">Lucro do Mês · {nomeMes}</p>
               </div>
               <p className="text-5xl md:text-6xl font-black tracking-tighter mb-2"
                 style={{
@@ -156,7 +168,7 @@ export default function Dashboard() {
               >
                 R$ {lucroCaixa.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-xs text-white/25">Relatórios finalizados + receitas (bônus)</p>
+              <p className="text-xs text-white/25">Lucro do mês atual (relatórios + receitas) · histórico no Faturamento</p>
 
               {/* Gasto/Despesa + Lucro Real */}
               {gastosDoMes > 0 && (
