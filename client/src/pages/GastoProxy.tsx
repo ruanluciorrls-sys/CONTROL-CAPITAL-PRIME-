@@ -182,6 +182,10 @@ function ModalCusto({
 export default function GastoProxy() {
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
+  const [filtroMes, setFiltroMes] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
 
   const { data: gastos = [], refetch } = trpc.gastosProxy.list.useQuery();
   const deleteMutation = trpc.gastosProxy.delete.useMutation({
@@ -207,6 +211,19 @@ export default function GastoProxy() {
   const mediaDia = custoMes > 0 ? custoMes / Math.max(hoje.getDate(), 1) : 0;
 
   const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+
+  // ── Filtro de mês do histórico (organizado por mês) ──
+  const gastoKey = (g: any) => {
+    const d = new Date(String(g.data).length <= 10 ? `${g.data}T12:00:00` : g.data);
+    return isNaN(d.getTime()) ? "" : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+  const mesesComGasto = Array.from(new Set((gastos as any[]).map(gastoKey).filter(Boolean))).sort().reverse();
+  const gastosFiltrados = filtroMes === "todos" ? (gastos as any[]) : (gastos as any[]).filter((g) => gastoKey(g) === filtroMes);
+  const totalFiltrado = gastosFiltrados.reduce((s: number, g: any) => s + Number(g.valor), 0);
+  const mesLabel = (key: string) => {
+    const [a, m] = key.split("-");
+    return new Date(parseInt(a), parseInt(m) - 1).toLocaleDateString("pt-BR", { month: "short", year: "numeric" });
+  };
 
   return (
     <div className="space-y-6">
@@ -284,15 +301,31 @@ export default function GastoProxy() {
       <div className="rounded-2xl border overflow-hidden"
         style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)" }}
       >
-        <div className="px-5 py-4 border-b border-white/6 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-white/6 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <div className="w-1 h-4 rounded-full" style={{ background: "#d4a017" }} />
             <h3 className="text-sm font-black text-white/90">Histórico de custos</h3>
           </div>
-          <span className="text-[10px] font-bold text-white/25 uppercase tracking-widest">{(gastos as any[]).length} registro(s) · Total: {fmt(totalGeral)}</span>
+          <span className="text-[10px] font-bold text-white/25 uppercase tracking-widest">{gastosFiltrados.length} registro(s) · Total: {fmt(totalFiltrado)}</span>
         </div>
 
-        {(gastos as any[]).length === 0 ? (
+        {/* Filtro por mês */}
+        <div className="px-5 py-3 border-b border-white/6 flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 mr-1">
+            <Calendar size={13} className="text-[#d4a017]" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-white/35">Mês</span>
+          </div>
+          {[{ key: "todos", label: "Todos" }, ...mesesComGasto.map((k) => ({ key: k, label: mesLabel(k) }))].map((m) => (
+            <button key={m.key} onClick={() => setFiltroMes(m.key)}
+              className="px-3 py-1.5 rounded-lg text-[11px] font-bold capitalize transition-all"
+              style={filtroMes === m.key
+                ? { background: "linear-gradient(135deg, #d4a017, #f6b51b)", color: "#050b18" }
+                : { background: "rgba(255,255,255,0.055)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.1)" }}
+            >{m.label}</button>
+          ))}
+        </div>
+
+        {gastosFiltrados.length === 0 ? (
           <div className="flex flex-col items-center gap-4 py-16">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center border border-white/8"
               style={{ background: "rgba(255,255,255,0.03)" }}
@@ -312,7 +345,7 @@ export default function GastoProxy() {
           </div>
         ) : (
           <div className="divide-y divide-white/5">
-            {[...(gastos as any[])].sort((a, b) => b.data.localeCompare(a.data)).map((g) => {
+            {[...gastosFiltrados].sort((a, b) => b.data.localeCompare(a.data)).map((g) => {
               const { tipo, nota } = decodeTipo(g.descricao);
               const cfg = getTipoConfig(tipo);
               const Icon = cfg.icon;

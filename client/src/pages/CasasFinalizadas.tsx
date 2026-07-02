@@ -19,7 +19,7 @@ import { useConfirm } from "@/hooks/useConfirm";
 export default function CasasFinalizadas() {
   const { state, updateCasa, deletePermanentementeCasa, esvaziarLixeiraCasas } = useApp();
   const { confirm, confirmEl } = useConfirm();
-  const { data: totalGastosProxy = 0 } = trpc.gastosProxy.total.useQuery();
+  const { data: gastosProxyList = [] } = trpc.gastosProxy.list.useQuery();
   const [editingCasa, setEditingCasa] = useState<any>(null);
   const [editData, setEditData] = useState<any>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -103,8 +103,20 @@ export default function CasasFinalizadas() {
     return total + calculateCasaLucros(casa.id);
   }, 0);
 
-  const nomesIniciais = Array.from(new Set(casasFinalizadas.map((casa) => getNomeInicial(casa.nome)))).sort();
+  // Nomes só das casas do mês selecionado (não mostra casas que você não trabalhou naquele mês)
+  const nomesIniciais = Array.from(new Set(casasFiltradas.map((casa) => getNomeInicial(casa.nome)))).sort();
   const mesesDisponiveis = getMesesDisponiveis();
+
+  // Gastos/Despesas do mês selecionado (ou de todos, se filtro = todas)
+  const gastosDoFiltro = (gastosProxyList as any[]).reduce((sum, g) => {
+    const d = new Date(String(g.data).length <= 10 ? `${g.data}T12:00:00` : g.data);
+    if (isNaN(d.getTime())) return sum;
+    if (filtroMes && filtroMes !== "todas") {
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (key !== filtroMes) return sum;
+    }
+    return sum + (parseFloat(g.valor?.toString() || "0") || 0);
+  }, 0);
 
   const handleEditClick = (casa: any) => {
     setEditingCasa(casa);
@@ -195,7 +207,7 @@ export default function CasasFinalizadas() {
 
       {activeTab === "finalizadas" && (
         <>
-          <div className={`grid grid-cols-1 ${totalGastosProxy > 0 ? "md:grid-cols-2" : ""} gap-4`}>
+          <div className={`grid grid-cols-1 ${gastosDoFiltro > 0 ? "md:grid-cols-2" : ""} gap-4`}>
             <div
               className="relative overflow-hidden rounded-3xl border border-emerald-400/20 p-7 shadow-[0_20px_70px_rgba(6,95,70,0.18)]"
               style={{ background: "linear-gradient(135deg, rgba(6,26,28,0.94), rgba(7,33,56,0.9))" }}
@@ -221,7 +233,7 @@ export default function CasasFinalizadas() {
               </div>
             </div>
 
-            {totalGastosProxy > 0 && (
+            {gastosDoFiltro > 0 && (
               <div
                 className="relative overflow-hidden rounded-3xl border border-orange-400/20 p-7 shadow-[0_20px_70px_rgba(251,146,60,0.14)]"
                 style={{ background: "linear-gradient(135deg, rgba(34,18,10,0.94), rgba(47,27,10,0.88))" }}
@@ -231,11 +243,11 @@ export default function CasasFinalizadas() {
                   Lucro Real (desconto gasto/despesas)
                 </p>
                 <p className="font-mono text-4xl font-black tracking-tighter text-orange-300 sm:text-5xl">
-                  R$ {((totalLucrosTodosFiltrados || 0) - totalGastosProxy).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  R$ {((totalLucrosTodosFiltrados || 0) - gastosDoFiltro).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
                 <p className="mt-4 flex items-center gap-2 text-xs text-orange-200/45">
                   <span className="h-1.5 w-1.5 rounded-full bg-orange-300 animate-pulse" />
-                  Gasto/Despesas: - R$ {totalGastosProxy.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  Gasto/Despesas: - R$ {gastosDoFiltro.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
             )}
@@ -249,7 +261,7 @@ export default function CasasFinalizadas() {
             </div>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => setFiltroMes("todas")}
+                onClick={() => { setFiltroMes("todas"); setFiltroNomeInicial(""); }}
                 className="rounded-xl px-4 py-2 text-xs font-bold transition-all"
                 style={filtroMes === "todas" || filtroMes === null ? goldButtonStyle : ghostButtonStyle}
               >
@@ -266,7 +278,7 @@ export default function CasasFinalizadas() {
                   return (
                     <button
                       key={mesKey}
-                      onClick={() => setFiltroMes(mesKey)}
+                      onClick={() => { setFiltroMes(mesKey); setFiltroNomeInicial(""); }}
                       className="rounded-xl px-4 py-2 text-xs font-bold capitalize transition-all"
                       style={isActive ? goldButtonStyle : ghostButtonStyle}
                     >
@@ -289,7 +301,7 @@ export default function CasasFinalizadas() {
                 Todas
               </button>
               {nomesIniciais.map((nomeInicial) => {
-                const casasDoGrupo = casasFinalizadas.filter((casa) => getNomeInicial(casa.nome) === nomeInicial);
+                const casasDoGrupo = casasFiltradas.filter((casa) => getNomeInicial(casa.nome) === nomeInicial);
                 return (
                   <button
                     key={nomeInicial}
