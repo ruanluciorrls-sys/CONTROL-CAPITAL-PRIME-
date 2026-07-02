@@ -20,7 +20,6 @@ export default function Dashboard() {
   const ss = String(agora.getSeconds()).padStart(2, "0");
   const dataRelogio = agora.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
 
-  const { data: totalGastosProxy = 0 } = trpc.gastosProxy.total.useQuery();
   const { data: gastosProxyList = [] } = trpc.gastosProxy.list.useQuery();
   const { data: contasData = [] } = trpc.contas.list.useQuery();
   const { data: receitasList = [] } = trpc.receitas.list.useQuery();
@@ -93,11 +92,11 @@ export default function Dashboard() {
     },
     {
       title: "Casas Finalizadas",
-      value: state.casas.filter((c) => c.status === "finalizada").length,
+      value: state.casas.filter((c) => c.status === "finalizada" && c.dataFim && ehDesteMes(new Date(String(c.dataFim).length <= 10 ? `${c.dataFim}T12:00:00` : c.dataFim))).length,
       icon: TrendingUp,
       color: "#4ade80",
       tab: "gerenciar-casas",
-      desc: "histórico",
+      desc: "neste mês",
     },
     {
       title: "Relatórios Criados",
@@ -117,11 +116,11 @@ export default function Dashboard() {
     },
     {
       title: "Gastos / Despesas",
-      value: `R$ ${Number(totalGastosProxy).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      value: `R$ ${Number(gastosDoMes).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       icon: Zap,
       color: "#f59e0b",
       tab: "gasto-proxy",
-      desc: "total registrado",
+      desc: "neste mês",
     },
   ];
 

@@ -105,9 +105,17 @@ export default function Faturamento() {
     operacoes: 0,
   });
   const [showAddMes, setShowAddMes] = useState(false);
-  const [financeFilterQuick, setFinanceFilterQuick] = useState<"hoje" | "ontem" | "7dias" | "30dias" | "todos" | "custom">("todos");
-  const [financeStartDate, setFinanceStartDate] = useState("");
-  const [financeEndDate, setFinanceEndDate] = useState("");
+  // Abre no MÊS ATUAL por padrão (separa tudo por mês). "Todos" mostra o histórico completo.
+  const [financeFilterQuick, setFinanceFilterQuick] = useState<"hoje" | "ontem" | "7dias" | "30dias" | "todos" | "custom">("custom");
+  const [financeStartDate, setFinanceStartDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  });
+  const [financeEndDate, setFinanceEndDate] = useState(() => {
+    const last = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+    return `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}-${String(last.getDate()).padStart(2, "0")}`;
+  });
+  const [financeMonthSel, setFinanceMonthSel] = useState<string>(getMesAtual()); // mês escolhido no seletor ("" = personalizado/todos)
   const [financeOperator, setFinanceOperator] = useState("todos");
   const [financeNetwork, setFinanceNetwork] = useState("todos");
   const [financeResultType, setFinanceResultType] = useState<"todos" | "lucro" | "prejuizo">("todos");
@@ -140,6 +148,17 @@ export default function Faturamento() {
     const data = getDataFaturamento(relatorio);
     return !!data && data >= inicio && data <= fimHoje;
   };
+
+  // Meses com movimento (para o seletor de mês)
+  const mesesFinance = (() => {
+    const set = new Set<string>();
+    const add = (d: Date | null) => { if (d && !isNaN(d.getTime())) set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`); };
+    relatoriosFinalizados.forEach((r) => add(getDataFaturamento(r)));
+    (receitasList as any[]).forEach((r) => add(parseLocalDate(r.data)));
+    (gastosProxyList as any[]).forEach((g) => add(parseLocalDate(g.data)));
+    set.add(getMesAtual());
+    return Array.from(set).sort().reverse();
+  })();
 
   const relHoje = relatoriosFinalizados.filter((r) => isRelatorioNoPeriodo(r, inicioHoje));
   const rel7Dias = relatoriosFinalizados.filter((r) => isRelatorioNoPeriodo(r, inicio7Dias));
@@ -257,6 +276,7 @@ export default function Faturamento() {
 
   const setQuickFinanceFilter = (quick: typeof financeFilterQuick) => {
     setFinanceFilterQuick(quick);
+    setFinanceMonthSel(""); // saiu do modo "mês selecionado"
     if (quick === "custom") return;
 
     const today = startOfDay(new Date());
@@ -273,6 +293,16 @@ export default function Faturamento() {
     const [start, end] = presets[quick];
     setFinanceStartDate(start instanceof Date ? formatDateInput(start) : "");
     setFinanceEndDate(end instanceof Date ? formatDateInput(end) : "");
+  };
+
+  // Seletor de MÊS: escolhe um mês inteiro (ou "" = Todos)
+  const selecionarMesFinance = (key: string) => {
+    setFinanceMonthSel(key);
+    if (!key) { setFinanceFilterQuick("todos"); setFinanceStartDate(""); setFinanceEndDate(""); return; }
+    const [a, m] = key.split("-").map(Number);
+    setFinanceFilterQuick("custom");
+    setFinanceStartDate(formatDateInput(new Date(a, m - 1, 1)));
+    setFinanceEndDate(formatDateInput(new Date(a, m, 0)));
   };
 
   const financeStart = financeStartDate ? startOfDay(parseLocalDate(financeStartDate) || new Date(0)) : null;
@@ -845,9 +875,12 @@ export default function Faturamento() {
               resultType={financeResultType}
               operadores={operadoresDisponiveis}
               redes={redesDisponiveis}
+              meses={mesesFinance}
+              mesSelecionado={financeMonthSel}
+              onMonthChange={selecionarMesFinance}
               onQuickChange={setQuickFinanceFilter}
-              onStartDateChange={(value) => { setFinanceStartDate(value); setFinanceFilterQuick("custom"); }}
-              onEndDateChange={(value) => { setFinanceEndDate(value); setFinanceFilterQuick("custom"); }}
+              onStartDateChange={(value) => { setFinanceStartDate(value); setFinanceFilterQuick("custom"); setFinanceMonthSel(""); }}
+              onEndDateChange={(value) => { setFinanceEndDate(value); setFinanceFilterQuick("custom"); setFinanceMonthSel(""); }}
               onOperatorChange={setFinanceOperator}
               onNetworkChange={setFinanceNetwork}
               onResultTypeChange={setFinanceResultType}
@@ -1065,9 +1098,12 @@ export default function Faturamento() {
               resultType={financeResultType}
               operadores={operadoresDisponiveis}
               redes={redesDisponiveis}
+              meses={mesesFinance}
+              mesSelecionado={financeMonthSel}
+              onMonthChange={selecionarMesFinance}
               onQuickChange={setQuickFinanceFilter}
-              onStartDateChange={(value) => { setFinanceStartDate(value); setFinanceFilterQuick("custom"); }}
-              onEndDateChange={(value) => { setFinanceEndDate(value); setFinanceFilterQuick("custom"); }}
+              onStartDateChange={(value) => { setFinanceStartDate(value); setFinanceFilterQuick("custom"); setFinanceMonthSel(""); }}
+              onEndDateChange={(value) => { setFinanceEndDate(value); setFinanceFilterQuick("custom"); setFinanceMonthSel(""); }}
               onOperatorChange={setFinanceOperator}
               onNetworkChange={setFinanceNetwork}
               onResultTypeChange={setFinanceResultType}
@@ -1124,7 +1160,12 @@ export default function Faturamento() {
             {/* Lista de receitas manuais do período */}
             {receitasNoPeriodo.length > 0 && (
               <div className="rounded-2xl border border-[#d4a017]/15 p-4" style={{ background: "rgba(212,160,23,0.04)" }}>
-                <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#d4a017]/70">Receitas manuais</p>
+                <div className="mb-2 flex items-center justify-between gap-2 border-b border-[#d4a017]/15 pb-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#d4a017]/70">
+                    Receitas manuais {financeMonthSel ? `· ${getMesLabel(financeMonthSel)}` : "· período"}
+                  </p>
+                  <span className="font-mono text-xs font-black text-emerald-300">total +{formatCurrency(totalReceitasPeriodo)}</span>
+                </div>
                 <div className="space-y-1.5">
                   {receitasNoPeriodo.map((r: any) => (
                     <div key={r.id} className="flex items-center justify-between gap-3 text-sm">
@@ -1516,6 +1557,9 @@ function FinanceFilters({
   resultType,
   operadores,
   redes,
+  meses,
+  mesSelecionado,
+  onMonthChange,
   onQuickChange,
   onStartDateChange,
   onEndDateChange,
@@ -1531,6 +1575,9 @@ function FinanceFilters({
   resultType: "todos" | "lucro" | "prejuizo";
   operadores: string[];
   redes: string[];
+  meses: string[];
+  mesSelecionado: string;
+  onMonthChange: (value: string) => void;
   onQuickChange: (value: "hoje" | "ontem" | "7dias" | "30dias" | "todos" | "custom") => void;
   onStartDateChange: (value: string) => void;
   onEndDateChange: (value: string) => void;
@@ -1568,6 +1615,17 @@ function FinanceFilters({
             {item.label}
           </button>
         ))}
+        {/* Seletor de MÊS (destaque) */}
+        <select
+          value={mesSelecionado}
+          onChange={(e) => onMonthChange(e.target.value)}
+          className={`${inputClass} min-w-[150px] font-black`}
+          style={mesSelecionado ? { borderColor: "rgba(212,160,23,0.6)", color: "#f3d078" } : {}}
+        >
+          <option value="">📅 Escolher mês…</option>
+          {meses.map((k) => <option key={k} value={k}>{getMesLabel(k)}</option>)}
+        </select>
+
         <input type="date" value={startDate} onChange={(e) => onStartDateChange(e.target.value)} className={inputClass} />
         <input type="date" value={endDate} onChange={(e) => onEndDateChange(e.target.value)} className={inputClass} />
 
