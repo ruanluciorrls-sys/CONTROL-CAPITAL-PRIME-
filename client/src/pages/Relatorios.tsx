@@ -425,6 +425,7 @@ export default function Relatorios() {
   const { confirm, confirmEl } = useConfirm();
   const [finalizarDialogId, setFinalizarDialogId] = useState<string | null>(null);
   const [jogosTexto, setJogosTexto] = useState("");
+  const [bauSacado, setBauSacado] = useState(false); // confirmação de saque do baú antes de finalizar
   const [etiquetaDialogId, setEtiquetaDialogId] = useState<string | null>(null);
   const [etiquetaTexto, setEtiquetaTexto] = useState("");
   const [novaTag, setNovaTag] = useState("");
@@ -901,6 +902,7 @@ export default function Relatorios() {
                     if (selectedRelatorioId) {
                       const rel = relatoriosAtivos.find((r) => r.id === selectedRelatorioId);
                       setJogosTexto(rel?.jogos || "");
+                      setBauSacado(false);
                       setFinalizarDialogId(selectedRelatorioId);
                     }
                   }}
@@ -1123,14 +1125,43 @@ export default function Relatorios() {
                   <p className="text-[10px] text-white/30 mt-1">Fica salvo no relatório pra você consultar depois e ver os melhores jogos.</p>
                 </div>
 
+                {/* Lembrete: já sacou o baú? (trava o finalizar até confirmar) */}
+                <button
+                  type="button"
+                  onClick={() => setBauSacado((v) => !v)}
+                  className="w-full flex items-center gap-3 rounded-xl p-3 border transition-all text-left"
+                  style={bauSacado
+                    ? { background: "rgba(74,222,128,0.10)", borderColor: "rgba(74,222,128,0.4)" }
+                    : { background: "rgba(248,113,113,0.08)", borderColor: "rgba(248,113,113,0.35)" }}
+                >
+                  <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border font-black text-sm"
+                    style={bauSacado
+                      ? { background: "rgba(74,222,128,0.2)", borderColor: "rgba(74,222,128,0.5)", color: "#4ade80" }
+                      : { background: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.3)" }}
+                  >
+                    {bauSacado ? "✓" : "🎁"}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-black" style={{ color: bauSacado ? "#4ade80" : "#f87171" }}>
+                      {bauSacado ? "Baú sacado! ✅" : "Já sacou o baú?"}
+                    </p>
+                    <p className="text-[11px] text-white/45">
+                      {bauSacado ? "Pode finalizar." : "Toque aqui pra confirmar que já sacou o baú antes de finalizar."}
+                    </p>
+                  </div>
+                </button>
+
                 <div className="flex flex-col gap-2">
-                  <button onClick={() => finalizar(true)}
-                    className="w-full py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.01]"
+                  <button onClick={() => finalizar(true)} disabled={!bauSacado}
+                    className="w-full py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                     style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
                   >Sim — finalizar relatório e meta</button>
-                  <button onClick={() => finalizar(false)}
-                    className="w-full py-2.5 rounded-xl font-bold text-sm text-white/80 border border-white/15 hover:bg-white/5 transition-colors"
+                  <button onClick={() => finalizar(false)} disabled={!bauSacado}
+                    className="w-full py-2.5 rounded-xl font-bold text-sm text-white/80 border border-white/15 hover:bg-white/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >Não — só o relatório</button>
+                  {!bauSacado && (
+                    <p className="text-center text-[10px] text-red-400/70 font-semibold">Confirme o baú acima pra liberar o finalizar 🎁</p>
+                  )}
                   <button onClick={() => setFinalizarDialogId(null)}
                     className="w-full py-2 rounded-xl text-xs font-medium text-white/40 hover:text-white/60 transition-colors"
                   >Cancelar</button>
