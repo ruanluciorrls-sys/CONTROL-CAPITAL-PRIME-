@@ -64,9 +64,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     refetchOnWindowFocus: false,
   });
 
-  // Poll platforms from DB every 5 seconds to sync calendar for all users in real-time
+  // Sincroniza o calendário entre usuários (30s é suficiente e alivia MUITO o banco)
   const plataformasQuery = trpc.plataformas.list.useQuery(undefined, {
-    refetchInterval: 5000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: false,
   });
 
@@ -242,7 +242,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addCasa = async (casa: Omit<CasaData, "id" | "criadoEm">) => {
     try {
-      await createCasaMutation.mutateAsync({
+      const result = await createCasaMutation.mutateAsync({
         nome: casa.nome,
         login: casa.login,
         senha: casa.senha,
@@ -253,7 +253,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         meta: casa.meta?.toString(),
         prazo: casa.prazo,
       });
-      await casasQuery.refetch();
+      // Anexa a casa nova ao cache (sem refetch da lista toda = bem mais rápido)
+      if (result && (result as any).id) {
+        utils.casas.list.setData(undefined, (old: any) => {
+          const lista = old || [];
+          return lista.some((c: any) => c.id === (result as any).id) ? lista : [...lista, result];
+        });
+      } else {
+        await casasQuery.refetch();
+      }
     } catch (error) {
       console.error("Erro ao criar casa:", error);
     }

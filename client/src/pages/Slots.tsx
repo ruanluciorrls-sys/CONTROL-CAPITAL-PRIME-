@@ -26,9 +26,10 @@ export default function Slots() {
   const [selectedProvider, setSelectedProvider] = useState("TODOS");
   const [selectedPerformance, setSelectedPerformance] = useState("TODOS");
   
-  // Load custom slots from the database (refetching every 5 seconds to sync all users in real-time)
+  // Sincroniza os slots entre usuários (20s é suficiente e alivia o banco)
   const slotsQuery = trpc.slots.list.useQuery(undefined, {
-    refetchInterval: 5000,
+    refetchInterval: 20000,
+    refetchOnWindowFocus: false,
   });
 
   // Combina catálogo fixo (slots_data.json) com slots do banco.
