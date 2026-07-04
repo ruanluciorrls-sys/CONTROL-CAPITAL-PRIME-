@@ -16,6 +16,7 @@ interface ContaFormData {
   senha: string;
   valor: string;
   casa: string;
+  maquina: string;
   status: "sacado" | "sacando" | "bloqueado";
 }
 
@@ -134,6 +135,7 @@ export default function Contas() {
         senha: "",
         valor: "",
         casa: "",
+        maquina: "",
         status: "sacando",
       },
       isNew: true,
@@ -186,6 +188,7 @@ export default function Contas() {
         senha: form.data.senha || undefined,
         valor: form.data.valor ? form.data.valor : undefined,
         casa: form.data.casa || undefined,
+        maquina: form.data.maquina || undefined,
         status: form.data.status as "sacado" | "sacando" | "bloqueado",
       });
         toast.success("Conta criada com sucesso!");
@@ -196,6 +199,7 @@ export default function Contas() {
           senha: form.data.senha || undefined,
           valor: form.data.valor ? form.data.valor : undefined,
           casa: form.data.casa || undefined,
+          maquina: form.data.maquina || undefined,
           status: form.data.status as "sacado" | "sacando" | "bloqueado",
         });
         toast.success("Conta atualizada com sucesso!");
@@ -431,12 +435,16 @@ export default function Contas() {
                   {/* Usuário */}
                   <div>
                     <label className="block text-sm font-medium text-foreground dark:text-white mb-1">
-                      Usuário *
+                      Usuário da casa *
                     </label>
                     <input
                       type="text"
-                      placeholder="Digite o usuário"
+                      placeholder="Ex: usuário da conta"
                       value={form.data.usuario}
+                      name={`conta-user-${form.id}`}
+                      autoComplete="off"
+                      data-lpignore="true"
+                      data-form-type="other"
                       onChange={(e) =>
                         updateFormData(form.id, "usuario", e.target.value)
                       }
@@ -463,6 +471,10 @@ export default function Contas() {
                         type={showPassword[form.id] ? "text" : "password"}
                         placeholder="Digite a senha (opcional)"
                         value={form.data.senha}
+                        name={`conta-pass-${form.id}`}
+                        autoComplete="new-password"
+                        data-lpignore="true"
+                        data-form-type="other"
                         onChange={(e) =>
                           updateFormData(form.id, "senha", e.target.value)
                         }
@@ -530,6 +542,22 @@ export default function Contas() {
                         updateFormData(form.id, "casa", e.target.value)
                       }
                       className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#d4a017] bg-transparent border-white/15 text-white min-h-[44px]"
+                    />
+                  </div>
+
+                  {/* Máquina / PC (onde a conta está) */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground dark:text-white mb-1">
+                      💻 Máquina / PC <span className="text-white/30 text-xs">(onde a conta está)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: PC 1, PC 2, Notebook..."
+                      value={form.data.maquina}
+                      onChange={(e) =>
+                        updateFormData(form.id, "maquina", e.target.value)
+                      }
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#60a5fa] bg-transparent border-white/15 text-white min-h-[44px]"
                     />
                   </div>
 
@@ -684,7 +712,7 @@ export default function Contas() {
                 {contasVisiveis.map((conta) => (
                   <div
                     key={conta.id}
-                    className="rounded-2xl p-4 border space-y-3 hover:border-white/15 transition-all duration-300"
+                    className="rounded-2xl p-4 border space-y-3 hover:-translate-y-0.5 hover:border-white/15 transition-all duration-300"
                     style={{
                       background: selectedIds.has(conta.id)
                         ? "rgba(212,160,23,0.06)"
@@ -692,6 +720,7 @@ export default function Contas() {
                       borderColor: selectedIds.has(conta.id)
                         ? "rgba(212,160,23,0.3)"
                         : "rgba(255,255,255,0.08)",
+                      borderLeft: `3px solid ${conta.status === "sacado" ? "#4ade80" : conta.status === "bloqueado" ? "#f87171" : "#60a5fa"}`,
                     }}
                   >
                     {/* Checkbox */}
@@ -703,23 +732,26 @@ export default function Contas() {
                         className="w-5 h-5 rounded cursor-pointer accent-primary mt-1"
                         aria-label={`Selecionar ${conta.usuario}`}
                       />
-                      <div className="flex-1 ml-3">
-                        {conta.casa && (
-                          <p className="text-xs font-semibold text-[#d4a017] uppercase tracking-wide mb-1">
-                            {conta.casa}
-                          </p>
-                        )}
-                        <h3 className="font-bold text-foreground dark:text-white truncate">
+                      <div className="flex-1 ml-3 min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                          {conta.casa && (
+                            <span className="text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-md"
+                              style={{ background: "rgba(212,160,23,0.15)", color: "#f3d078", border: "1px solid rgba(212,160,23,0.3)" }}
+                            >{conta.casa}</span>
+                          )}
+                          {conta.maquina && (
+                            <span className="text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-md"
+                              style={{ background: "rgba(96,165,250,0.15)", color: "#93c5fd", border: "1px solid rgba(96,165,250,0.3)" }}
+                            >💻 {conta.maquina}</span>
+                          )}
+                        </div>
+                        <h3 className="font-black text-white truncate">
                           {conta.usuario}
                         </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {conta.senha ? "Senha salva" : "Sem senha"}
+                        <p className="text-[11px] text-white/35 mt-0.5">
+                          {conta.senha ? "🔒 Senha salva" : "sem senha"}
+                          {conta.criadoEm && ` · ${new Date(conta.criadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}`}
                         </p>
-                        {conta.criadoEm && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Criada: {new Date(conta.criadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                          </p>
-                        )}
                       </div>
                       <StatusBadge status={conta.status} />
                     </div>
@@ -743,9 +775,9 @@ export default function Contas() {
                     </div>
 
                     {conta.valor && (
-                      <div className="rounded-lg p-2 border border-white/8">
-                        <p className="text-sm text-muted-foreground">Valor</p>
-                        <p className="font-bold text-foreground dark:text-white">
+                      <div className="rounded-lg p-2.5 border" style={{ background: "rgba(74,222,128,0.06)", borderColor: "rgba(74,222,128,0.2)" }}>
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-400/60">Valor a sacar</p>
+                        <p className="font-mono font-black text-emerald-300">
                           R$ {parseFloat(conta.valor).toFixed(2)}
                         </p>
                       </div>
@@ -762,6 +794,7 @@ export default function Contas() {
                               senha: conta.senha || "",
                               valor: conta.valor || "",
                               casa: conta.casa || "",
+                              maquina: conta.maquina || "",
                               status: conta.status,
                             },
                             isNew: false,
@@ -862,9 +895,9 @@ export default function Contas() {
                     </div>
 
                     {conta.valor && (
-                      <div className="rounded-lg p-2 border border-white/8">
-                        <p className="text-sm text-muted-foreground">Valor</p>
-                        <p className="font-bold text-foreground dark:text-white">
+                      <div className="rounded-lg p-2.5 border" style={{ background: "rgba(74,222,128,0.06)", borderColor: "rgba(74,222,128,0.2)" }}>
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-400/60">Valor a sacar</p>
+                        <p className="font-mono font-black text-emerald-300">
                           R$ {parseFloat(conta.valor).toFixed(2)}
                         </p>
                       </div>

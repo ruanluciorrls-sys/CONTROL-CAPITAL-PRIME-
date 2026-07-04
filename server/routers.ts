@@ -329,6 +329,7 @@ export const appRouter = router({
         senha: z.string().optional(),
         valor: z.string().optional(),
         casa: z.string().optional(),
+        maquina: z.string().optional(),
         status: z.enum(["sacado", "sacando", "bloqueado"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -339,8 +340,9 @@ export const appRouter = router({
           senha: input.senha || undefined,
           valor: input.valor || undefined,
           casa: input.casa || undefined,
+          maquina: input.maquina || undefined,
           status: input.status || "sacando",
-        });
+        } as any);
         return conta || { success: false };
       }),
     update: protectedProcedure
@@ -350,6 +352,7 @@ export const appRouter = router({
         senha: z.string().optional(),
         valor: z.string().optional(),
         casa: z.string().optional(),
+        maquina: z.string().optional(),
         status: z.enum(["sacado", "sacando", "bloqueado"]).optional(),
       }))
       .mutation(async ({ input }) => {
@@ -358,6 +361,7 @@ export const appRouter = router({
         if (input.senha !== undefined) updateData.senha = input.senha;
         if (input.valor !== undefined) updateData.valor = input.valor;
         if (input.casa !== undefined) updateData.casa = input.casa;
+        if (input.maquina !== undefined) updateData.maquina = input.maquina;
         if (input.status !== undefined) updateData.status = input.status;
         await updateConta(input.id, updateData);
         return { success: true };

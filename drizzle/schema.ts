@@ -105,6 +105,7 @@ export const contas = pgTable("contas", {
   senha: text("senha"),
   valor: decimal("valor", { precision: 10, scale: 2 }),
   casa: text("casa"),
+  maquina: text("maquina"), // onde a conta está (PC 1, PC 2...) — ALTER automático
   status: contaStatusEnum("status").default("sacando").notNull(),
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
   atualizadoEm: timestamp("atualizadoEm").defaultNow().notNull(),
