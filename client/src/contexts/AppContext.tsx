@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef } from "react";
 import { AppState, CasaData, RelatorioData } from "@/lib/types";
 import { trpc } from "@/lib/trpc";
+import { celebrar } from "@/lib/celebrar";
 
 interface AppContextType {
   state: AppState;
@@ -469,6 +470,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const finalizarRelatorio = async (id: string) => {
     try {
+      // 🎉 Comemora se o relatório deu lucro
+      try {
+        const rel = state.relatorios.find((r) => r.id === id);
+        if (rel) {
+          const lucro = (rel.rows || []).reduce((s, row) => s + (Number(row.resultado) || 0), 0) + (Number(rel.cooperacao) || 0);
+          if (lucro > 0) celebrar({ valor: lucro });
+        }
+      } catch {}
       try {
         const finalizadosEm = JSON.parse(localStorage.getItem(RELATORIOS_FINALIZADOS_EM_KEY) || "{}");
         finalizadosEm[id] = new Date().toISOString();

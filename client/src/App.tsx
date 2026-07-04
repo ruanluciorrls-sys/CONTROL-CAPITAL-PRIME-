@@ -23,6 +23,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { setNavigateFn } from "@/lib/navigate";
 import NotificationCenter from "@/components/NotificationCenter";
+import Celebracao from "@/components/Celebracao";
 import InstallButton from "@/components/InstallButton";
 import { usePageTransition } from "@/hooks/usePageTransition";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -154,6 +155,7 @@ function AppContent() {
       }}
     >
       <div className="fixed inset-0 bg-black/40 pointer-events-none z-0" />
+      <Celebracao />
 
       {/* ── MOBILE HEADER (ONLY VISIBLE ON MOBILE SCREENS) ── */}
       <div className="md:hidden w-full sticky top-0 z-20">

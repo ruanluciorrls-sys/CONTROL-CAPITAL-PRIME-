@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
+import { celebrar } from "@/lib/celebrar";
 import {
   Play,
   Filter,
@@ -183,6 +184,7 @@ export default function Faturamento() {
       atualizarReceita.mutate({ id: editandoReceitaId, valor: valor.toString(), descricao: novaReceita.descricao || undefined, data: novaReceita.data });
     } else {
       criarReceita.mutate({ valor: valor.toString(), descricao: novaReceita.descricao || undefined, data: novaReceita.data });
+      celebrar({ valor, mensagem: "Receita adicionada! 💰" }); // 🎉 comemora nova receita
     }
     setNovaReceita({ valor: "", descricao: "", data: new Date().toISOString().slice(0, 10) });
     setEditandoReceitaId(null);
