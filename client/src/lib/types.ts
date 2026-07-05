@@ -12,6 +12,8 @@ export interface CasaData {
   status: "ativa" | "finalizada" | "lixeira";
   criadoEm: string;
   dataFim?: string;
+  reembolso?: string | null; // null | 'pendente' | 'concluido'
+  reembolsadoEm?: string | null;
 }
 
 export interface RelatorioRow {
@@ -40,6 +42,8 @@ export interface RelatorioData {
   finalizadoEm?: string;
   etiqueta?: string;
   jogos?: string;
+  reembolso?: string | null; // null | 'pendente' | 'concluido'
+  reembolsadoEm?: string | null;
 }
 
 export interface AppState {

@@ -168,9 +168,12 @@ export const appRouter = router({
         prazo: z.string().optional(),
         status: z.enum(["ativa", "finalizada", "lixeira"]).optional(),
         dataFim: z.string().optional(),
+        reembolso: z.string().nullish(),
+        reembolsadoEm: z.string().nullish(),
       }))
       .mutation(async ({ input }) => {
         const updateData: any = { ...input };
+        if (input.reembolsadoEm !== undefined) updateData.reembolsadoEm = input.reembolsadoEm ? new Date(input.reembolsadoEm) : null;
         await updateCasa(input.id, updateData);
         return { success: true };
       }),
@@ -230,6 +233,8 @@ export const appRouter = router({
         rows: z.array(z.record(z.string(), z.any())).optional(),
         cooperacao: z.string().optional(),
         status: z.enum(["ativo", "finalizado", "lixeira"]).optional(),
+        reembolso: z.string().nullish(),
+        reembolsadoEm: z.string().nullish(),
       }))
       .mutation(async ({ ctx, input }) => {
         const antes = await getRelatorioById(input.id);
@@ -242,6 +247,8 @@ export const appRouter = router({
         if (input.rows !== undefined) updateData.rows = input.rows;
         if (input.cooperacao !== undefined) updateData.cooperacao = input.cooperacao;
         if (input.status !== undefined) updateData.status = input.status;
+        if (input.reembolso !== undefined) (updateData as any).reembolso = input.reembolso || null;
+        if (input.reembolsadoEm !== undefined) (updateData as any).reembolsadoEm = input.reembolsadoEm ? new Date(input.reembolsadoEm) : null;
         // finalizadoEm: registra ao finalizar; limpa ao reutilizar; ou define o da migração
         if (input.status === "finalizado" && antes?.status !== "finalizado") {
           (updateData as any).finalizadoEm = new Date();

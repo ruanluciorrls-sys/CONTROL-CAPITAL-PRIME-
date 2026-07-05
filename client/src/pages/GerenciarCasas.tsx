@@ -12,7 +12,7 @@ import { PLATAFORMAS_PADRAO } from "@/lib/plataformas";
 
 export default function GerenciarCasas() {
   const { state, addCasa, updateCasa, deleteCasa, finalizarCasa, restaurarCasa, esvaziarLixeiraCasas, deletePermanentementeCasa } = useApp();
-  const [activeTab, setActiveTab] = useState<"ativa" | "lixeira">("ativa");
+  const [activeTab, setActiveTab] = useState<"ativa" | "lixeira" | "reembolso" | "reembolso-hist">("ativa");
   const [showModal, setShowModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
@@ -64,8 +64,10 @@ export default function GerenciarCasas() {
   // Rede selecionada no formulário de EDIÇÃO (separado do formData pra não mexer no resto)
   const [editRede, setEditRede] = useState<{ nome: string; dia: string; diasPrazo: number }>({ nome: "", dia: "", diasPrazo: 0 });
 
-  const casasAtivas = state.casas.filter((c) => c.status === "ativa");
+  const casasAtivas = state.casas.filter((c) => c.status === "ativa" && !c.reembolso);
   const casasLixeira = state.casas.filter((c) => c.status === "lixeira");
+  const casasReembolso = state.casas.filter((c) => c.status === "ativa" && c.reembolso === "pendente");
+  const casasReembolsoHist = state.casas.filter((c) => c.reembolso === "concluido");
 
   // Plataformas GLOBAIS (calendário) — para o seletor de Rede
   const { data: plataformasDb } = trpc.plataformas.list.useQuery();
@@ -305,6 +307,8 @@ export default function GerenciarCasas() {
       >
         {[
           { id: "ativa", label: `Casas Ativas (${casasAtivas.length})` },
+          { id: "reembolso", label: `💸 Reembolso (${casasReembolso.length})` },
+          { id: "reembolso-hist", label: `Hist. Reembolso (${casasReembolsoHist.length})` },
           { id: "lixeira", label: `Lixeira (${casasLixeira.length})` },
         ].map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
@@ -544,6 +548,14 @@ export default function GerenciarCasas() {
                     Editar
                   </button>
                   <button
+                    onClick={() => { updateCasa(casa.id, { reembolso: "pendente" }); toast.success("Movido pra Reembolso 💸"); }}
+                    title="Mover para Reembolso"
+                    className="px-3 py-2.5 rounded-xl text-xs font-bold border transition-all hover:scale-[1.02]"
+                    style={{ background: "rgba(251,146,60,0.12)", color: "#fb923c", borderColor: "rgba(251,146,60,0.35)" }}
+                  >
+                    💸
+                  </button>
+                  <button
                     onClick={() => setConfirmDialog({ isOpen: true, type: "finalize", casaId: casa.id })}
                     className="flex-1 px-3 py-2.5 rounded-xl text-xs font-bold text-[#050b18] hover:scale-[1.02] transition-all"
                     style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)", boxShadow: "0 4px 14px rgba(34,197,94,0.3)" }}
@@ -561,6 +573,66 @@ export default function GerenciarCasas() {
             </div>
           )}
         </>
+      )}
+
+      {activeTab === "reembolso" && (
+        <div className="space-y-4">
+          <div className="rounded-2xl p-4 border border-orange-400/20" style={{ background: "rgba(251,146,60,0.06)" }}>
+            <p className="text-[10px] font-black uppercase tracking-widest text-orange-300/60">Reembolsos pendentes</p>
+            <p className="text-2xl font-black text-orange-300">{casasReembolso.length} casa(s)</p>
+          </div>
+          {casasReembolso.length === 0 ? (
+            <div className="bg-card border border-border/50 rounded-2xl p-8 text-center">
+              <p className="text-muted-foreground">Nenhuma casa em reembolso. Mova uma casa pelo botão 💸.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {casasReembolso.map((casa) => (
+                <div key={casa.id} className="rounded-2xl p-4 border border-orange-400/25 flex flex-col" style={{ background: "rgba(251,146,60,0.05)" }}>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-orange-300/70">💸 Reembolso pendente</p>
+                  <h4 className="text-lg font-black text-white mt-1 truncate">{casa.nome}</h4>
+                  {casa.login && <p className="text-xs text-white/40 mt-0.5 truncate">Login: {casa.login}</p>}
+                  {casa.meta > 0 && <p className="text-xs text-white/40 mt-0.5">Meta: {casa.meta}</p>}
+                  <div className="flex gap-2 mt-4">
+                    <button onClick={() => { updateCasa(casa.id, { reembolso: null }); toast.success("Voltou pra ativo ↩️"); }}
+                      className="flex-1 px-3 py-2 rounded-xl text-xs font-bold border border-white/12 text-white/70 hover:bg-white/5 transition-colors"
+                    >↩️ Voltar</button>
+                    <button onClick={() => { updateCasa(casa.id, { reembolso: "concluido", reembolsadoEm: new Date().toISOString() }); toast.success("Reembolso concluído! ✅"); }}
+                      className="flex-1 px-3 py-2 rounded-xl text-xs font-black text-[#050b18] transition-all hover:scale-[1.02]"
+                      style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
+                    >✅ Concluir</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "reembolso-hist" && (
+        <div className="space-y-4">
+          {casasReembolsoHist.length === 0 ? (
+            <div className="bg-card border border-border/50 rounded-2xl p-8 text-center">
+              <p className="text-muted-foreground">Nenhum reembolso concluído ainda.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {casasReembolsoHist
+                .slice()
+                .sort((a, b) => new Date(b.reembolsadoEm || 0).getTime() - new Date(a.reembolsadoEm || 0).getTime())
+                .map((casa) => (
+                <div key={casa.id} className="rounded-2xl p-4 border border-emerald-400/20 flex flex-col" style={{ background: "rgba(74,222,128,0.05)" }}>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-emerald-300/70">✅ Reembolso concluído</p>
+                  <h4 className="text-lg font-black text-white mt-1 truncate">{casa.nome}</h4>
+                  {casa.reembolsadoEm && <p className="text-xs text-white/40 mt-0.5">em {new Date(casa.reembolsadoEm).toLocaleDateString("pt-BR")}</p>}
+                  <button onClick={() => { updateCasa(casa.id, { reembolso: null, reembolsadoEm: null }); toast.success("Reaberto ↩️"); }}
+                    className="mt-4 px-3 py-2 rounded-xl text-xs font-bold border border-white/12 text-white/70 hover:bg-white/5 transition-colors"
+                  >↩️ Reabrir (voltar pra ativo)</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {activeTab === "lixeira" && (

@@ -48,6 +48,8 @@ export const casas = pgTable("casas", {
   dataInicio: date("dataInicio"),
   dataFim: date("dataFim"),
   status: casaStatusEnum("status").default("ativa").notNull(),
+  reembolso: text("reembolso"), // null | 'pendente' | 'concluido' (ALTER automático)
+  reembolsadoEm: timestamp("reembolsadoEm"),
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
   atualizadoEm: timestamp("atualizadoEm").defaultNow().notNull(),
 });
@@ -69,6 +71,8 @@ export const relatorios = pgTable("relatorios", {
   finalizadoEm: timestamp("finalizadoEm"), // quando foi finalizado (ALTER automático)
   etiqueta: text("etiqueta"), // etiquetas (separadas por vírgula) exibidas no card (ALTER automático)
   jogos: text("jogos"), // jogos feitos na cooperação, anotados ao finalizar (ALTER automático)
+  reembolso: text("reembolso"), // null | 'pendente' | 'concluido' (ALTER automático)
+  reembolsadoEm: timestamp("reembolsadoEm"),
   rows: jsonb("rows").$type<Array<Record<string, unknown>>>().notNull(),
   cooperacao: decimal("cooperacao", { precision: 10, scale: 2 }).default("0").notNull(),
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),

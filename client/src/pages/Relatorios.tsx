@@ -25,6 +25,7 @@ interface RelatorioCardProps {
   onDuplicate: (e: React.MouseEvent) => void;
   onDelete: (e: React.MouseEvent) => void;
   onEtiqueta?: (e: React.MouseEvent) => void;
+  onReembolso?: (e: React.MouseEvent) => void;
   selectMode?: boolean;
   checked?: boolean;
   onToggleCheck?: (e: React.MouseEvent) => void;
@@ -32,7 +33,7 @@ interface RelatorioCardProps {
 
 function RelatorioCard({
   rel, accent, isSelected, nome, loginCasa, lucroTotal,
-  prazoDate, isVencido, countdown, onSelect, onDuplicate, onDelete, onEtiqueta,
+  prazoDate, isVencido, countdown, onSelect, onDuplicate, onDelete, onEtiqueta, onReembolso,
   selectMode, checked, onToggleCheck,
 }: RelatorioCardProps) {
   const [loginCopiado, setLoginCopiado] = useState(false);
@@ -179,6 +180,16 @@ function RelatorioCard({
           >
             <Copy size={14} />
           </button>
+          {onReembolso && (
+            <button
+              onClick={onReembolso}
+              className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-orange-400/15 text-orange-400/50 hover:text-orange-400 hover:border-orange-400/40"
+              style={{ background: "rgba(251,146,60,0.05)" }}
+              title="Mover para Reembolso"
+            >
+              💸
+            </button>
+          )}
           <button
             onClick={onDelete}
             className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-red-500/15 text-red-400/40 hover:text-red-400 hover:border-red-500/30"
@@ -439,7 +450,7 @@ export default function Relatorios() {
   const removerTag = (i: number) => setEtiquetaTexto(tagsEtiqueta.filter((_, idx) => idx !== i).join(", "));
   const [selectedRelatorioId, setSelectedRelatorioId] = useState<string>("");
   const [showNewForm, setShowNewForm] = useState(false);
-  const [activeTab, setActiveTab] = useState<"relatorio" | "progresso" | "lixeira">("relatorio");
+  const [activeTab, setActiveTab] = useState<"relatorio" | "progresso" | "lixeira" | "reembolso" | "reembolso-hist">("relatorio");
   const { isVisible, renderedValue: renderedTab } = usePageTransition(activeTab);
   const [newRelatorioData, setNewRelatorioData] = useState({
     casaId: "",
@@ -504,7 +515,9 @@ export default function Relatorios() {
   }, [newRelatorioData.prazo]);
 
   const casasAtivas = state.casas.filter((c) => c.status === "ativa");
-  const relatoriosAtivos = state.relatorios.filter((r) => r.status === "ativo");
+  const relatoriosAtivos = state.relatorios.filter((r) => r.status === "ativo" && !r.reembolso);
+  const relatoriosReembolso = state.relatorios.filter((r) => r.status === "ativo" && r.reembolso === "pendente");
+  const relatoriosReembolsoHist = state.relatorios.filter((r) => r.reembolso === "concluido");
   const relatoriosLixeira = state.relatorios.filter((r) => r.status === "lixeira");
 
   const handleCreateRelatorio = () => {
@@ -648,6 +661,8 @@ export default function Relatorios() {
         {[
           { id: "relatorio", label: "Relatório" },
           { id: "progresso", label: "Progresso" },
+          { id: "reembolso", label: `💸 Reembolso (${relatoriosReembolso.length})` },
+          { id: "reembolso-hist", label: `Hist. Reemb. (${relatoriosReembolsoHist.length})` },
           { id: "lixeira", label: `Lixeira (${relatoriosLixeira.length})` },
         ].map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
@@ -859,6 +874,7 @@ export default function Relatorios() {
                           onDuplicate={(e) => { e.stopPropagation(); duplicarRelatorio(rel.id); }}
                           onDelete={(e) => { e.stopPropagation(); handleDeleteRelatorio(rel.id); }}
                           onEtiqueta={(e) => { e.stopPropagation(); abrirEtiqueta(rel.id); }}
+                          onReembolso={(e) => { e.stopPropagation(); updateRelatorio(rel.id, { reembolso: "pendente" }); if (selectedRelatorioId === rel.id) setSelectedRelatorioId(""); toast.success("Movido pra Reembolso 💸"); }}
                           selectMode={selectMode}
                           checked={selecionados.has(rel.id)}
                           onToggleCheck={() => toggleSelecionado(rel.id)}
@@ -934,6 +950,64 @@ export default function Relatorios() {
             cooperacao={currentRelatorio.cooperacao}
             rows={currentRelatorio.rows}
           />
+        )}
+
+        {renderedTab === "reembolso" && (
+          <div className="space-y-4">
+            <div className="rounded-2xl p-4 border border-orange-400/20" style={{ background: "rgba(251,146,60,0.06)" }}>
+              <p className="text-[10px] font-black uppercase tracking-widest text-orange-300/60">Relatórios em reembolso</p>
+              <p className="text-2xl font-black text-orange-300">{relatoriosReembolso.length}</p>
+            </div>
+            {relatoriosReembolso.length === 0 ? (
+              <div className="bg-card border border-border/50 rounded-2xl p-8 text-center"><p className="text-muted-foreground">Nenhum relatório em reembolso. Mova um pelo botão 💸 no card do relatório.</p></div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {relatoriosReembolso.map((rel) => {
+                  const nome = `${getCasaNome(rel.casaId).replace(/[\s-]+$/, "").trim()}${rel.agente ? `-${rel.agente}` : ""}`;
+                  const lucro = calculateTotalResultado(rel.rows, rel.cooperacao);
+                  return (
+                    <div key={rel.id} className="rounded-2xl p-4 border border-orange-400/25 flex flex-col" style={{ background: "rgba(251,146,60,0.05)" }}>
+                      <p className="text-[10px] font-black uppercase tracking-wider text-orange-300/70">💸 Reembolso pendente</p>
+                      <h4 className="text-base font-black text-white mt-1 truncate">{nome}</h4>
+                      <p className="text-xs mt-1" style={{ color: lucro >= 0 ? "#4ade80" : "#f87171" }}>Resultado: R$ {lucro.toFixed(2)}</p>
+                      <div className="flex gap-2 mt-4">
+                        <button onClick={() => { updateRelatorio(rel.id, { reembolso: null }); toast.success("Voltou pra ativo ↩️"); }}
+                          className="flex-1 px-3 py-2 rounded-xl text-xs font-bold border border-white/12 text-white/70 hover:bg-white/5 transition-colors">↩️ Voltar</button>
+                        <button onClick={() => { updateRelatorio(rel.id, { reembolso: "concluido", reembolsadoEm: new Date().toISOString() }); toast.success("Reembolso concluído! ✅"); }}
+                          className="flex-1 px-3 py-2 rounded-xl text-xs font-black text-[#050b18] transition-all hover:scale-[1.02]" style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}>✅ Concluir</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {renderedTab === "reembolso-hist" && (
+          <div className="space-y-4">
+            {relatoriosReembolsoHist.length === 0 ? (
+              <div className="bg-card border border-border/50 rounded-2xl p-8 text-center"><p className="text-muted-foreground">Nenhum reembolso concluído ainda.</p></div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {relatoriosReembolsoHist
+                  .slice()
+                  .sort((a, b) => new Date((b as any).reembolsadoEm || 0).getTime() - new Date((a as any).reembolsadoEm || 0).getTime())
+                  .map((rel) => {
+                    const nome = `${getCasaNome(rel.casaId).replace(/[\s-]+$/, "").trim()}${rel.agente ? `-${rel.agente}` : ""}`;
+                    return (
+                      <div key={rel.id} className="rounded-2xl p-4 border border-emerald-400/20 flex flex-col" style={{ background: "rgba(74,222,128,0.05)" }}>
+                        <p className="text-[10px] font-black uppercase tracking-wider text-emerald-300/70">✅ Reembolso concluído</p>
+                        <h4 className="text-base font-black text-white mt-1 truncate">{nome}</h4>
+                        {(rel as any).reembolsadoEm && <p className="text-xs text-white/40 mt-0.5">em {new Date((rel as any).reembolsadoEm).toLocaleDateString("pt-BR")}</p>}
+                        <button onClick={() => { updateRelatorio(rel.id, { reembolso: null, reembolsadoEm: null }); toast.success("Reaberto ↩️"); }}
+                          className="mt-4 px-3 py-2 rounded-xl text-xs font-bold border border-white/12 text-white/70 hover:bg-white/5 transition-colors">↩️ Reabrir (voltar pra ativo)</button>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
         )}
 
         {renderedTab === "lixeira" && (

@@ -173,6 +173,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       meta: casa.meta ? Number(casa.meta) : 0,
       media: casa.media ? Number(casa.media) : 0,
       redeNome: casa.redeNome || "",
+      reembolso: casa.reembolso || null,
+      reembolsadoEm: casa.reembolsadoEm instanceof Date ? casa.reembolsadoEm.toISOString() : casa.reembolsadoEm,
       prazo: casa.prazo || "",
       linkContaFilha: casa.linkContaFina || "",
       criadoEm: casa.criadoEm instanceof Date ? casa.criadoEm.toISOString() : casa.criadoEm,
@@ -195,6 +197,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       finalizadoEm: (rel.finalizadoEm instanceof Date ? rel.finalizadoEm.toISOString() : rel.finalizadoEm)
         || finalizadosEmLocais[rel.id] || undefined,
       rows: rel.rows || [],
+      reembolso: rel.reembolso || null,
+      reembolsadoEm: rel.reembolsadoEm instanceof Date ? rel.reembolsadoEm.toISOString() : rel.reembolsadoEm,
       criadoEm: rel.criadoEm instanceof Date ? rel.criadoEm.toISOString() : rel.criadoEm,
       atualizadoEm: rel.atualizadoEm instanceof Date ? rel.atualizadoEm.toISOString() : rel.atualizadoEm,
     })) as RelatorioData[];
@@ -285,6 +289,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...(updates.meta !== undefined ? { meta: updates.meta?.toString() } : {}),
       ...(updates.prazo !== undefined ? { prazo: updates.prazo } : {}),
       ...(updates.status !== undefined ? { status: updates.status } : {}),
+      ...(updates.reembolso !== undefined ? { reembolso: updates.reembolso } : {}),
     });
     updateCasaMutation.mutateAsync({
       id,
@@ -298,6 +303,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       meta: updates.meta?.toString(),
       prazo: updates.prazo,
       status: updates.status,
+      reembolso: updates.reembolso,
+      reembolsadoEm: updates.reembolsadoEm,
     }).catch((error) => {
       console.error("Erro ao atualizar casa:", error);
       casasQuery.refetch();
@@ -423,6 +430,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 ...(relatorio.prazo !== undefined ? { prazo: relatorio.prazo } : {}),
                 ...(relatorio.etiqueta !== undefined ? { etiqueta: relatorio.etiqueta } : {}),
                 ...(relatorio.jogos !== undefined ? { jogos: relatorio.jogos } : {}),
+                ...(relatorio.reembolso !== undefined ? { reembolso: relatorio.reembolso } : {}),
+                ...(relatorio.reembolsadoEm !== undefined ? { reembolsadoEm: relatorio.reembolsadoEm } : {}),
               }
             : r
         ),
@@ -435,6 +444,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...(relatorio.status !== undefined ? { status: relatorio.status } : {}),
         ...(relatorio.etiqueta !== undefined ? { etiqueta: relatorio.etiqueta } : {}),
         ...(relatorio.jogos !== undefined ? { jogos: relatorio.jogos } : {}),
+        ...(relatorio.reembolso !== undefined ? { reembolso: relatorio.reembolso } : {}),
       });
 
       // Deep copy dos rows para evitar compartilhamento
@@ -449,6 +459,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         cooperacao: relatorio.cooperacao?.toString(),
         rows: rowsCopy as any,
         status: relatorio.status,
+        reembolso: relatorio.reembolso,
+        reembolsadoEm: relatorio.reembolsadoEm,
       }).catch((error) => {
         console.error("Erro ao atualizar relatório:", error);
         relatoriosQuery.refetch(); // em caso de erro, reconcilia com o servidor
