@@ -70,6 +70,7 @@ export default function GerenciarCasas() {
   // Plataformas GLOBAIS (calendário) — para o seletor de Rede
   const { data: plataformasDb } = trpc.plataformas.list.useQuery();
   const plataformasRede = (plataformasDb && plataformasDb.length > 0) ? plataformasDb : PLATAFORMAS_PADRAO;
+  const [filtroTag, setFiltroTag] = useState<string>(""); // filtro por tag principal da casa ("" = todas)
 
   // ── Memória de jogos por REDE (VOY, EK...) ──
   const getNomeInicial = (nome: string) => (nome || "").trim().split(/\s+/)[0].toUpperCase();
@@ -85,6 +86,14 @@ export default function GerenciarCasas() {
       .sort((a: any, b: any) => new Date(b.finalizadoEm || b.criadoEm).getTime() - new Date(a.finalizadoEm || a.criadoEm).getTime());
     return lista[0]?.jogos || "";
   };
+
+  // ── Agrupamento das casas ativas pela TAG principal (FP, OKOK, MANGA...) ──
+  const tagsAtivas = (() => {
+    const map = new Map<string, number>();
+    casasAtivas.forEach((c) => { const t = getNomeInicial(c.nome); if (t) map.set(t, (map.get(t) || 0) + 1); });
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  })();
+  const casasAtivasFiltradas = filtroTag ? casasAtivas.filter((c) => getNomeInicial(c.nome) === filtroTag) : casasAtivas;
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -378,9 +387,31 @@ export default function GerenciarCasas() {
             )}
           </div>
 
+          {/* Filtro por TAG principal (FP, OKOK, MANGA...) — só organiza a visualização */}
+          {tagsAtivas.length > 1 && (
+            <div className="rounded-2xl p-3 border border-white/8 mb-4" style={{ background: "rgba(255,255,255,0.03)" }}>
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/35 mb-2">Filtrar por tag</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setFiltroTag("")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  style={filtroTag === "" ? { background: "linear-gradient(135deg, #d4a017, #f59e0b)", color: "#050b18" } : { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.55)", border: "1px solid rgba(255,255,255,0.1)" }}
+                >Todas ({casasAtivas.length})</button>
+                {tagsAtivas.map(([tag, qtd]) => (
+                  <button
+                    key={tag}
+                    onClick={() => setFiltroTag(tag)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    style={filtroTag === tag ? { background: "linear-gradient(135deg, #d4a017, #f59e0b)", color: "#050b18" } : { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.55)", border: "1px solid rgba(255,255,255,0.1)" }}
+                  >{tag} ({qtd})</button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Grid de Casas */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {casasAtivas.map((casa, index) => (
+            {casasAtivasFiltradas.map((casa, index) => (
               <div
                 key={casa.id}
                 className={`${colors[index % colors.length]} rounded-2xl p-4 border-2 cursor-pointer transition-all duration-300 min-h-[280px] flex flex-col backdrop-blur-sm hover:-translate-y-1 hover:shadow-2xl ${selectedCasas.includes(casa.id) ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}
