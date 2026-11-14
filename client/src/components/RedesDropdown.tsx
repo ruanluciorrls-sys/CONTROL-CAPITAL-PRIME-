@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, Search } from "lucide-react";
 import { COR_DIA, DIAS_ORDER } from "@/lib/prazo";
+import type { Plataforma } from "@/lib/plataformas";
 
 interface RedesDropdownProps {
-  plataformas: any[];
+  plataformas: Plataforma[];
   onSelect: (dia: string, diasPrazo: number, nome: string) => void;
   /** Valor já selecionado (para exibir ao reabrir/editar) */
   value?: { nome: string; diasPrazo: number; dia: string } | null;
@@ -50,7 +51,7 @@ export default function RedesDropdown({ plataformas, onSelect, value }: RedesDro
     };
   }, [open]);
 
-  const handleSelect = (p: any) => {
+  const handleSelect = (p: Plataforma) => {
     setSelected(p);
     onSelect(p.dia, p.diasPrazo, p.nome);
     setOpen(false);
@@ -112,7 +113,7 @@ export default function RedesDropdown({ plataformas, onSelect, value }: RedesDro
             </div>
           </div>
           {DIAS_ORDER.map((dia) => {
-            const plats = plataformas.filter((p: any) => p.dia === dia && (!q || String(p.nome).toLowerCase().includes(q)));
+            const plats = plataformas.filter(p => p.dia === dia && p.nome.toLowerCase().includes(q));
             if (!plats.length) return null;
             const cor = COR_DIA[dia];
             return (
@@ -125,8 +126,10 @@ export default function RedesDropdown({ plataformas, onSelect, value }: RedesDro
                     {dia}
                   </span>
                 </div>
-                {plats.map((p: any) => {
-                  const isSelected = selected?.id === p.id || (selected?.nome === p.nome && selected?.dia === p.dia);
+                {plats.map(p => {
+                  const isSelected = selected?.id
+                    ? selected.id === p.id
+                    : selected?.nome === p.nome && selected?.dia === p.dia && selected?.diasPrazo === p.diasPrazo;
                   return (
                     <button
                       key={p.id}
@@ -137,7 +140,9 @@ export default function RedesDropdown({ plataformas, onSelect, value }: RedesDro
                       onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                       onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = "#070e20"; }}
                     >
-                      <span className="font-black text-sm text-white/85">{p.nome}</span>
+                      <span className="font-black text-sm text-white/85">
+                        {p.nome}{p.pessoal && <span className="ml-2 text-xs font-normal text-white/45">Minha</span>}
+                      </span>
                       <span className="text-xs font-bold px-2 py-0.5 rounded-lg"
                         style={{
                           background: p.diasPrazo === 0 ? "rgba(255,255,255,0.05)" : `${cor}20`,
@@ -152,7 +157,7 @@ export default function RedesDropdown({ plataformas, onSelect, value }: RedesDro
               </div>
             );
           })}
-          {q && plataformas.filter((p: any) => String(p.nome).toLowerCase().includes(q)).length === 0 && (
+          {!plataformas.some(p => p.nome.toLowerCase().includes(q)) && (
             <div className="px-4 py-6 text-center text-xs text-white/30">Nenhuma rede encontrada</div>
           )}
         </div>,

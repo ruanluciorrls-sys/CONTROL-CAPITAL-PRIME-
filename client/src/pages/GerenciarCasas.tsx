@@ -8,7 +8,6 @@ import { trpc } from "@/lib/trpc";
 import RedesDropdown from "@/components/RedesDropdown";
 import AvisoRede from "@/components/AvisoRede";
 import { calcularPrazo, calcCountdown } from "@/lib/prazo";
-import { PLATAFORMAS_PADRAO } from "@/lib/plataformas";
 
 export default function GerenciarCasas() {
   const { state, addCasa, updateCasa, deleteCasa, finalizarCasa, restaurarCasa, esvaziarLixeiraCasas, deletePermanentementeCasa } = useApp();
@@ -70,8 +69,7 @@ export default function GerenciarCasas() {
   const casasReembolsoHist = state.casas.filter((c) => c.reembolso === "concluido");
 
   // Plataformas GLOBAIS (calendário) — para o seletor de Rede
-  const { data: plataformasDb } = trpc.plataformas.list.useQuery();
-  const plataformasRede = (plataformasDb && plataformasDb.length > 0) ? plataformasDb : PLATAFORMAS_PADRAO;
+  const { data: plataformasRede = [] } = trpc.plataformas.list.useQuery();
   const [filtroTag, setFiltroTag] = useState<string>(""); // filtro por tag principal da casa ("" = todas)
 
   // ── Memória de jogos por REDE (VOY, EK...) ──

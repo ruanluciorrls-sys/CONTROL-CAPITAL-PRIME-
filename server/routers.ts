@@ -3,8 +3,8 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, getRelatorioById, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getAdminSettings, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, updateSlot, deleteSlot, hideSlotByName, getPixTags, createPixTag, deletePixTag, getChavesPix, createChavesPix, deleteChavesPix, setTagChaves, getRedeNotas, upsertRedeNota, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma, seedPlataformasIfEmpty } from "./db";
-import { savePushSubscription, deletePushSubscription, acumularCicloDia, getPushSoCelular, setPushSoCelular, logPush, getPushLog } from "./db";
+import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, getRelatorioById, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getPrimaryAdminId, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, updateSlot, deleteSlot, hideSlotByName, getPixTags, createPixTag, deletePixTag, getChavesPix, createChavesPix, deleteChavesPix, setTagChaves, getRedeNotas, upsertRedeNota, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma } from "./db";
+import { savePushSubscription, deletePushSubscription, acumularCicloDia, getPushSoCelular, setPushSoCelular, logPush, getPushLog, getPlataformasPessoais, importarPlataformasCompartilhadas } from "./db";
 import { getReceitasByUserId, createReceita, updateReceita, deleteReceita } from "./db";
 import { getPushPublicKey, sendPushToUser, fmtBRL, nomeDaMeta, enviarResumoDiaTeste, enviarLancamentosTeste, enviarPlataformasTeste } from "./push";
 import { supabaseUploadJSON } from "./storage";
@@ -13,6 +13,33 @@ import { nanoid } from "nanoid";
 import { sdk } from "./_core/sdk";
 import fs from "fs";
 import path from "path";
+import { TRPCError } from "@trpc/server";
+
+const plataformaInput = z.object({
+  nome: z.string().trim().min(1).max(150).transform(nome => nome.toUpperCase()),
+  diasPrazo: z.number().int().nonnegative().max(2147483647),
+  dia: z.string().trim().toUpperCase().refine(
+    dia => ["SEGUNDA-FEIRA", "TERÇA-FEIRA", "QUARTA-FEIRA", "QUINTA-FEIRA", "SEXTA-FEIRA", "SÁBADO", "DOMINGO"].includes(dia),
+    "Selecione um dia da semana válido."
+  ),
+});
+const plataformaId = z.string().trim().min(1).max(128);
+
+async function isPrimaryAdmin(user: { id: number; role: string }) {
+  return user.role === "admin" && await getPrimaryAdminId() === user.id;
+}
+
+const primaryAdminProcedure = adminProcedure.use(async ({ ctx, next }) => {
+  if (!await isPrimaryAdmin(ctx.user)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Acesso exclusivo do administrador principal." });
+  }
+  return next();
+});
+
+function publicUser<T extends { passwordHash: unknown }>(user: T) {
+  const { passwordHash, ...profile } = user;
+  return profile;
+}
 
 let defaultFundoUrl = "";
 try {
@@ -27,7 +54,10 @@ try {
 export const appRouter = router({
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(async ({ ctx }) => ctx.user && ({
+      ...publicUser(ctx.user),
+      isPrimaryAdmin: await isPrimaryAdmin(ctx.user),
+    })),
     login: publicProcedure
       .input(z.object({
         email: z.string().email(),
@@ -47,7 +77,7 @@ export const appRouter = router({
         });
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: 365 * 24 * 60 * 60 * 1000 });
-        return { success: true, user };
+        return { success: true, user: publicUser(user) };
       }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
@@ -67,10 +97,10 @@ export const appRouter = router({
   // Admin router — apenas admins podem usar
   admin: router({
     users: router({
-      list: adminProcedure.query(async () => {
-        return listAllUsers();
+      list: primaryAdminProcedure.query(async () => {
+        return (await listAllUsers()).map(publicUser);
       }),
-      create: adminProcedure
+      create: primaryAdminProcedure
         .input(z.object({
           name: z.string().min(1),
           email: z.string().email(),
@@ -79,9 +109,9 @@ export const appRouter = router({
         }))
         .mutation(async ({ input }) => {
           const user = await createUserWithPassword(input);
-          return user;
+          return user && publicUser(user);
         }),
-      updateSubscription: adminProcedure
+      updateSubscription: primaryAdminProcedure
         .input(z.object({
           userId: z.number(),
           subscriptionStatus: z.enum(["active", "inactive", "trial"]),
@@ -96,7 +126,7 @@ export const appRouter = router({
           });
           return { success: true };
         }),
-      resetPassword: adminProcedure
+      resetPassword: primaryAdminProcedure
         .input(z.object({
           userId: z.number(),
           newPassword: z.string().min(6),
@@ -105,7 +135,7 @@ export const appRouter = router({
           await updateUserPassword(input.userId, input.newPassword);
           return { success: true };
         }),
-      toggleActive: adminProcedure
+      toggleActive: primaryAdminProcedure
         .input(z.object({
           userId: z.number(),
           isActive: z.boolean(),
@@ -171,16 +201,17 @@ export const appRouter = router({
         reembolso: z.string().nullish(),
         reembolsadoEm: z.string().nullish(),
       }))
-      .mutation(async ({ input }) => {
-        const updateData: any = { ...input };
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...fields } = input;
+        const updateData: any = { ...fields };
         if (input.reembolsadoEm !== undefined) updateData.reembolsadoEm = input.reembolsadoEm ? new Date(input.reembolsadoEm) : null;
-        await updateCasa(input.id, updateData);
+        await updateCasa(id, ctx.user.id, updateData);
         return { success: true };
       }),
     delete: protectedProcedure
       .input(z.object({ id: z.string() }))
-      .mutation(async ({ input }) => {
-        await deleteCasa(input.id);
+      .mutation(async ({ ctx, input }) => {
+        await deleteCasa(input.id, ctx.user.id);
         return { success: true };
       }),
   }),
@@ -237,7 +268,8 @@ export const appRouter = router({
         reembolsadoEm: z.string().nullish(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const antes = await getRelatorioById(input.id);
+        const antes = await getRelatorioById(input.id, ctx.user.id);
+        if (!antes) throw new TRPCError({ code: "NOT_FOUND", message: "Relatório não encontrado." });
 
         const updateData: Partial<InsertRelatorio> = {};
         if (input.agente !== undefined) updateData.agente = input.agente;
@@ -257,7 +289,7 @@ export const appRouter = router({
         } else if (input.finalizadoEm !== undefined && !(antes as any)?.finalizadoEm) {
           (updateData as any).finalizadoEm = new Date(input.finalizadoEm);
         }
-        await updateRelatorio(input.id, updateData);
+        await updateRelatorio(input.id, ctx.user.id, updateData);
 
         // Push (no servidor — confiável, independe do cache do celular)
         if (antes) {
@@ -320,8 +352,8 @@ export const appRouter = router({
       }),
     delete: protectedProcedure
       .input(z.object({ id: z.string() }))
-      .mutation(async ({ input }) => {
-        await deleteRelatorio(input.id);
+      .mutation(async ({ ctx, input }) => {
+        await deleteRelatorio(input.id, ctx.user.id);
         return { success: true };
       }),
   }),
@@ -362,7 +394,7 @@ export const appRouter = router({
         maquina: z.string().optional(),
         status: z.enum(["sacado", "sacando", "bloqueado"]).optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const updateData: Record<string, unknown> = {};
         if (input.usuario !== undefined) updateData.usuario = input.usuario;
         if (input.senha !== undefined) updateData.senha = input.senha;
@@ -370,56 +402,45 @@ export const appRouter = router({
         if (input.casa !== undefined) updateData.casa = input.casa;
         if (input.maquina !== undefined) updateData.maquina = input.maquina;
         if (input.status !== undefined) updateData.status = input.status;
-        await updateConta(input.id, updateData);
+        await updateConta(input.id, ctx.user.id, updateData);
         return { success: true };
       }),
     delete: protectedProcedure
       .input(z.object({ id: z.string() }))
-      .mutation(async ({ input }) => {
-        await deleteConta(input.id);
+      .mutation(async ({ ctx, input }) => {
+        await deleteConta(input.id, ctx.user.id);
         return { success: true };
       }),
   }),
 
   settings: router({
-    get: protectedProcedure.query(async ({ ctx }) => {
-      const isRegularUser = ctx.user.role !== "admin";
-      let settings = null;
-      if (isRegularUser) {
-        settings = await getAdminSettings();
-      }
-      if (!settings) {
-        settings = await getUserSettings(ctx.user.id);
-      }
-      if (settings) {
-        return {
-          ...settings,
-          fundoUrl: settings.fundoUrl || defaultFundoUrl
-        };
-      }
+    get: protectedProcedure.query(async () => {
+      const adminId = await getPrimaryAdminId();
+      const settings = adminId === undefined ? null : await getUserSettings(adminId);
       return {
-        userId: ctx.user.id,
-        nomeApp: "RUAN DARK CPA",
-        corPrimaria: "#2563EB",
-        fundoUrl: defaultFundoUrl,
-        logoUrl: null,
-        nomeColorido: "Juan Dark",
-        coresColorido: [],
-        emojisColorido: [],
+        nomeApp: settings?.nomeApp ?? "RUAN DARK CPA",
+        corPrimaria: settings?.corPrimaria ?? "#2563EB",
+        fundoUrl: settings?.fundoUrl || defaultFundoUrl,
+        logoUrl: settings?.logoUrl ?? null,
+        tema: settings?.tema === "light" ? "light" as const : "dark" as const,
+        nomeColorido: settings?.nomeColorido ?? "Juan Dark",
+        coresColorido: settings?.coresColorido ?? [],
+        emojisColorido: settings?.emojisColorido ?? [],
       };
     }),
-    update: protectedProcedure
+    update: primaryAdminProcedure
       .input(z.object({
         nomeApp: z.string().optional(),
         corPrimaria: z.string().optional(),
         fundoUrl: z.string().optional(),
         logoUrl: z.string().optional(),
+        tema: z.enum(["light", "dark"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         await updateUserSettings(ctx.user.id, input);
         return { success: true };
       }),
-    updateColorfulName: protectedProcedure
+    updateColorfulName: primaryAdminProcedure
       .input(z.object({
         nomeColorido: z.string(),
         coresColorido: z.array(z.string()),
@@ -517,12 +538,12 @@ export const appRouter = router({
       }),
   }),
 
-  // Slots router (catálogo GLOBAL — admin controla, todos visualizam)
+  // Slots router (catálogo compartilhado)
   slots: router({
     list: protectedProcedure.query(async () => {
       return getSlots();
     }),
-    create: adminProcedure
+    create: primaryAdminProcedure
       .input(z.object({
         provider: z.string(),
         performance: z.string(),
@@ -533,7 +554,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return createSlot(input);
       }),
-    update: adminProcedure
+    update: primaryAdminProcedure
       .input(z.object({
         id: z.number(),
         provider: z.string().optional(),
@@ -548,13 +569,13 @@ export const appRouter = router({
         await updateSlot(id, data);
         return { success: true };
       }),
-    delete: adminProcedure
+    delete: primaryAdminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await deleteSlot(input.id);
         return { success: true };
       }),
-    hide: adminProcedure
+    hide: primaryAdminProcedure
       .input(z.object({ name: z.string(), provider: z.string(), performance: z.string() }))
       .mutation(async ({ input }) => {
         await hideSlotByName(input.name, input.provider, input.performance);
@@ -618,7 +639,7 @@ export const appRouter = router({
     upsert: protectedProcedure
       .input(z.object({ rede: z.string().min(1), texto: z.string(), tom: z.enum(["bom", "ruim", "neutro"]) }))
       .mutation(async ({ ctx, input }) => {
-        const autor = (ctx.user as any).name || (ctx.user as any).email || "operador";
+        const autor = ctx.user.name || "operador";
         await upsertRedeNota(input.rede.trim().toUpperCase(), input.texto, input.tom, autor);
         return { success: true };
       }),
@@ -626,49 +647,42 @@ export const appRouter = router({
 
   // Plataformas (Calendário) router
   plataformas: router({
-    list: protectedProcedure.query(async () => {
-      return getPlataformas();
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const [compartilhadas, pessoais] = await Promise.all([
+        getPlataformas(), getPlataformasPessoais(ctx.user.id),
+      ]);
+      return [
+        ...compartilhadas.map(item => ({ ...item, pessoal: false })),
+        ...pessoais.map(item => ({ ...item, pessoal: true })),
+      ];
     }),
-    seed: protectedProcedure
-      .input(z.object({
-        defaults: z.array(z.object({
-          id: z.string(),
-          nome: z.string(),
-          diasPrazo: z.number(),
-          dia: z.string(),
-        })),
-      }))
-      .mutation(async ({ input }) => {
-        return seedPlataformasIfEmpty(input.defaults);
+    importarDoNavegador: primaryAdminProcedure
+      .input(z.array(plataformaInput).max(500))
+      .mutation(async ({ input }) => ({ total: await importarPlataformasCompartilhadas(input, nanoid) })),
+    create: protectedProcedure
+      .input(plataformaInput.extend({ id: plataformaId.optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const userId = await isPrimaryAdmin(ctx.user) ? null : ctx.user.id;
+        const item = await createPlataforma({ ...input, id: input.id ?? nanoid() }, userId);
+        return { ...item, pessoal: userId !== null };
       }),
-    // Edição restrita ao admin — apenas o admin controla a lista global; todos visualizam
-    create: adminProcedure
-      .input(z.object({
-        id: z.string(),
-        nome: z.string(),
-        diasPrazo: z.number(),
-        dia: z.string(),
-      }))
-      .mutation(async ({ input }) => {
-        return createPlataforma(input);
-      }),
-    update: adminProcedure
-      .input(z.object({
-        id: z.string(),
-        nome: z.string().optional(),
-        diasPrazo: z.number().optional(),
-        dia: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
+    update: protectedProcedure
+      .input(plataformaInput.partial().extend({ id: plataformaId }))
+      .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;
-        return updatePlataforma(id, data);
+        if (!Object.keys(data).length) return;
+        const userId = await isPrimaryAdmin(ctx.user) ? null : ctx.user.id;
+        if (!await updatePlataforma(id, userId, data)) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Plataforma não encontrada no seu calendário editável." });
+        }
       }),
-    delete: adminProcedure
-      .input(z.object({
-        id: z.string(),
-      }))
-      .mutation(async ({ input }) => {
-        return deletePlataforma(input.id);
+    delete: protectedProcedure
+      .input(z.object({ id: plataformaId }))
+      .mutation(async ({ ctx, input }) => {
+        const userId = await isPrimaryAdmin(ctx.user) ? null : ctx.user.id;
+        if (!await deletePlataforma(input.id, userId)) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Plataforma não encontrada no seu calendário editável." });
+        }
       }),
   }),
 

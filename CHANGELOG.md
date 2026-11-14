@@ -7,6 +7,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.27.0] - 2026-11-13
+
+### Adicionado
+- Plataformas do administrador principal aparecem em todas as contas. Cada usuário pode cadastrar, editar e excluir suas próprias plataformas.
+
+### Corrigido
+- Calendário, painel inicial e seletor de rede da Nova Meta usam a mesma lista do servidor. Os cadastros já existentes continuam compartilhados.
+- Jogos e aparência do painel são sincronizados entre contas. O administrador principal controla as configurações compartilhadas e o Painel Admin.
+- Dados de contas, metas e relatórios só podem ser alterados pelo próprio usuário. As respostas de autenticação omitem os hashes de senha.
+
 ## [1.12.4] - 2026-06-19
 
 ### Corrigido / Alterado

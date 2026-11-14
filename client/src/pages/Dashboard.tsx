@@ -4,7 +4,6 @@ import { trpc } from "@/lib/trpc";
 import { Calendar, Home, FileText, DollarSign, Wallet, TrendingUp, Clock, Zap, ArrowRight } from "lucide-react";
 import DashboardCalendar from "@/components/DashboardCalendar";
 import { navigateToTab } from "@/lib/navigate";
-import { PLATAFORMAS_PADRAO, type Plataforma } from "@/lib/plataformas";
 
 export default function Dashboard() {
   const { state } = useApp();
@@ -25,11 +24,7 @@ export default function Dashboard() {
   const { data: receitasList = [] } = trpc.receitas.list.useQuery();
   const { data: notasRede = [] } = trpc.notasRede.list.useQuery();
 
-  // Plataformas GLOBAIS (banco de dados, compartilhadas por todos os usuários)
-  const { data: plataformasDb } = trpc.plataformas.list.useQuery();
-  const plataformas: Plataforma[] = (plataformasDb && plataformasDb.length > 0)
-    ? (plataformasDb as Plataforma[])
-    : PLATAFORMAS_PADRAO;
+  const { data: plataformas = [] } = trpc.plataformas.list.useQuery();
 
   // Dados
   const relatoriosFinalizados = state.relatorios.filter((r) => r.status === "finalizado");

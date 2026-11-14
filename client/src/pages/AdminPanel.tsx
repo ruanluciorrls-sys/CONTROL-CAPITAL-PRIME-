@@ -239,19 +239,19 @@ function SubscriptionModal({ userId, userName, currentStatus, onClose, onSuccess
 /* ──────────────────────── PAINEL PRINCIPAL ──────────────────────── */
 export default function AdminPanel() {
   const { user } = useAuth();
-  const usersQuery = trpc.admin.users.list.useQuery();
+  const usersQuery = trpc.admin.users.list.useQuery(undefined, { enabled: user?.isPrimaryAdmin === true });
   const toggleActive = trpc.admin.users.toggleActive.useMutation({ onSuccess: () => usersQuery.refetch() });
 
   const [showCreate, setShowCreate] = useState(false);
   const [resetUser, setResetUser] = useState<{ id: number; name: string } | null>(null);
   const [subUser, setSubUser] = useState<{ id: number; name: string; status: SubscriptionStatus } | null>(null);
 
-  if (user?.role !== "admin") {
+  if (!user?.isPrimaryAdmin) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4">
         <Shield size={48} className="text-white/20" />
         <h2 className="text-lg font-black text-white/40">Acesso restrito</h2>
-        <p className="text-xs text-white/20">Apenas administradores podem acessar esta página.</p>
+        <p className="text-xs text-white/20">Apenas o administrador principal pode acessar esta página.</p>
       </div>
     );
   }

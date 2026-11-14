@@ -42,7 +42,10 @@ export default function ColorfulNameEditor({
   const [isEditing, setIsEditing] = useState(false);
   const [colors, setColors] = useState<string[]>([]);
   const [selectedEmojis, setSelectedEmojis] = useState<string[]>([]);
-  const updateColorfulNameMutation = trpc.settings.updateColorfulName.useMutation();
+  const utils = trpc.useUtils();
+  const updateColorfulNameMutation = trpc.settings.updateColorfulName.useMutation({
+    onSuccess: () => utils.settings.get.invalidate(),
+  });
 
   // Gerar cores aleatórias para cada letra
   const generateColors = (text: string) => {

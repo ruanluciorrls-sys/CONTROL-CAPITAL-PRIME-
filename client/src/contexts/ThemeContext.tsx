@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect } from "react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 type Theme = "light" | "dark";
 
@@ -13,27 +15,23 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 interface ThemeProviderProps {
   children: React.ReactNode;
   defaultTheme?: Theme;
-  switchable?: boolean;
+  shared?: boolean;
 }
 
 export function ThemeProvider({
   children,
   defaultTheme = "dark",
-  switchable = false,
+  shared = false,
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (switchable) {
-      const migrated = localStorage.getItem("theme_migrated_v2");
-      if (!migrated) {
-        localStorage.setItem("theme", "dark");
-        localStorage.setItem("theme_migrated_v2", "true");
-        return "dark";
-      }
-      const stored = localStorage.getItem("theme");
-      return (stored as Theme) || defaultTheme;
-    }
-    return defaultTheme;
+  const utils = trpc.useUtils();
+  const auth = trpc.auth.me.useQuery(undefined, { enabled: shared, staleTime: 5 * 60 * 1000 });
+  const settings = trpc.settings.get.useQuery(undefined, { enabled: shared && !!auth.data });
+  const update = trpc.settings.update.useMutation({
+    onSuccess: () => utils.settings.get.invalidate(),
+    onError: () => toast.error("Não foi possível salvar o tema compartilhado."),
   });
+  const theme = settings.data?.tema ?? defaultTheme;
+  const switchable = shared && auth.data?.isPrimaryAdmin === true;
 
   useEffect(() => {
     const root = document.documentElement;
@@ -43,14 +41,11 @@ export function ThemeProvider({
       root.classList.remove("dark");
     }
 
-    if (switchable) {
-      localStorage.setItem("theme", theme);
-    }
-  }, [theme, switchable]);
+  }, [theme]);
 
   const toggleTheme = switchable
     ? () => {
-        setTheme(prev => (prev === "light" ? "dark" : "light"));
+        if (!update.isPending) update.mutate({ tema: theme === "light" ? "dark" : "light" });
       }
     : undefined;
 

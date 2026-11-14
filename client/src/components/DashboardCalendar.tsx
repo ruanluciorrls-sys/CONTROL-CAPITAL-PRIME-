@@ -1,11 +1,4 @@
-import { useState, useEffect } from "react";
-
-interface Plataforma {
-  id: string;
-  nome: string;
-  diasPrazo: number;
-  dia: string;
-}
+import type { Plataforma } from "@/lib/plataformas";
 
 const diasSemana = [
   "SEGUNDA-FEIRA",
@@ -15,36 +8,6 @@ const diasSemana = [
   "SEXTA-FEIRA",
   "SÁBADO",
   "DOMINGO",
-];
-
-const plataformasInicial: Plataforma[] = [
-  { id: "1", nome: "WE", diasPrazo: 4, dia: "SEGUNDA-FEIRA" },
-  { id: "2", nome: "777CLUBE", diasPrazo: 3, dia: "SEGUNDA-FEIRA" },
-  { id: "3", nome: "EK", diasPrazo: 4, dia: "TERÇA-FEIRA" },
-  { id: "4", nome: "VOY", diasPrazo: 4, dia: "TERÇA-FEIRA" },
-  { id: "5", nome: "888", diasPrazo: 3, dia: "TERÇA-FEIRA" },
-  { id: "6", nome: "MANGA", diasPrazo: 3, dia: "TERÇA-FEIRA" },
-  { id: "7", nome: "ANJO", diasPrazo: 3, dia: "TERÇA-FEIRA" },
-  { id: "8", nome: "GAME", diasPrazo: 6, dia: "TERÇA-FEIRA" },
-  { id: "9", nome: "91", diasPrazo: 3, dia: "QUARTA-FEIRA" },
-  { id: "10", nome: "OKOK", diasPrazo: 3, dia: "QUARTA-FEIRA" },
-  { id: "11", nome: "A8", diasPrazo: 7, dia: "QUARTA-FEIRA" },
-  { id: "12", nome: "DY", diasPrazo: 4, dia: "QUARTA-FEIRA" },
-  { id: "13", nome: "MK", diasPrazo: 4, dia: "QUARTA-FEIRA" },
-  { id: "14", nome: "WP", diasPrazo: 7, dia: "QUARTA-FEIRA" },
-  { id: "15", nome: "W1", diasPrazo: 3, dia: "QUINTA-FEIRA" },
-  { id: "16", nome: "DZ", diasPrazo: 0, dia: "QUINTA-FEIRA" },
-  { id: "17", nome: "777CLUBE", diasPrazo: 4, dia: "QUINTA-FEIRA" },
-  { id: "18", nome: "WE", diasPrazo: 3, dia: "SEXTA-FEIRA" },
-  { id: "19", nome: "MANGA", diasPrazo: 4, dia: "SEXTA-FEIRA" },
-  { id: "20", nome: "ANJO", diasPrazo: 4, dia: "SEXTA-FEIRA" },
-  { id: "21", nome: "888", diasPrazo: 4, dia: "SEXTA-FEIRA" },
-  { id: "22", nome: "VOY", diasPrazo: 3, dia: "SÁBADO" },
-  { id: "23", nome: "91", diasPrazo: 4, dia: "SÁBADO" },
-  { id: "24", nome: "EK", diasPrazo: 3, dia: "SÁBADO" },
-  { id: "25", nome: "W1", diasPrazo: 4, dia: "DOMINGO" },
-  { id: "26", nome: "DY", diasPrazo: 3, dia: "DOMINGO" },
-  { id: "27", nome: "MK", diasPrazo: 3, dia: "DOMINGO" },
 ];
 
 // Cores para cada plataforma (Design Elegante/Translucido)
@@ -67,40 +30,7 @@ const coresPorPlataforma: { [key: string]: string } = {
   DZ: "bg-slate-500/10 border-slate-500/30 text-slate-700 dark:text-slate-400 hover:bg-slate-500/20 hover:border-slate-500/50",
 };
 
-interface DashboardCalendarProps {
-  plataformas?: Plataforma[];
-}
-
-export default function DashboardCalendar({ plataformas: plataformasProp }: DashboardCalendarProps) {
-  const lerPlataformas = (): Plataforma[] => {
-    try {
-      const saved = localStorage.getItem("plataformas-calendario-v2");
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return plataformasInicial;
-  };
-
-  const [plataformas, setPlataformas] = useState<Plataforma[]>(plataformasProp || lerPlataformas);
-
-  useEffect(() => {
-    if (plataformasProp) {
-      setPlataformas(plataformasProp);
-    }
-  }, [plataformasProp]);
-
-  useEffect(() => {
-    const handleUpdate = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (Array.isArray(detail)) {
-        setPlataformas(detail);
-      } else {
-        setPlataformas(lerPlataformas());
-      }
-    };
-    window.addEventListener("plataformas-updated", handleUpdate);
-    return () => window.removeEventListener("plataformas-updated", handleUpdate);
-  }, []);
-
+export default function DashboardCalendar({ plataformas }: { plataformas: Plataforma[] }) {
   const plataformasPorDia = diasSemana.map((dia) => ({
     dia,
     plataformas: plataformas.filter((p) => p.dia === dia),

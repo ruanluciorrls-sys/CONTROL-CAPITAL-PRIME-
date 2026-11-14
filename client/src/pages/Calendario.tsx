@@ -1,17 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Plus, Trash2, Edit2, X, Check, Calendar, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 
-interface Plataforma {
-  id: string;
-  nome: string;
-  diasPrazo: number;
-  dia: string;
-}
-
-const STORAGE_KEY = "plataformas-calendario-v2";
+import type { Plataforma } from "@/lib/plataformas";
 
 const DIAS_SEMANA = [
   "SEGUNDA-FEIRA",
@@ -43,46 +36,7 @@ const COR_DIA: Record<string, string> = {
   "DOMINGO": "#e879f9",
 };
 
-const PLATAFORMAS_PADRAO: Plataforma[] = [
-  { id: "1",  nome: "WE",      diasPrazo: 4, dia: "SEGUNDA-FEIRA" },
-  { id: "2",  nome: "777CLUBE",diasPrazo: 3, dia: "SEGUNDA-FEIRA" },
-  { id: "3",  nome: "EK",      diasPrazo: 4, dia: "TERÇA-FEIRA" },
-  { id: "4",  nome: "VOY",     diasPrazo: 4, dia: "TERÇA-FEIRA" },
-  { id: "5",  nome: "888",     diasPrazo: 3, dia: "TERÇA-FEIRA" },
-  { id: "6",  nome: "MANGA",   diasPrazo: 3, dia: "TERÇA-FEIRA" },
-  { id: "7",  nome: "ANJO",    diasPrazo: 3, dia: "TERÇA-FEIRA" },
-  { id: "8",  nome: "GAME",    diasPrazo: 6, dia: "TERÇA-FEIRA" },
-  { id: "9",  nome: "91",      diasPrazo: 3, dia: "QUARTA-FEIRA" },
-  { id: "10", nome: "OKOK",    diasPrazo: 3, dia: "QUARTA-FEIRA" },
-  { id: "11", nome: "A8",      diasPrazo: 7, dia: "QUARTA-FEIRA" },
-  { id: "12", nome: "DY",      diasPrazo: 4, dia: "QUARTA-FEIRA" },
-  { id: "13", nome: "MK",      diasPrazo: 4, dia: "QUARTA-FEIRA" },
-  { id: "14", nome: "WP",      diasPrazo: 7, dia: "QUARTA-FEIRA" },
-  { id: "15", nome: "W1",      diasPrazo: 3, dia: "QUINTA-FEIRA" },
-  { id: "16", nome: "DZ",      diasPrazo: 0, dia: "QUINTA-FEIRA" },
-  { id: "17", nome: "777CLUBE",diasPrazo: 4, dia: "QUINTA-FEIRA" },
-  { id: "18", nome: "WE",      diasPrazo: 3, dia: "SEXTA-FEIRA" },
-  { id: "19", nome: "MANGA",   diasPrazo: 4, dia: "SEXTA-FEIRA" },
-  { id: "20", nome: "ANJO",    diasPrazo: 4, dia: "SEXTA-FEIRA" },
-  { id: "21", nome: "888",     diasPrazo: 4, dia: "SEXTA-FEIRA" },
-  { id: "22", nome: "VOY",     diasPrazo: 3, dia: "SÁBADO" },
-  { id: "23", nome: "91",      diasPrazo: 4, dia: "SÁBADO" },
-  { id: "24", nome: "EK",      diasPrazo: 3, dia: "SÁBADO" },
-  { id: "25", nome: "W1",      diasPrazo: 4, dia: "DOMINGO" },
-  { id: "26", nome: "DY",      diasPrazo: 3, dia: "DOMINGO" },
-  { id: "27", nome: "MK",      diasPrazo: 3, dia: "DOMINGO" },
-];
-
-function carregarPlataformas(): Plataforma[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return PLATAFORMAS_PADRAO;
-}
-
 export default function Calendario() {
-  const [plataformas, setPlataformas] = useState<Plataforma[]>([]);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Plataforma | null>(null);
   const [lixeira, setLixeira] = useState<Plataforma[]>([]);
@@ -92,30 +46,38 @@ export default function Calendario() {
 
   const utils = trpc.useUtils();
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.isPrimaryAdmin === true;
 
-  // ── Fonte de dados GLOBAL: banco de dados (compartilhado por todos os usuários) ──
   const listQuery = trpc.plataformas.list.useQuery();
-  const seedMutation = trpc.plataformas.seed.useMutation({
-    onSuccess: () => utils.plataformas.list.invalidate(),
+  const plataformas = listQuery.data ?? [];
+  const podeEditar = (plat: Plataforma) => isAdmin ? !plat.pessoal : !!plat.pessoal;
+  const [plataformasAntigas, setPlataformasAntigas] = useState(() => {
+    try {
+      if (localStorage.getItem("plataformas-calendario-v2-importado")) return [];
+      const itens: unknown = JSON.parse(localStorage.getItem("plataformas-calendario-v2") ?? "[]");
+      if (Array.isArray(itens)) return itens.flatMap(item => (
+        typeof item?.nome === "string" && item.nome.trim().length > 0 && item.nome.trim().length <= 150 &&
+        DIAS_SEMANA.includes(item.dia) && Number.isInteger(item.diasPrazo) &&
+        item.diasPrazo >= 0 && item.diasPrazo <= 2147483647
+          ? [{ nome: item.nome, dia: item.dia, diasPrazo: item.diasPrazo }]
+          : []
+      )).slice(0, 500);
+    } catch {}
+    return [];
   });
-
-  // Sincroniza o estado local com os dados do banco
-  useEffect(() => {
-    if (listQuery.data) {
-      // Cache local para o Dashboard/Relatorios lerem instantaneamente
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(listQuery.data)); } catch {}
-      window.dispatchEvent(new CustomEvent("plataformas-updated", { detail: listQuery.data }));
-      setPlataformas(listQuery.data as Plataforma[]);
-    }
-  }, [listQuery.data]);
-
-  // Na primeira vez (banco vazio), insere as plataformas padrão globalmente — apenas uma vez
-  useEffect(() => {
-    if (listQuery.isSuccess && Array.isArray(listQuery.data) && listQuery.data.length === 0 && !seedMutation.isPending) {
-      seedMutation.mutate({ defaults: PLATAFORMAS_PADRAO });
-    }
-  }, [listQuery.isSuccess, listQuery.data]);
+  const importarMutation = trpc.plataformas.importarDoNavegador.useMutation({
+    onSuccess: ({ total }) => {
+      setPlataformasAntigas([]);
+      try { localStorage.setItem("plataformas-calendario-v2-importado", "1"); } catch {}
+      utils.plataformas.list.invalidate();
+      toast.success(total ? `${total} plataforma(s) importada(s) para todos.` : "As plataformas do navegador já estão no calendário.");
+    },
+    onError: error => toast.error(error.message),
+  });
+  const temPlataformasAntigas = plataformasAntigas.some(antiga =>
+    !plataformas.some(atual => !atual.pessoal && atual.dia === antiga.dia &&
+      atual.nome.trim().toUpperCase() === antiga.nome.trim().toUpperCase())
+  );
 
   const createMutation = trpc.plataformas.create.useMutation({
     onSuccess: () => utils.plataformas.list.invalidate(),
@@ -128,54 +90,41 @@ export default function Calendario() {
   });
 
   const handleAdicionar = async () => {
+    if (createMutation.isPending) return;
     if (!novaPlat.nome.trim()) {
       toast.error("Nome da plataforma é obrigatório");
       return;
     }
-    const id = Date.now().toString();
     const nome = novaPlat.nome.trim().toUpperCase();
     const diasPrazo = novaPlat.diasPrazo;
     const dia = novaPlat.dia;
 
-    // Eager update to keep UI fast
-    const nova: Plataforma = { id, nome, diasPrazo, dia };
-    setPlataformas([...plataformas, nova]);
-    setNovaPlat({ nome: "", diasPrazo: 3, dia: "SEGUNDA-FEIRA" });
-    setShowForm(false);
-
     try {
-      await createMutation.mutateAsync({ id, nome, diasPrazo, dia });
+      await createMutation.mutateAsync({ nome, diasPrazo, dia });
+      setNovaPlat({ nome: "", diasPrazo: 3, dia: "SEGUNDA-FEIRA" });
+      setShowForm(false);
       toast.success(`${nome} adicionada com sucesso!`);
     } catch (err: any) {
       toast.error(err.message || "Erro ao adicionar plataforma");
-      // Rollback
-      setPlataformas(plataformas);
     }
   };
 
   const handleDeletar = async (id: string) => {
     const plat = plataformas.find((p) => p.id === id);
-    if (!plat) return;
-    setLixeira([...lixeira, plat]);
-    setPlataformas(plataformas.filter((p) => p.id !== id));
+    if (!plat || !podeEditar(plat)) return;
 
     try {
       await deleteMutation.mutateAsync({ id });
+      setLixeira(items => [...items, plat]);
       toast.success(`${plat.nome} movida para lixeira`);
     } catch (err: any) {
       toast.error(err.message || "Erro ao deletar plataforma");
-      // Rollback
-      setPlataformas(plataformas);
-      setLixeira(lixeira.filter((p) => p.id !== id));
     }
   };
 
   const handleRestaurar = async (id: string) => {
     const plat = lixeira.find((p) => p.id === id);
     if (!plat) return;
-    setPlataformas([...plataformas, plat]);
-    setLixeira(lixeira.filter((p) => p.id !== id));
-
     try {
       await createMutation.mutateAsync({
         id: plat.id,
@@ -183,12 +132,10 @@ export default function Calendario() {
         diasPrazo: plat.diasPrazo,
         dia: plat.dia
       });
+      setLixeira(items => items.filter(p => p.id !== id));
       toast.success(`${plat.nome} restaurada!`);
     } catch (err: any) {
       toast.error(err.message || "Erro ao restaurar plataforma");
-      // Rollback
-      setPlataformas(plataformas.filter((p) => p.id !== id));
-      setLixeira([...lixeira, plat]);
     }
   };
 
@@ -199,11 +146,6 @@ export default function Calendario() {
 
   const handleEditarSalvar = async () => {
     if (!editData) return;
-    const oldPlataformas = plataformas;
-    setPlataformas(plataformas.map((p) => (p.id === editData.id ? editData : p)));
-    setEditandoId(null);
-    setEditData(null);
-
     try {
       await updateMutation.mutateAsync({
         id: editData.id,
@@ -211,10 +153,11 @@ export default function Calendario() {
         diasPrazo: editData.diasPrazo,
         dia: editData.dia
       });
+      setEditandoId(null);
+      setEditData(null);
       toast.success("Salvo!");
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar alterações");
-      setPlataformas(oldPlataformas);
     }
   };
 
@@ -235,28 +178,44 @@ export default function Calendario() {
         <div>
           <h2 className="text-xl font-black text-white/95 dark:text-white">Gerenciamento de Plataformas</h2>
           <p className="text-[10px] text-white/60 dark:text-white/35 uppercase tracking-widest mt-0.5">
-            Calendário GLOBAL — compartilhado com todos os usuários · prazos contam a partir do dia seguinte
+            {isAdmin
+              ? "As plataformas que você cadastrar aqui aparecem para todos os usuários."
+              : "Calendário compartilhado pelo administrador e plataformas da sua conta."}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {isAdmin ? (
             <button
+              disabled={listQuery.isPending || listQuery.isError}
               onClick={() => setShowForm(!showForm)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs text-[#050b18] transition-all hover:scale-[1.02]"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs text-[#050b18] transition-all hover:scale-[1.02] disabled:opacity-50"
               style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
             >
               <Plus size={14} />
               Nova Plataforma
             </button>
-          ) : (
-            <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider text-white/40 border border-white/10"
-              style={{ background: "rgba(255,255,255,0.03)" }}
-            >
-              <Lock size={12} /> Somente leitura
-            </div>
-          )}
         </div>
       </div>
+
+      {listQuery.isPending && <p role="status">Carregando calendário...</p>}
+      {listQuery.isError && (
+        <p role="alert" className="text-sm text-amber-300">
+          Não foi possível atualizar o calendário.{" "}
+          <button type="button" className="underline" onClick={() => listQuery.refetch()}>Tentar novamente</button>
+        </p>
+      )}
+      {isAdmin && listQuery.isSuccess && temPlataformasAntigas && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#d4a017]/30 p-3 text-sm">
+          <span>Há plataformas antigas neste navegador que você pode compartilhar com todos.</span>
+          <button
+            type="button"
+            className="rounded-lg bg-[#d4a017] px-3 py-2 text-xs font-bold text-[#050b18] disabled:opacity-50"
+            disabled={importarMutation.isPending}
+            onClick={() => importarMutation.mutate(plataformasAntigas)}
+          >
+            Importar plataformas antigas
+          </button>
+        </div>
+      )}
 
       {/* Abas */}
       <div className="flex gap-1 p-1 rounded-xl border border-white/10 w-fit"
@@ -320,7 +279,7 @@ export default function Calendario() {
               </select>
             </div>
             <div className="flex items-end gap-2">
-              <button onClick={handleAdicionar}
+              <button onClick={handleAdicionar} disabled={createMutation.isPending}
                 className="flex-1 py-2 rounded-xl font-bold text-xs text-[#050b18] transition-all hover:scale-[1.01]"
                 style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
               >
@@ -395,8 +354,7 @@ export default function Calendario() {
                           </p>
                         </div>
 
-                        {/* Ações — aparecem no hover (somente admin) */}
-                        {isAdmin && (
+                        {podeEditar(plat) && (
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                             <button
                               onClick={() => { setEditandoId(plat.id); setEditData({ ...plat }); }}
@@ -480,7 +438,10 @@ export default function Calendario() {
                       onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "")}
                     >
-                      <td className="px-5 py-3 font-black text-white/90 dark:text-white">{plat.nome}</td>
+                      <td className="px-5 py-3 font-black text-white/90 dark:text-white">
+                        {plat.nome}
+                        {!isAdmin && <span className="ml-2 text-xs font-normal text-white/45">{plat.pessoal ? "Minha" : "Compartilhada"}</span>}
+                      </td>
                       <td className="px-5 py-3">
                         <span className="text-[10px] font-bold px-2 py-1 rounded-lg"
                           style={{
@@ -497,7 +458,7 @@ export default function Calendario() {
                         </span>
                       </td>
                       <td className="px-5 py-3">
-                        {isAdmin ? (
+                        {podeEditar(plat) ? (
                           <div className="flex gap-2 justify-end">
                             <button
                               onClick={() => { setEditandoId(plat.id); setEditData({ ...plat }); }}
@@ -631,7 +592,7 @@ export default function Calendario() {
             </div>
 
             <div className="flex gap-2 pt-2">
-              <button onClick={handleEditarSalvar}
+              <button onClick={handleEditarSalvar} disabled={updateMutation.isPending}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.01]"
                 style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
               >

@@ -134,6 +134,7 @@ export const userSettings = pgTable("userSettings", {
   corPrimaria: varchar("corPrimaria", { length: 7 }).default("#1a3a8f"),
   fundoUrl: text("fundoUrl"),
   logoUrl: text("logoUrl"),
+  tema: text("tema").$type<"light" | "dark">(),
   nomeColorido: text("nomeColorido").default("Capital Prime"),
   coresColorido: jsonb("coresColorido").$type<string[]>().default([]),
   emojisColorido: jsonb("emojisColorido").$type<string[]>().default([]),
@@ -218,6 +219,15 @@ export const plataformas = pgTable("plataformas", {
 
 export type PlataformaDb = typeof plataformas.$inferSelect;
 export type InsertPlataforma = typeof plataformas.$inferInsert;
+
+export const plataformasPessoais = pgTable("plataformas_pessoais", {
+  id: text("id").primaryKey(),
+  userId: integer("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  nome: text("nome").notNull(),
+  diasPrazo: integer("diasPrazo").notNull(),
+  dia: text("dia").notNull(),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+});
 
 // Tags personalizadas das chaves PIX (por usuário)
 export const pixTags = pgTable("pix_tags", {

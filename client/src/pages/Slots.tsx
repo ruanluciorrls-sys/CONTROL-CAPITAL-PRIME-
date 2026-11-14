@@ -20,7 +20,7 @@ interface SlotGame {
 export default function Slots() {
   const { user } = useAuth();
   const { confirm, confirmEl } = useConfirm();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.isPrimaryAdmin === true;
   const [activeTab, setActiveTab] = useState<"catalogo" | "favoritos">("catalogo");
   const [search, setSearch] = useState("");
   const [selectedProvider, setSelectedProvider] = useState("TODOS");
@@ -29,7 +29,6 @@ export default function Slots() {
   // Sincroniza os slots entre usuários (20s é suficiente e alivia o banco)
   const slotsQuery = trpc.slots.list.useQuery(undefined, {
     refetchInterval: 20000,
-    refetchOnWindowFocus: false,
   });
 
   // Combina catálogo fixo (slots_data.json) com slots do banco.
@@ -277,6 +276,12 @@ export default function Slots() {
         </div>
 
         {/* Tab Headers and search/filters */}
+        {slotsQuery.isError && (
+          <p role="alert" className="text-sm text-amber-300">
+            Não foi possível sincronizar o catálogo de jogos.{" "}
+            <button type="button" className="underline" onClick={() => slotsQuery.refetch()}>Tentar novamente</button>
+          </p>
+        )}
         <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
           
           {/* Main Tabs */}

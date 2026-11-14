@@ -2,7 +2,7 @@
 
 > **Leia este arquivo inteiro antes de mexer no código.** Ele existe para que qualquer IA (Claude, GPT, Gemini, etc.) consiga continuar o trabalho sem quebrar nada e sem precisar redescobrir tudo. Mantenha-o atualizado quando fizer mudanças estruturais.
 
-Última atualização: **2026-06-18** · Versão do app: **1.8.0** (ver [`CHANGELOG.md`](CHANGELOG.md)).
+Última atualização: **2026-11-13** · Versão do app: **1.27.0** (ver [`CHANGELOG.md`](CHANGELOG.md)).
 
 ---
 
@@ -63,7 +63,7 @@ todo.md          → histórico de tarefas (legado, quase tudo concluído)
 1. UI chama um método do **`AppContext`** (`addRelatorio`, `updateRelatorio`, `finalizarRelatorio`...).
 2. O context chama a **mutation tRPC** correspondente e depois faz `query.refetch()`.
 3. O servidor (`routers.ts`) valida com **Zod**, chama o **`db.ts`**, retorna.
-4. Dados financeiros são **privados por usuário** (`ctx.user.id`). Calendário/plataformas e slots são **globais** (admin controla, todos veem).
+4. Dados financeiros são **privados por usuário** (`ctx.user.id`). O calendário combina as plataformas compartilhadas do administrador principal com as plataformas privadas de cada usuário. Slots e aparência são compartilhados.
 
 ## 4. Convenções (siga para manter consistência)
 
@@ -139,7 +139,7 @@ Ordenado por impacto. Itens marcados **[Quick]** são correções rápidas e seg
 
 1. **Responda em PT-BR**, direto, com o que mudou e por quê. Sem aula de código.
 2. **Não quebre o tema navy+gold** nem o idioma português da UI.
-3. **Dados financeiros são privados por usuário** — sempre filtre por `ctx.user.id` no servidor. Plataformas/slots são globais e protegidos por `adminProcedure`.
+3. **Dados financeiros são privados por usuário**. Filtre por `ctx.user.id` no servidor. O administrador principal, identificado por `OWNER_OPEN_ID` ou pelo admin de menor ID, controla o catálogo compartilhado, a aparência e o Painel Admin. As plataformas privadas são editáveis pelo próprio usuário.
 4. **Toda rota nova entra no `server/routers.ts`** com validação Zod; toda query no `db.ts`.
 5. **Toda mudança de estado passa pelo `AppContext`** (não chame mutations soltas na UI sem necessidade).
 6. **Atualize o `CHANGELOG.md`** (nova versão semântica) e, se mexer em arquitetura/conceito, **atualize este `AGENTS.md`**.

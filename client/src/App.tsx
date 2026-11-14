@@ -44,7 +44,6 @@ const adminTab = { id: "admin", label: "Painel Admin", icon: <Shield size={20} /
 
 function AppContent() {
   const { state } = useApp();
-  const { theme, toggleTheme } = useTheme();
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState(() => {
@@ -90,7 +89,7 @@ function AppContent() {
   };
 
   // Tabs visíveis para este usuário
-  const tabs = user?.role === "admin" ? [...publicTabs, adminTab] : publicTabs;
+  const tabs = user?.isPrimaryAdmin ? [...publicTabs, adminTab] : publicTabs;
 
   useEffect(() => {
     localStorage.setItem("lastActiveTab", activeTab);
@@ -118,7 +117,7 @@ function AppContent() {
       case "calendario": return <Calendario />;
       case "editar-dados": return <EditarDados />;
       case "slots": return <Slots />;
-      case "admin": return <AdminPanel />;
+      case "admin": return user?.isPrimaryAdmin ? <AdminPanel /> : <Dashboard />;
       default: return <Dashboard />;
     }
   };
@@ -450,7 +449,7 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark" switchable={true}>
+      <ThemeProvider defaultTheme="dark" shared={!isLoginPage}>
         <TooltipProvider>
           {isLoginPage ? (
             <Login />

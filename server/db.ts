@@ -1,9 +1,11 @@
-import { eq, desc, sql, inArray, and } from "drizzle-orm";
+import { eq, desc, sql, inArray, and, asc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { InsertUser, users, casas, relatorios, contas, userSettings, gastosProxy, Casa, Relatorio, InsertCasa, InsertRelatorio, Conta, InsertConta, UserSettings, GastoProxy, InsertGastoProxy, slots, Slot, InsertSlot, plataformas, PlataformaDb, InsertPlataforma, pushConfig, PushConfig, pushSubscriptions, PushSubscriptionRow, InsertPushSubscription, receitas, Receita, InsertReceita, pixTags, chavesPix, PixTag, ChavePix, InsertPixTag, InsertChavePix, redeNotas, RedeNota } from "../drizzle/schema";
 import bcrypt from "bcryptjs";
 import { ENV } from './_core/env';
+import { plataformasPadrao } from "./plataformas-padrao";
+import { plataformasPessoais } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -20,19 +22,6 @@ export async function getDb() {
       });
       _db = drizzle(client);
       
-      // Auto-create slots table if it does not exist
-      _db.execute(sql`
-        CREATE TABLE IF NOT EXISTS slots (
-          id SERIAL PRIMARY KEY,
-          provider TEXT NOT NULL,
-          performance TEXT NOT NULL,
-          name TEXT NOT NULL UNIQUE,
-          tag TEXT NOT NULL DEFAULT '',
-          image TEXT,
-          "criadoEm" TIMESTAMP NOT NULL DEFAULT NOW()
-        )
-      `).catch(err => console.error("[Database] Failed to auto-create slots table:", err));
-
       // Auto-create plataformas table if it does not exist
       _db.execute(sql`
         CREATE TABLE IF NOT EXISTS plataformas (
@@ -261,16 +250,16 @@ export async function createCasa(casa: InsertCasa): Promise<Casa | null> {
   return db.select().from(casas).where(eq(casas.id, casa.id)).limit(1).then(r => r[0] || null);
 }
 
-export async function updateCasa(id: string, data: Partial<InsertCasa>): Promise<void> {
+export async function updateCasa(id: string, userId: number, data: Partial<InsertCasa>): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db.update(casas).set({ ...data, atualizadoEm: new Date() } as any).where(eq(casas.id, id));
+  await db.update(casas).set({ ...data, atualizadoEm: new Date() }).where(and(eq(casas.id, id), eq(casas.userId, userId)));
 }
 
-export async function deleteCasa(id: string): Promise<void> {
+export async function deleteCasa(id: string, userId: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db.delete(casas).where(eq(casas.id, id));
+  await db.delete(casas).where(and(eq(casas.id, id), eq(casas.userId, userId)));
 }
 
 // Relatórios queries
@@ -290,7 +279,6 @@ export async function ensureRelatorioPrazo(): Promise<void> {
     await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS etiqueta text`);
     await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS jogos text`);
     await db.execute(sql`ALTER TABLE casas ADD COLUMN IF NOT EXISTS "redeNome" text`);
-    await db.execute(sql`ALTER TABLE slots ADD COLUMN IF NOT EXISTS hidden boolean DEFAULT false NOT NULL`);
     await db.execute(sql`ALTER TABLE contas ADD COLUMN IF NOT EXISTS maquina text`);
     await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS reembolso text`);
     await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS "reembolsadoEm" timestamp`);
@@ -305,10 +293,10 @@ export async function ensureRelatorioPrazo(): Promise<void> {
   }
 }
 
-export async function getRelatorioById(id: string): Promise<Relatorio | null> {
+export async function getRelatorioById(id: string, userId: number): Promise<Relatorio | null> {
   const db = await getDb();
   if (!db) return null;
-  return db.select().from(relatorios).where(eq(relatorios.id, id)).limit(1).then(r => r[0] || null);
+  return db.select().from(relatorios).where(and(eq(relatorios.id, id), eq(relatorios.userId, userId))).limit(1).then(r => r[0] || null);
 }
 
 export async function createRelatorio(relatorio: InsertRelatorio): Promise<Relatorio | null> {
@@ -318,16 +306,16 @@ export async function createRelatorio(relatorio: InsertRelatorio): Promise<Relat
   return db.select().from(relatorios).where(eq(relatorios.id, relatorio.id)).limit(1).then(r => r[0] || null);
 }
 
-export async function updateRelatorio(id: string, data: Partial<InsertRelatorio>): Promise<void> {
+export async function updateRelatorio(id: string, userId: number, data: Partial<InsertRelatorio>): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db.update(relatorios).set({ ...data, atualizadoEm: new Date() } as any).where(eq(relatorios.id, id));
+  await db.update(relatorios).set({ ...data, atualizadoEm: new Date() }).where(and(eq(relatorios.id, id), eq(relatorios.userId, userId)));
 }
 
-export async function deleteRelatorio(id: string): Promise<void> {
+export async function deleteRelatorio(id: string, userId: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db.delete(relatorios).where(eq(relatorios.id, id));
+  await db.delete(relatorios).where(and(eq(relatorios.id, id), eq(relatorios.userId, userId)));
 }
 
 // Contas queries
@@ -344,51 +332,56 @@ export async function createConta(conta: InsertConta): Promise<Conta | null> {
   return db.select().from(contas).where(eq(contas.id, conta.id)).limit(1).then(r => r[0] || null);
 }
 
-export async function updateConta(id: string, data: Partial<InsertConta>): Promise<void> {
+export async function updateConta(id: string, userId: number, data: Partial<InsertConta>): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db.update(contas).set(data).where(eq(contas.id, id));
+  if (!Object.keys(data).length) return;
+  await db.update(contas).set(data).where(and(eq(contas.id, id), eq(contas.userId, userId)));
 }
 
-export async function deleteConta(id: string): Promise<void> {
+export async function deleteConta(id: string, userId: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db.delete(contas).where(eq(contas.id, id));
+  await db.delete(contas).where(and(eq(contas.id, id), eq(contas.userId, userId)));
 }
 
 // Funcoes de configuracoes de usuario
-export async function getUserSettings(userId: number): Promise<UserSettings | null> {
+let settingsReady: Promise<unknown> | undefined;
+
+async function ensureSharedSettingsSchema() {
   const db = await getDb();
-  if (!db) return null;
+  if (!db) throw new Error("Banco de dados indisponível.");
+  settingsReady ??= db.execute(sql`ALTER TABLE "userSettings" ADD COLUMN IF NOT EXISTS tema TEXT`)
+    .catch(error => {
+      settingsReady = undefined;
+      throw error;
+    });
+  await settingsReady;
+  return db;
+}
+
+export async function getUserSettings(userId: number): Promise<UserSettings | null> {
+  const db = await ensureSharedSettingsSchema();
   const result = await db.select().from(userSettings).where(eq(userSettings.userId, userId)).limit(1);
   return result[0] || null;
 }
 
-export async function getAdminSettings(): Promise<UserSettings | null> {
+export async function getPrimaryAdminId(): Promise<number | undefined> {
   const db = await getDb();
-  if (!db) return null;
-  const adminUser = await db.select().from(users).where(eq(users.role, "admin")).limit(1);
-  if (!adminUser[0]) return null;
-  return getUserSettings(adminUser[0].id);
+  if (!db) return;
+  const [admin] = await db.select({ id: users.id }).from(users)
+    .where(eq(users.role, "admin"))
+    .orderBy(sql`(${users.openId} IS NOT DISTINCT FROM ${ENV.ownerOpenId}) DESC`, asc(users.id))
+    .limit(1);
+  return admin?.id;
 }
 
 export async function updateUserSettings(userId: number, data: Partial<UserSettings>): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  
-  // Verificar se ja existe registro
-  const existing = await getUserSettings(userId);
-  
-  if (existing) {
-    // Atualizar
-    await db.update(userSettings).set(data).where(eq(userSettings.userId, userId));
-  } else {
-    // Inserir novo
-    await db.insert(userSettings).values({
-      userId,
-      ...data,
-    } as any);
-  }
+  const db = await ensureSharedSettingsSchema();
+  if (!Object.keys(data).length) return;
+  const settings = { ...data, userId, atualizadoEm: new Date() };
+  await db.insert(userSettings).values(settings)
+    .onConflictDoUpdate({ target: userSettings.userId, set: settings });
 }
 
 // Gastos Proxy queries
@@ -471,35 +464,53 @@ export async function deleteReceita(id: string): Promise<void> {
 }
 
 // Queries para slots
-export async function getSlots(): Promise<Slot[]> {
+let slotsReady: Promise<void> | undefined;
+
+export async function ensureSlotsTable() {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) throw new Error("Banco de dados indisponível.");
+  slotsReady ??= db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('capital-prime:slots'))`);
+    await tx.execute(sql`
+      CREATE TABLE IF NOT EXISTS slots (
+        id SERIAL PRIMARY KEY, provider TEXT NOT NULL, performance TEXT NOT NULL,
+        name TEXT NOT NULL UNIQUE, tag TEXT NOT NULL DEFAULT '', image TEXT,
+        hidden BOOLEAN NOT NULL DEFAULT FALSE, "criadoEm" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    await tx.execute(sql`ALTER TABLE slots ADD COLUMN IF NOT EXISTS hidden BOOLEAN NOT NULL DEFAULT FALSE`);
+  }).catch(error => {
+    slotsReady = undefined;
+    throw error;
+  });
+  await slotsReady;
+  return db;
+}
+
+export async function getSlots(): Promise<Slot[]> {
+  const db = await ensureSlotsTable();
   return db.select().from(slots).orderBy(desc(slots.criadoEm));
 }
 
 export async function createSlot(slot: InsertSlot): Promise<Slot | null> {
-  const db = await getDb();
-  if (!db) return null;
+  const db = await ensureSlotsTable();
   await db.insert(slots).values(slot);
   return db.select().from(slots).where(eq(slots.name, slot.name)).limit(1).then(r => r[0] || null);
 }
 
 export async function updateSlot(id: number, data: Partial<InsertSlot>): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
+  const db = await ensureSlotsTable();
   await db.update(slots).set(data).where(eq(slots.id, id));
 }
 
 export async function deleteSlot(id: number): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
+  const db = await ensureSlotsTable();
   await db.delete(slots).where(eq(slots.id, id));
 }
 
 /** Oculta um slot pelo nome (usado p/ esconder um item do catálogo fixo). */
 export async function hideSlotByName(name: string, provider: string, performance: string): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
+  const db = await ensureSlotsTable();
   const existing = await db.select().from(slots).where(eq(slots.name, name)).limit(1).then(r => r[0]);
   if (existing) {
     await db.update(slots).set({ hidden: true }).where(eq(slots.id, existing.id));
@@ -602,42 +613,99 @@ export async function upsertRedeNota(rede: string, texto: string, tom: string, a
     .onConflictDoUpdate({ target: redeNotas.rede, set: { texto, tom, atualizadoPor: autor, atualizadoEm: new Date() } });
 }
 
-// Queries para plataformas
+let plataformasReady: Promise<void> | undefined;
+
+export async function ensurePlataformasTable() {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  plataformasReady ??= db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('capital-prime:plataformas'))`);
+    const [table] = await tx.execute<{ existing: boolean }>(sql`
+      SELECT to_regclass('plataformas') IS NOT NULL AS existing
+    `);
+    await tx.execute(sql`
+      CREATE TABLE IF NOT EXISTS plataformas (
+        id TEXT PRIMARY KEY, nome TEXT NOT NULL, "diasPrazo" INTEGER NOT NULL,
+        dia TEXT NOT NULL, "criadoEm" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    await tx.execute(sql`
+      CREATE TABLE IF NOT EXISTS plataformas_pessoais (
+        id TEXT PRIMARY KEY, "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        nome TEXT NOT NULL, "diasPrazo" INTEGER NOT NULL, dia TEXT NOT NULL,
+        "criadoEm" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    await tx.execute(sql`CREATE INDEX IF NOT EXISTS plataformas_pessoais_user_id_idx ON plataformas_pessoais ("userId")`);
+    await tx.execute(sql`ALTER TABLE plataformas_pessoais ENABLE ROW LEVEL SECURITY`);
+    if (!table.existing) await tx.insert(plataformas).values(plataformasPadrao);
+  }).catch(error => {
+    plataformasReady = undefined;
+    throw error;
+  });
+  await plataformasReady;
+  return db;
+}
+
 export async function getPlataformas(): Promise<PlataformaDb[]> {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(plataformas);
+  const db = await ensurePlataformasTable();
+  return db.select().from(plataformas)
+    .orderBy(asc(plataformas.criadoEm), asc(plataformas.id));
 }
 
-export async function createPlataforma(plat: InsertPlataforma): Promise<PlataformaDb | null> {
-  const db = await getDb();
-  if (!db) return null;
-  await db.insert(plataformas).values(plat);
-  return db.select().from(plataformas).where(eq(plataformas.id, plat.id)).limit(1).then(r => r[0] || null);
+export async function getPlataformasPessoais(userId: number): Promise<PlataformaDb[]> {
+  const db = await ensurePlataformasTable();
+  const { id, nome, diasPrazo, dia, criadoEm } = plataformasPessoais;
+  return db.select({ id, nome, diasPrazo, dia, criadoEm }).from(plataformasPessoais)
+    .where(eq(plataformasPessoais.userId, userId))
+    .orderBy(asc(criadoEm), asc(id));
 }
 
-export async function updatePlataforma(id: string, data: Partial<InsertPlataforma>): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  await db.update(plataformas).set(data).where(eq(plataformas.id, id));
+export async function importarPlataformasCompartilhadas(items: Omit<InsertPlataforma, "id">[], gerarId: () => string) {
+  const db = await ensurePlataformasTable();
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('capital-prime:plataformas'))`);
+    const atuais = await tx.select({ nome: plataformas.nome, dia: plataformas.dia }).from(plataformas);
+    const chave = (item: { nome: string; dia: string }) => JSON.stringify([item.nome.trim().toUpperCase(), item.dia.trim().toUpperCase()]);
+    const existentes = new Set(atuais.map(chave));
+    const novas = items.filter(item => {
+      const key = chave(item);
+      if (existentes.has(key)) return false;
+      existentes.add(key);
+      return true;
+    });
+    if (novas.length) await tx.insert(plataformas).values(novas.map(item => ({ ...item, id: gerarId() })));
+    return novas.length;
+  });
 }
 
-export async function deletePlataforma(id: string): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  await db.delete(plataformas).where(eq(plataformas.id, id));
-}
-
-/** Insere as plataformas padrão somente se a tabela estiver vazia (primeira inicialização global). */
-export async function seedPlataformasIfEmpty(defaults: InsertPlataforma[]): Promise<PlataformaDb[]> {
-  const db = await getDb();
-  if (!db) return [];
-  const existing = await db.select().from(plataformas);
-  if (existing.length > 0) return existing;
-  if (defaults.length > 0) {
-    await db.insert(plataformas).values(defaults);
+export async function createPlataforma(plat: InsertPlataforma, userId: number | null) {
+  const db = await ensurePlataformasTable();
+  if (userId === null) {
+    const [created] = await db.insert(plataformas).values(plat).returning();
+    return created;
   }
-  return db.select().from(plataformas);
+  const [created] = await db.insert(plataformasPessoais).values({ ...plat, userId }).returning();
+  const { userId: owner, ...item } = created;
+  return item;
+}
+
+export async function updatePlataforma(id: string, userId: number | null, data: Partial<InsertPlataforma>) {
+  const db = await ensurePlataformasTable();
+  const table = userId === null ? plataformas : plataformasPessoais;
+  const scope = userId === null ? eq(plataformas.id, id)
+    : and(eq(plataformasPessoais.id, id), eq(plataformasPessoais.userId, userId));
+  const [updated] = await db.update(table).set(data).where(scope).returning({ id: table.id });
+  return updated;
+}
+
+export async function deletePlataforma(id: string, userId: number | null) {
+  const db = await ensurePlataformasTable();
+  const table = userId === null ? plataformas : plataformasPessoais;
+  const scope = userId === null ? eq(plataformas.id, id)
+    : and(eq(plataformasPessoais.id, id), eq(plataformasPessoais.userId, userId));
+  const [deleted] = await db.delete(table).where(scope).returning({ id: table.id });
+  return deleted;
 }
 
 // ── Push Notifications ──
