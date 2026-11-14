@@ -46,7 +46,9 @@ export default function Calendario() {
 
   const utils = trpc.useUtils();
   const { user } = useAuth();
-  const isAdmin = user?.isPrimaryAdmin === true;
+  const isAdmin = user?.isPrimaryAdmin ?? user?.role === "admin";
+  const hasSharedSettings = typeof user?.isPrimaryAdmin === "boolean";
+  const canCreate = isAdmin || hasSharedSettings;
 
   const listQuery = trpc.plataformas.list.useQuery();
   const plataformas = listQuery.data ?? [];
@@ -100,7 +102,7 @@ export default function Calendario() {
     const dia = novaPlat.dia;
 
     try {
-      await createMutation.mutateAsync({ nome, diasPrazo, dia });
+      await createMutation.mutateAsync({ nome, diasPrazo, dia, id: crypto.randomUUID() });
       setNovaPlat({ nome: "", diasPrazo: 3, dia: "SEGUNDA-FEIRA" });
       setShowForm(false);
       toast.success(`${nome} adicionada com sucesso!`);
@@ -180,11 +182,13 @@ export default function Calendario() {
           <p className="text-[10px] text-white/60 dark:text-white/35 uppercase tracking-widest mt-0.5">
             {isAdmin
               ? "As plataformas que você cadastrar aqui aparecem para todos os usuários."
-              : "Calendário compartilhado pelo administrador e plataformas da sua conta."}
+              : hasSharedSettings
+                ? "Calendário compartilhado pelo administrador e plataformas da sua conta."
+                : "Calendário compartilhado pelo administrador."}
           </p>
         </div>
         <div className="flex items-center gap-2">
-            <button
+            {canCreate && <button
               disabled={listQuery.isPending || listQuery.isError}
               onClick={() => setShowForm(!showForm)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs text-[#050b18] transition-all hover:scale-[1.02] disabled:opacity-50"
@@ -192,7 +196,7 @@ export default function Calendario() {
             >
               <Plus size={14} />
               Nova Plataforma
-            </button>
+            </button>}
         </div>
       </div>
 
@@ -203,7 +207,7 @@ export default function Calendario() {
           <button type="button" className="underline" onClick={() => listQuery.refetch()}>Tentar novamente</button>
         </p>
       )}
-      {isAdmin && listQuery.isSuccess && temPlataformasAntigas && (
+      {isAdmin && hasSharedSettings && listQuery.isSuccess && temPlataformasAntigas && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#d4a017]/30 p-3 text-sm">
           <span>Há plataformas antigas neste navegador que você pode compartilhar com todos.</span>
           <button

@@ -89,7 +89,8 @@ function AppContent() {
   };
 
   // Tabs visíveis para este usuário
-  const tabs = user?.isPrimaryAdmin ? [...publicTabs, adminTab] : publicTabs;
+  const canUseAdmin = user?.isPrimaryAdmin ?? user?.role === "admin";
+  const tabs = canUseAdmin ? [...publicTabs, adminTab] : publicTabs;
 
   useEffect(() => {
     localStorage.setItem("lastActiveTab", activeTab);
@@ -117,7 +118,7 @@ function AppContent() {
       case "calendario": return <Calendario />;
       case "editar-dados": return <EditarDados />;
       case "slots": return <Slots />;
-      case "admin": return user?.isPrimaryAdmin ? <AdminPanel /> : <Dashboard />;
+      case "admin": return canUseAdmin ? <AdminPanel /> : <Dashboard />;
       default: return <Dashboard />;
     }
   };

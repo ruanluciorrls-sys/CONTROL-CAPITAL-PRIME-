@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -30,8 +30,13 @@ export function ThemeProvider({
     onSuccess: () => utils.settings.get.invalidate(),
     onError: () => toast.error("Não foi possível salvar o tema compartilhado."),
   });
-  const theme = settings.data?.tema ?? defaultTheme;
-  const switchable = shared && auth.data?.isPrimaryAdmin === true;
+  const [legacyTheme, setLegacyTheme] = useState<Theme>(() => {
+    try { return localStorage.getItem("theme") === "light" ? "light" : defaultTheme; } catch { return defaultTheme; }
+  });
+  const hasSharedTheme = typeof settings.data?.tema === "string";
+  const legacyBackend = !!auth.data && typeof auth.data.isPrimaryAdmin !== "boolean";
+  const theme = settings.data?.tema ?? (shared && legacyBackend ? legacyTheme : defaultTheme);
+  const switchable = shared && (legacyBackend || (hasSharedTheme && auth.data?.isPrimaryAdmin === true));
 
   useEffect(() => {
     const root = document.documentElement;
@@ -45,7 +50,13 @@ export function ThemeProvider({
 
   const toggleTheme = switchable
     ? () => {
-        if (!update.isPending) update.mutate({ tema: theme === "light" ? "dark" : "light" });
+        const nextTheme = theme === "light" ? "dark" : "light";
+        if (legacyBackend) {
+          setLegacyTheme(nextTheme);
+          try { localStorage.setItem("theme", nextTheme); } catch {}
+        } else if (!update.isPending) {
+          update.mutate({ tema: nextTheme });
+        }
       }
     : undefined;
 

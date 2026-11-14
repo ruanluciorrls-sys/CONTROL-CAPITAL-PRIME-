@@ -239,14 +239,15 @@ function SubscriptionModal({ userId, userName, currentStatus, onClose, onSuccess
 /* ──────────────────────── PAINEL PRINCIPAL ──────────────────────── */
 export default function AdminPanel() {
   const { user } = useAuth();
-  const usersQuery = trpc.admin.users.list.useQuery(undefined, { enabled: user?.isPrimaryAdmin === true });
+  const canUseAdmin = user?.isPrimaryAdmin ?? user?.role === "admin";
+  const usersQuery = trpc.admin.users.list.useQuery(undefined, { enabled: canUseAdmin });
   const toggleActive = trpc.admin.users.toggleActive.useMutation({ onSuccess: () => usersQuery.refetch() });
 
   const [showCreate, setShowCreate] = useState(false);
   const [resetUser, setResetUser] = useState<{ id: number; name: string } | null>(null);
   const [subUser, setSubUser] = useState<{ id: number; name: string; status: SubscriptionStatus } | null>(null);
 
-  if (!user?.isPrimaryAdmin) {
+  if (!user || !canUseAdmin) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4">
         <Shield size={48} className="text-white/20" />

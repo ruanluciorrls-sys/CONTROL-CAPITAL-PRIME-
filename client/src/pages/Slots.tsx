@@ -20,7 +20,7 @@ interface SlotGame {
 export default function Slots() {
   const { user } = useAuth();
   const { confirm, confirmEl } = useConfirm();
-  const isAdmin = user?.isPrimaryAdmin === true;
+  const isAdmin = user?.isPrimaryAdmin ?? user?.role === "admin";
   const [activeTab, setActiveTab] = useState<"catalogo" | "favoritos">("catalogo");
   const [search, setSearch] = useState("");
   const [selectedProvider, setSelectedProvider] = useState("TODOS");
