@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, getRelatorioById, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getPrimaryAdminId, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, updateSlot, deleteSlot, hideSlotByName, getPixTags, createPixTag, deletePixTag, getChavesPix, createChavesPix, deleteChavesPix, setTagChaves, getRedeNotas, upsertRedeNota, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma } from "./db";
 import { savePushSubscription, deletePushSubscription, acumularCicloDia, getPushSoCelular, setPushSoCelular, logPush, getPushLog, getPlataformasPessoais, importarPlataformasCompartilhadas } from "./db";
 import { getReceitasByUserId, createReceita, updateReceita, deleteReceita } from "./db";
+import { getIdsRelatoriosReordenaveis, getOrdemRelatorios, salvarOrdemRelatorios } from "./db";
 import { getPushPublicKey, sendPushToUser, fmtBRL, nomeDaMeta, enviarResumoDiaTeste, enviarLancamentosTeste, enviarPlataformasTeste } from "./push";
 import { supabaseUploadJSON } from "./storage";
 import { InsertRelatorio } from "../drizzle/schema";
@@ -221,6 +222,22 @@ export const appRouter = router({
     list: protectedProcedure.query(({ ctx }) =>
       getRelatoriosByUserId(ctx.user.id)
     ),
+    ordem: protectedProcedure.query(({ ctx }) =>
+      getOrdemRelatorios(ctx.user.id)
+    ),
+    reordenar: protectedProcedure
+      .input(z.object({
+        ids: z.array(z.string().min(1).max(128)).min(2).max(5000)
+          .refine(ids => new Set(ids).size === ids.length, "A ordem nao pode repetir relatorios."),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const permitidos = await getIdsRelatoriosReordenaveis(ctx.user.id, input.ids);
+        if (permitidos.length !== input.ids.length) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "A lista de relatorios ativos mudou." });
+        }
+        await salvarOrdemRelatorios(ctx.user.id, input.ids);
+        return input.ids;
+      }),
     create: protectedProcedure
       .input(z.object({
         casaId: z.string(),

@@ -1,6 +1,6 @@
 import { useApp } from "@/contexts/AppContext";
 import { trpc } from "@/lib/trpc";
-import { Plus, Trash2, Copy, Clock, ChevronDown, X, Check, CheckCircle2, Circle, CheckCheck, Tag } from "lucide-react";
+import { Plus, Trash2, Copy, Clock, ChevronDown, X, Check, CheckCircle2, Circle, CheckCheck, Tag, ArrowLeft, ArrowRight, ArrowUp, ArrowDown, ListOrdered } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import SeletorJogos from "@/components/SeletorJogos";
 import AbaProgresso from "@/components/AbaProgresso";
 import { usePageTransition } from "@/hooks/usePageTransition";
 import { useConfirm } from "@/hooks/useConfirm";
+import { aplicarOrdemRelatorios, moverRelatorio } from "@/lib/ordemRelatorios";
 
 const REPORT_ACCENTS = [
   "#60a5fa", "#34d399", "#a78bfa", "#f472b6", "#eab308",
@@ -38,12 +39,18 @@ interface RelatorioCardProps {
   selectMode?: boolean;
   checked?: boolean;
   onToggleCheck?: (e: React.MouseEvent) => void;
+  ordem?: {
+    index: number;
+    total: number;
+    salvando: boolean;
+    mover: (direcao: -1 | 1) => void;
+  };
 }
 
 function RelatorioCard({
   rel, accent, isSelected, nome, loginCasa, lucroTotal,
   prazoDate, isVencido, countdown, onSelect, onDuplicate, onDelete, onEtiqueta, onReembolso,
-  selectMode, checked, onToggleCheck,
+  selectMode, checked, onToggleCheck, ordem,
 }: RelatorioCardProps) {
   const [loginCopiado, setLoginCopiado] = useState(false);
 
@@ -95,6 +102,33 @@ function RelatorioCard({
       )}
 
       <div className="p-5">
+        {ordem && (
+          <div className="mb-3 flex items-center justify-between gap-2" role="group" aria-label={`Posição de ${nome}`}>
+            <span className="text-xs font-bold text-white/85 tabular-nums">{ordem.index + 1} de {ordem.total}</span>
+            <div className="flex gap-2">
+              {([-1, 1] as const).map(direcao => {
+                const anterior = direcao === -1;
+                const label = anterior ? "Mover para frente" : "Mover para trás";
+                const Vertical = anterior ? ArrowUp : ArrowDown;
+                const Horizontal = anterior ? ArrowLeft : ArrowRight;
+                return (
+                  <button
+                    key={direcao}
+                    type="button"
+                    aria-label={`${label}: ${nome}`}
+                    title={label}
+                    disabled={ordem.salvando || (anterior ? ordem.index === 0 : ordem.index === ordem.total - 1)}
+                    onClick={e => { e.stopPropagation(); ordem.mover(direcao); }}
+                    className="grid h-11 w-11 place-items-center rounded-lg border border-white/25 bg-black/35 text-white hover:bg-black/55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-30"
+                  >
+                    <Vertical className="md:hidden" size={18} />
+                    <Horizontal className="hidden md:block" size={18} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {/* Nome */}
         <p className="font-black text-base text-white/90 truncate mb-1" title={nome}>
           {nome}
@@ -440,7 +474,7 @@ function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
 }
 
 export default function Relatorios() {
-  const { state, addRelatorio, updateRelatorio, deleteRelatorio, finalizarRelatorio, finalizarCasa, duplicarRelatorio, esvaziarLixeira } = useApp();
+  const { state, addRelatorio, updateRelatorio, deleteRelatorio, finalizarRelatorio, finalizarCasa, duplicarRelatorio, esvaziarLixeira, ordemRelatorios, salvandoOrdemRelatorios, reordenarRelatorios } = useApp();
   const { confirm, confirmEl } = useConfirm();
   const [finalizarDialogId, setFinalizarDialogId] = useState<string | null>(null);
   const [jogosTexto, setJogosTexto] = useState("");
@@ -468,6 +502,7 @@ export default function Relatorios() {
   const [countdown, setCountdown] = useState("");
   const [selectedLixeira, setSelectedLixeira] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
+  const [organizandoRelatorios, setOrganizandoRelatorios] = useState(false);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
 
   const toggleSelecionado = (id: string) => {
@@ -523,7 +558,22 @@ export default function Relatorios() {
   }, [newRelatorioData.prazo]);
 
   const casasAtivas = state.casas.filter((c) => c.status === "ativa");
-  const relatoriosAtivos = state.relatorios.filter((r) => r.status === "ativo" && !r.reembolso);
+  const relatoriosAtivosBase = state.relatorios.filter(r => r.status === "ativo" && !r.reembolso)
+    .sort((a, b) => a.criadoEm.localeCompare(b.criadoEm) || a.id.localeCompare(b.id));
+  const coresDosRelatorios = new Map(relatoriosAtivosBase.map((r, index) => [r.id, getReportAccent(index)]));
+  const relatoriosAtivos = aplicarOrdemRelatorios(relatoriosAtivosBase, ordemRelatorios ?? []);
+  const podeOrganizarRelatorios = ordemRelatorios !== undefined && relatoriosAtivos.length > 1 && !selectMode;
+  const mostrarSetasRelatorios = organizandoRelatorios && podeOrganizarRelatorios;
+
+  const trocarPosicaoRelatorio = (index: number, direcao: -1 | 1) => {
+    if (!mostrarSetasRelatorios || salvandoOrdemRelatorios) return;
+    const novaOrdem = moverRelatorio(relatoriosAtivos.map(r => r.id), index, direcao);
+    if (novaOrdem) {
+      void reordenarRelatorios(novaOrdem).catch(() => {
+        toast.error("Não foi possível salvar a ordem dos relatórios. Tente novamente.");
+      });
+    }
+  };
   const relatoriosReembolso = state.relatorios.filter((r) => r.status === "ativo" && r.reembolso === "pendente");
   const relatoriosReembolsoHist = state.relatorios.filter((r) => r.reembolso === "concluido");
   const relatoriosLixeira = state.relatorios.filter((r) => r.status === "lixeira");
@@ -804,8 +854,18 @@ export default function Relatorios() {
                   <h3 className="text-sm font-black text-white/70 uppercase tracking-wider">Relatórios Criados</h3>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold text-white/25">{relatoriosAtivos.length} ativo(s)</span>
+                    {podeOrganizarRelatorios && (
+                      <button
+                        type="button"
+                        aria-pressed={mostrarSetasRelatorios}
+                        onClick={() => setOrganizandoRelatorios(v => !v)}
+                        className="flex min-h-11 items-center gap-1.5 rounded-lg border border-amber-300/25 bg-amber-300/10 px-3 text-[10px] font-bold uppercase tracking-wider text-amber-200 hover:bg-amber-300/20"
+                      >
+                        <ListOrdered size={14} /> {mostrarSetasRelatorios ? "Concluir" : "Organizar"}
+                      </button>
+                    )}
                     <button
-                      onClick={() => { setSelectMode((v) => !v); setSelecionados(new Set()); }}
+                      onClick={() => { setOrganizandoRelatorios(false); setSelectMode((v) => !v); setSelecionados(new Set()); }}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
                       style={selectMode
                         ? { background: "rgba(212,160,23,0.15)", color: "#d4a017", border: "1px solid rgba(212,160,23,0.35)" }
@@ -815,6 +875,12 @@ export default function Relatorios() {
                     </button>
                   </div>
                 </div>
+
+                {mostrarSetasRelatorios && (
+                  <p role="status" className="mb-4 text-xs text-white/75">
+                    {salvandoOrdemRelatorios ? "Salvando ordem..." : "Use as setas para mudar a sequência. A ordem é salva automaticamente."}
+                  </p>
+                )}
 
                 {/* Barra de ação em massa */}
                 {selectMode && (
@@ -851,7 +917,7 @@ export default function Relatorios() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {(() => {
                     return relatoriosAtivos.map((rel, index) => {
-                      const accent = getReportAccent(index);
+                      const accent = coresDosRelatorios.get(rel.id) ?? getReportAccent(index);
                       const lucroTotal = calculateTotalResultado(rel.rows, rel.cooperacao);
                       const isSelected = selectedRelatorioId === rel.id;
                       const nomeBase = getCasaNome(rel.casaId).replace(/[\s-]+$/, "").trim();
@@ -882,6 +948,12 @@ export default function Relatorios() {
                           selectMode={selectMode}
                           checked={selecionados.has(rel.id)}
                           onToggleCheck={() => toggleSelecionado(rel.id)}
+                          ordem={mostrarSetasRelatorios ? {
+                            index,
+                            total: relatoriosAtivos.length,
+                            salvando: salvandoOrdemRelatorios,
+                            mover: direcao => trocarPosicaoRelatorio(index, direcao),
+                          } : undefined}
                         />
                       );
                     });

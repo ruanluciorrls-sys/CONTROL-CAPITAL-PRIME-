@@ -145,6 +145,11 @@ export const userSettings = pgTable("userSettings", {
 export type UserSettings = typeof userSettings.$inferSelect;
 export type InsertUserSettings = typeof userSettings.$inferInsert;
 
+export const ordemRelatorios = pgTable("ordemRelatorios", {
+  userId: integer("userId").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  ids: jsonb("ids").$type<string[]>().notNull(),
+});
+
 export const userSettingsRelations = relations(userSettings, ({ one }) => ({
   user: one(users, { fields: [userSettings.userId], references: [users.id] }),
 }));

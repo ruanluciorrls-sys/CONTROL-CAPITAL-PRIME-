@@ -2,7 +2,7 @@
 
 > **Leia este arquivo inteiro antes de mexer no código.** Ele existe para que qualquer IA (Claude, GPT, Gemini, etc.) consiga continuar o trabalho sem quebrar nada e sem precisar redescobrir tudo. Mantenha-o atualizado quando fizer mudanças estruturais.
 
-Última atualização: **2026-11-15** · Versão do app: **1.27.1** (ver [`CHANGELOG.md`](CHANGELOG.md)).
+Última atualização: **2026-11-16** · Versão do app: **1.28.0** (ver [`CHANGELOG.md`](CHANGELOG.md)).
 
 ---
 
@@ -64,6 +64,7 @@ todo.md          → histórico de tarefas (legado, quase tudo concluído)
 2. O context chama a **mutation tRPC** correspondente e depois faz `query.refetch()`.
 3. O servidor (`routers.ts`) valida com **Zod**, chama o **`db.ts`**, retorna.
 4. Dados financeiros são **privados por usuário** (`ctx.user.id`). O calendário combina as plataformas compartilhadas do administrador principal com as plataformas privadas de cada usuário. Slots e aparência são compartilhados.
+5. A ordem dos cartões de relatórios ativos é uma preferência privada da conta (tabela `ordemRelatorios`), não parte da aparência compartilhada.
 
 ## 4. Convenções (siga para manter consistência)
 

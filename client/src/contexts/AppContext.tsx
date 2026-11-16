@@ -18,6 +18,9 @@ interface AppContextType {
   finalizarRelatorio: (id: string) => void;
   reutilizarRelatorio: (id: string) => void;
   duplicarRelatorio: (id: string) => void;
+  ordemRelatorios: string[] | undefined;
+  salvandoOrdemRelatorios: boolean;
+  reordenarRelatorios: (ids: string[]) => Promise<string[]>;
   esvaziarLixeira: () => void;
   updateAppName: (nome: string) => void;
   updateCorPrimaria: (cor: string) => void;
@@ -60,6 +63,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   });
 
   const settingsQuery = trpc.settings.get.useQuery();
+  const ordemRelatoriosQuery = trpc.relatorios.ordem.useQuery(undefined, { retry: false });
 
   // Mutations tRPC
   const createCasaMutation = trpc.casas.create.useMutation();
@@ -78,6 +82,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // recarga de outra entidade (casas/settings) reconstrua a lista a partir de dados
   // antigos e faça os ciclos salvos "sumirem".
   const utils = trpc.useUtils();
+  const reordenarRelatoriosMutation = trpc.relatorios.reordenar.useMutation({
+    onMutate: async ({ ids }) => {
+      await utils.relatorios.ordem.cancel();
+      const anterior = utils.relatorios.ordem.getData();
+      utils.relatorios.ordem.setData(undefined, ids);
+      return { anterior };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.anterior) utils.relatorios.ordem.setData(undefined, context.anterior);
+    },
+    onSuccess: async ids => {
+      await utils.relatorios.ordem.cancel();
+      utils.relatorios.ordem.setData(undefined, ids);
+    },
+  });
   const patchRelCache = (id: string, patch: Record<string, unknown>) =>
     utils.relatorios.list.setData(undefined, (old: any) =>
       (old || []).map((r: any) => (r.id === id ? { ...r, ...patch } : r))
@@ -576,6 +595,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         finalizarRelatorio,
         reutilizarRelatorio,
         duplicarRelatorio,
+        ordemRelatorios: ordemRelatoriosQuery.data,
+        salvandoOrdemRelatorios: reordenarRelatoriosMutation.isPending,
+        reordenarRelatorios: ids => reordenarRelatoriosMutation.mutateAsync({ ids }),
         esvaziarLixeira,
         updateAppName,
         updateCorPrimaria,

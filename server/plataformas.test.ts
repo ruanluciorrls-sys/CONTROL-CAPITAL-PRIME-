@@ -13,6 +13,9 @@ const db = vi.hoisted(() => ({
   updateUserSettings: vi.fn(),
   getSlots: vi.fn(),
   listAllUsers: vi.fn(),
+  getIdsRelatoriosReordenaveis: vi.fn(),
+  getOrdemRelatorios: vi.fn(),
+  salvarOrdemRelatorios: vi.fn(),
 }));
 
 vi.mock("./db", async importOriginal => ({ ...await importOriginal<typeof import("./db")>(), ...db }));
@@ -38,6 +41,32 @@ const plataforma = { nome: "REDE DE TESTE", dia: "SEGUNDA-FEIRA", diasPrazo: 4 }
 beforeEach(() => {
   vi.resetAllMocks();
   db.getPrimaryAdminId.mockResolvedValue(1);
+});
+
+describe("Ordem dos relatorios por conta", () => {
+  it("salva a ordem na conta autenticada sem publicar a preferencia em settings", async () => {
+    const ordens = new Map<number, string[]>();
+    db.getIdsRelatoriosReordenaveis.mockImplementation(async (id, ids) => id === 2 ? ids : []);
+    db.salvarOrdemRelatorios.mockImplementation(async (id, ids) => { ordens.set(id, ids); });
+    db.getOrdemRelatorios.mockImplementation(async id => ordens.get(id) ?? []);
+
+    await expect(caller(2, "user").relatorios.reordenar({ ids: ["dois", "um"] })).resolves.toEqual(["dois", "um"]);
+    await expect(caller(2, "user").relatorios.ordem()).resolves.toEqual(["dois", "um"]);
+    await expect(caller(1, "admin").relatorios.ordem()).resolves.toEqual([]);
+    expect(db.salvarOrdemRelatorios).toHaveBeenCalledWith(2, ["dois", "um"]);
+    expect(db.updateUserSettings).not.toHaveBeenCalled();
+  });
+
+  it("rejeita IDs repetidos e IDs que nao pertencem aos relatorios ativos da conta", async () => {
+    const usuario = caller(2, "user");
+    await expect(usuario.relatorios.reordenar({ ids: ["um", "um"] })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(db.getIdsRelatoriosReordenaveis).not.toHaveBeenCalled();
+
+    db.getIdsRelatoriosReordenaveis.mockResolvedValue(["um"]);
+    await expect(usuario.relatorios.reordenar({ ids: ["um", "de-outra-conta"] })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(db.getIdsRelatoriosReordenaveis).toHaveBeenCalledWith(2, ["um", "de-outra-conta"]);
+    expect(db.salvarOrdemRelatorios).not.toHaveBeenCalled();
+  });
 });
 
 describe("Configurações compartilhadas", () => {

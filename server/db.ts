@@ -1,11 +1,11 @@
-import { eq, desc, sql, inArray, and, asc } from "drizzle-orm";
+import { eq, desc, sql, inArray, and, asc, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { InsertUser, users, casas, relatorios, contas, userSettings, gastosProxy, Casa, Relatorio, InsertCasa, InsertRelatorio, Conta, InsertConta, UserSettings, GastoProxy, InsertGastoProxy, slots, Slot, InsertSlot, plataformas, PlataformaDb, InsertPlataforma, pushConfig, PushConfig, pushSubscriptions, PushSubscriptionRow, InsertPushSubscription, receitas, Receita, InsertReceita, pixTags, chavesPix, PixTag, ChavePix, InsertPixTag, InsertChavePix, redeNotas, RedeNota } from "../drizzle/schema";
 import bcrypt from "bcryptjs";
 import { ENV } from './_core/env';
 import { plataformasPadrao } from "./plataformas-padrao";
-import { plataformasPessoais } from "../drizzle/schema";
+import { ordemRelatorios, plataformasPessoais } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -267,6 +267,47 @@ export async function getRelatoriosByUserId(userId: number): Promise<Relatorio[]
   const db = await getDb();
   if (!db) return [];
   return db.select().from(relatorios).where(eq(relatorios.userId, userId));
+}
+
+export async function getIdsRelatoriosReordenaveis(userId: number, ids: string[]): Promise<string[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponivel.");
+  const rows = await db.select({ id: relatorios.id }).from(relatorios).where(and(
+    eq(relatorios.userId, userId),
+    eq(relatorios.status, "ativo"),
+    isNull(relatorios.reembolso),
+    inArray(relatorios.id, ids),
+  ));
+  return rows.map(row => row.id);
+}
+
+let ordemRelatoriosReady: Promise<unknown> | undefined;
+
+async function ensureOrdemRelatoriosSchema() {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponivel.");
+  ordemRelatoriosReady ??= db.execute(sql`CREATE TABLE IF NOT EXISTS "ordemRelatorios" (
+    "userId" INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    ids JSONB NOT NULL
+  )`).catch(error => {
+    ordemRelatoriosReady = undefined;
+    throw error;
+  });
+  await ordemRelatoriosReady;
+  return db;
+}
+
+export async function getOrdemRelatorios(userId: number): Promise<string[]> {
+  const db = await ensureOrdemRelatoriosSchema();
+  const [row] = await db.select({ ids: ordemRelatorios.ids }).from(ordemRelatorios)
+    .where(eq(ordemRelatorios.userId, userId));
+  return row?.ids ?? [];
+}
+
+export async function salvarOrdemRelatorios(userId: number, ids: string[]): Promise<void> {
+  const db = await ensureOrdemRelatoriosSchema();
+  await db.insert(ordemRelatorios).values({ userId, ids })
+    .onConflictDoUpdate({ target: ordemRelatorios.userId, set: { ids } });
 }
 
 /** Garante as colunas extras na tabela relatorios (sem migration manual). */

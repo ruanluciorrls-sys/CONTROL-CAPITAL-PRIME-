@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.28.0] - 2026-11-16
+
+### Adicionado
+- Modo Organizar em Relatórios Criados, com setas para mover os cartões no computador e no celular. A sequência é salva por conta, sem mudar as cores ao mover.
+
 ## [1.27.1] - 2026-11-15
 
 ### Alterado
