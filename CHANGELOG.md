@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.27.1] - 2026-11-15
+
+### Alterado
+- Cada cartão em “Relatórios Criados” usa uma cor de fundo diferente para facilitar a identificação em todas as contas, mantendo as cores de lucro e prejuízo.
+
 ## [1.27.0] - 2026-11-13
 
 ### Adicionado

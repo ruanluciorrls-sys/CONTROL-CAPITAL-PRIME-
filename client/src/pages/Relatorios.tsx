@@ -10,6 +10,15 @@ import AbaProgresso from "@/components/AbaProgresso";
 import { usePageTransition } from "@/hooks/usePageTransition";
 import { useConfirm } from "@/hooks/useConfirm";
 
+const REPORT_ACCENTS = [
+  "#60a5fa", "#34d399", "#a78bfa", "#f472b6", "#eab308",
+  "#818cf8", "#fb923c", "#22d3ee", "#f87171",
+];
+
+function getReportAccent(index: number) {
+  return REPORT_ACCENTS[index] ?? `hsl(${(index * 137.508) % 360} 76% 68%)`;
+}
+
 // ----- Sub-component: card individual de relatório -----
 interface RelatorioCardProps {
   rel: any;
@@ -51,11 +60,10 @@ function RelatorioCard({
       onClick={(e) => { if (selectMode && onToggleCheck) { onToggleCheck(e); } else { onSelect(); } }}
       className="group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
       style={{
-        background: isSelected
-          ? `linear-gradient(145deg, ${accent}18, ${accent}06)`
-          : "linear-gradient(145deg, #070e20, #0c1524)",
-        border: `1px solid ${checked ? "#d4a017" : isSelected ? accent + "50" : "rgba(255,255,255,0.08)"}`,
-        boxShadow: checked ? "0 0 24px rgba(212,160,23,0.25)" : isSelected ? `0 0 24px ${accent}20` : "none",
+        backgroundColor: "#0c1524",
+        backgroundImage: `linear-gradient(145deg, color-mix(in srgb, ${accent} 40%, #070e20), color-mix(in srgb, ${accent} 22%, #070e20))`,
+        border: `1px solid ${checked ? "#d4a017" : isSelected ? accent : `color-mix(in srgb, ${accent} 55%, #070e20)`}`,
+        boxShadow: checked ? "0 0 24px rgba(212,160,23,0.25)" : isSelected ? `0 0 0 2px ${accent}` : "none",
       }}
     >
       {/* Checkbox de seleção múltipla */}
@@ -842,12 +850,8 @@ export default function Relatorios() {
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {(() => {
-                    const accentColors = [
-                      "#60a5fa", "#34d399", "#a78bfa", "#f472b6",
-                      "#d4a017", "#818cf8", "#fb923c", "#22d3ee", "#f87171",
-                    ];
                     return relatoriosAtivos.map((rel, index) => {
-                      const accent = accentColors[index % accentColors.length];
+                      const accent = getReportAccent(index);
                       const lucroTotal = calculateTotalResultado(rel.rows, rel.cooperacao);
                       const isSelected = selectedRelatorioId === rel.id;
                       const nomeBase = getCasaNome(rel.casaId).replace(/[\s-]+$/, "").trim();
