@@ -8,6 +8,15 @@ import { trpc } from "@/lib/trpc";
 import RedesDropdown from "@/components/RedesDropdown";
 import AvisoRede from "@/components/AvisoRede";
 import { calcularPrazo, calcCountdown } from "@/lib/prazo";
+import type { CasaData } from "@/lib/types";
+import CamposMetaCasa, { BotaoRecarga } from "@/components/CamposMetaCasa";
+import { metaRecargaValida } from "@shared/recarga";
+
+const CASA_FORM_VAZIO = {
+  nome: "", login: "", senha: "", meta: 0, media: 0, metaRecarga: null as number | null,
+  prazo: "", linkCasa: "", linkContaFilha: "",
+};
+const moedaRecarga = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function GerenciarCasas() {
   const { state, addCasa, updateCasa, deleteCasa, finalizarCasa, restaurarCasa, esvaziarLixeiraCasas, deletePermanentementeCasa } = useApp();
@@ -34,31 +43,14 @@ export default function GerenciarCasas() {
   };
   
   // Estado para múltiplos formulários
-  const [formDataList, setFormDataList] = useState<Array<{
+  const [formDataList, setFormDataList] = useState<Array<typeof CASA_FORM_VAZIO & {
     id: string;
-    nome: string;
-    login: string;
-    senha: string;
-    meta: number;
-    media: number;
-    prazo: string;
-    linkCasa: string;
-    linkContaFilha: string;
     redeNome?: string;
     redeDia?: string;
     redeDiasPrazo?: number;
   }>>([]);
   
-  const [formData, setFormData] = useState({
-    nome: "",
-    login: "",
-    senha: "",
-    meta: 0,
-    media: 0,
-    prazo: "",
-    linkCasa: "",
-    linkContaFilha: "",
-  });
+  const [formData, setFormData] = useState(CASA_FORM_VAZIO);
 
   // Rede selecionada no formulário de EDIÇÃO (separado do formData pra não mexer no resto)
   const [editRede, setEditRede] = useState<{ nome: string; dia: string; diasPrazo: number }>({ nome: "", dia: "", diasPrazo: 0 });
@@ -102,11 +94,14 @@ export default function GerenciarCasas() {
       newErrors.nome = "Nome é obrigatório e deve ter até 100 caracteres";
     }
 
-    if (formData.meta && !validations.isValidCurrency(formData.meta)) {
+    if (formData.metaRecarga !== null && !metaRecargaValida(formData.metaRecarga)) {
+      newErrors.metaRecarga = "Informe uma meta de recarga maior que zero, com até duas casas decimais.";
+    }
+    if (formData.metaRecarga === null && formData.meta && !validations.isValidCurrency(formData.meta)) {
       newErrors.meta = "Meta deve ser um valor monetário válido";
     }
 
-    if (formData.media && !validations.isValidCurrency(formData.media)) {
+    if (formData.metaRecarga === null && formData.media && !validations.isValidCurrency(formData.media)) {
       newErrors.media = "Média deve ser um valor monetário válido";
     }
 
@@ -126,14 +121,7 @@ export default function GerenciarCasas() {
     const newId = Date.now().toString();
     setFormDataList([...formDataList, {
       id: newId,
-      nome: "",
-      login: "",
-      senha: "",
-      meta: 0,
-      media: 0,
-      prazo: "",
-      linkCasa: "",
-      linkContaFilha: "",
+      ...CASA_FORM_VAZIO,
     }]);
   };
 
@@ -148,18 +136,21 @@ export default function GerenciarCasas() {
     setErrorsMultiple({ ...errorsMultiple, [id]: { ...errorsMultiple[id], [field]: "" } });
   };
 
-  const validateFormMultiple = (form: any): Record<string, string> => {
+  const validateFormMultiple = (form: typeof CASA_FORM_VAZIO): Record<string, string> => {
     const newErrors: Record<string, string> = {};
 
     if (!validations.isValidText(form.nome, 1, 100)) {
       newErrors.nome = "Nome é obrigatório";
     }
 
-    if (form.meta && !validations.isValidCurrency(form.meta)) {
+    if (form.metaRecarga !== null && !metaRecargaValida(form.metaRecarga)) {
+      newErrors.metaRecarga = "Informe uma meta de recarga maior que zero, com até duas casas decimais.";
+    }
+    if (form.metaRecarga === null && form.meta && !validations.isValidCurrency(form.meta)) {
       newErrors.meta = "Meta inválida";
     }
 
-    if (form.media && !validations.isValidCurrency(form.media)) {
+    if (form.metaRecarga === null && form.media && !validations.isValidCurrency(form.media)) {
       newErrors.media = "Média inválida";
     }
 
@@ -178,7 +169,7 @@ export default function GerenciarCasas() {
     e.preventDefault();
 
     // Proteção contra clique duplo / envio duplicado
-    if (isSaving) return;
+    if (isSaving || !formDataList.length) return;
 
     const newErrors: Record<string, Record<string, string>> = {};
     let hasErrors = false;
@@ -198,28 +189,29 @@ export default function GerenciarCasas() {
     }
 
     setIsSaving(true);
-    // Fecha o modal imediatamente para impedir reenvio
-    const casasParaSalvar = [...formDataList];
-    setFormDataList([]);
-    setShowModal(false);
-
     try {
-      for (const form of casasParaSalvar) {
-        await addCasa({
+      const falharam: typeof formDataList = [];
+      for (const form of formDataList) {
+        const salvou = await addCasa({
           nome: form.nome,
           login: form.login,
           senha: form.senha,
           redeNome: form.redeNome,
-          meta: form.meta,
-          media: form.media,
+          meta: form.metaRecarga === null ? form.meta : 0,
+          media: form.metaRecarga === null ? form.media : 0,
+          metaRecarga: form.metaRecarga,
           prazo: form.prazo,
           linkCasa: form.linkCasa,
           linkContaFilha: form.linkContaFilha,
           status: "ativa",
-        } as any);
+        });
+        if (!salvou) falharam.push(form);
       }
-
-      toast.success(`${casasParaSalvar.length} casa(s) adicionada(s) com sucesso!`);
+      setFormDataList(falharam);
+      const salvas = formDataList.length - falharam.length;
+      if (salvas) toast.success(`${salvas} casa(s) adicionada(s) com sucesso!`);
+      if (falharam.length) toast.error("Não foi possível salvar as casas que ficaram no formulário.");
+      else setShowModal(false);
     } catch (error) {
       toast.error("Erro ao adicionar casas");
       console.error(error);
@@ -230,47 +222,46 @@ export default function GerenciarCasas() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingId || isSaving) return;
 
     if (!validateForm()) {
       toast.error("Por favor, corrija os erros no formulário");
       return;
     }
 
+    setIsSaving(true);
     try {
-      if (editingId) {
-        await updateCasa(editingId, { ...formData, redeNome: editRede.nome } as any);
-        toast.success("Casa atualizada com sucesso!");
-      } else {
-        await addCasa({ ...formData, status: "ativa" } as any);
-        toast.success("Casa adicionada com sucesso!");
-      }
-
-      setFormData({
-        nome: "",
-        login: "",
-        senha: "",
-        meta: 0,
-        media: 0,
-        prazo: "",
-        linkCasa: "",
-        linkContaFilha: "",
+      const { meta, media, ...dados } = formData;
+      const salvou = await updateCasa(editingId, {
+        ...dados, redeNome: editRede.nome,
+        ...(dados.metaRecarga === null ? { meta, media } : {}),
       });
+      if (!salvou) {
+        toast.error("Erro ao salvar casa");
+        return;
+      }
+      toast.success("Casa atualizada com sucesso!");
+      setFormData(CASA_FORM_VAZIO);
       setEditingId(null);
       setErrors({});
       setShowModal(false); // fecha o modal após salvar (evita o "Adicionar Casas" vazio)
     } catch (error) {
       toast.error("Erro ao salvar casa");
       console.error(error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleEdit = (casa: any) => {
+  const handleEdit = (casa: CasaData) => {
+    setErrors({});
     setFormData({
       nome: casa.nome,
       login: casa.login,
       senha: casa.senha,
       meta: casa.meta,
       media: casa.media,
+      metaRecarga: casa.metaRecarga ?? null,
       prazo: casa.prazo,
       linkCasa: casa.linkCasa,
       linkContaFilha: casa.linkContaFilha,
@@ -328,27 +319,12 @@ export default function GerenciarCasas() {
             <button
               onClick={() => {
                 setEditingId(null);
-                setFormData({
-                  nome: "",
-                  login: "",
-                  senha: "",
-                  meta: 0,
-                  media: 0,
-                  prazo: "",
-                  linkCasa: "",
-                  linkContaFilha: "",
-                });
+                setFormData(CASA_FORM_VAZIO);
                 setErrors({});
+                setErrorsMultiple({});
                 setFormDataList([{
                   id: Date.now().toString(),
-                  nome: "",
-                  login: "",
-                  senha: "",
-                  meta: 0,
-                  media: 0,
-                  prazo: "",
-                  linkCasa: "",
-                  linkContaFilha: "",
+                  ...CASA_FORM_VAZIO,
                 }]);
                 setShowModal(true);
               }}
@@ -517,7 +493,12 @@ export default function GerenciarCasas() {
                   </div>
                 )}
 
-                {(casa.meta > 0 || casa.media > 0) && (
+                {casa.metaRecarga != null ? (
+                  <div className="mb-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-center">
+                    <p className="mb-0.5 text-[8px] font-black uppercase tracking-[0.15em] text-emerald-400/80">Meta - Recarga</p>
+                    <p className="text-sm font-black leading-none text-foreground">{moedaRecarga.format(casa.metaRecarga)}</p>
+                  </div>
+                ) : (casa.meta > 0 || casa.media > 0) && (
                   <div className="mb-2 flex gap-2">
                     {casa.meta > 0 && (
                       <div className="flex-1 rounded-xl px-3 py-2 text-center"
@@ -691,7 +672,7 @@ export default function GerenciarCasas() {
             <div className="sticky top-0 rounded-t-2xl p-5 flex justify-between items-center border-b border-white/8"
               style={{ background: "rgba(7,14,32,0.95)", backdropFilter: "blur(12px)" }}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[#050b18]"
                   style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
                 >
@@ -700,8 +681,11 @@ export default function GerenciarCasas() {
                 <h2 className="text-lg font-black text-white">
                   {editingId ? "Editar Casa" : "Adicionar Casas"}
                 </h2>
+                {editingId && <BotaoRecarga ativa={formData.metaRecarga !== null}
+                  onToggle={() => setFormData(prev => ({ ...prev, metaRecarga: prev.metaRecarga === null ? 0 : null }))} />}
               </div>
               <button
+                disabled={isSaving}
                 onClick={() => { setShowModal(false); setFormDataList([]); setEditingId(null); }}
                 className="w-8 h-8 flex items-center justify-center rounded-lg text-white/30 hover:text-white/70 hover:bg-white/10 transition-colors"
               >
@@ -789,29 +773,9 @@ export default function GerenciarCasas() {
                     </div>
                   </div>
 
-                  {/* Meta | Média */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Meta</label>
-                      <input
-                        type="number"
-                        placeholder="0.00"
-                        value={formData.meta || ""}
-                        onChange={(e) => setFormData({ ...formData, meta: e.target.value ? parseFloat(e.target.value) : 0 })}
-                        className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Média</label>
-                      <input
-                        type="number"
-                        placeholder="0.00"
-                        value={formData.media || ""}
-                        onChange={(e) => setFormData({ ...formData, media: e.target.value ? parseFloat(e.target.value) : 0 })}
-                        className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
-                      />
-                    </div>
-                  </div>
+                  <CamposMetaCasa meta={formData.meta} media={formData.media} metaRecarga={formData.metaRecarga}
+                    erroRecarga={errors.metaRecarga}
+                    onChange={(campo, valor) => setFormData(prev => ({ ...prev, [campo]: valor }))} />
 
                   {/* Prazo */}
                   <div>
@@ -870,6 +834,8 @@ export default function GerenciarCasas() {
                             {index + 1}
                           </div>
                           <h4 className="font-bold text-sm text-foreground">Nova Casa</h4>
+                          <BotaoRecarga ativa={form.metaRecarga !== null}
+                            onToggle={() => handleFormChange(form.id, "metaRecarga", form.metaRecarga === null ? 0 : null)} />
                         </div>
                         <button type="button" onClick={() => handleRemoveForm(form.id)}
                           className="text-red-400/60 hover:text-red-400 transition-colors"
@@ -970,23 +936,9 @@ export default function GerenciarCasas() {
                         </div>
                       </div>
 
-                      {/* 3. Meta | Média */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Meta</label>
-                          <input type="number" placeholder="0.00" value={form.meta || ""}
-                            onChange={(e) => handleFormChange(form.id, "meta", e.target.value ? parseFloat(e.target.value) : 0)}
-                            className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Média</label>
-                          <input type="number" placeholder="0.00" value={form.media || ""}
-                            onChange={(e) => handleFormChange(form.id, "media", e.target.value ? parseFloat(e.target.value) : 0)}
-                            className="w-full px-3 py-2.5 border border-white/15 rounded-lg text-sm bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-[#d4a017]"
-                          />
-                        </div>
-                      </div>
+                      <CamposMetaCasa meta={form.meta} media={form.media} metaRecarga={form.metaRecarga}
+                        erroRecarga={errorsMultiple[form.id]?.metaRecarga}
+                        onChange={(campo, valor) => handleFormChange(form.id, campo, valor)} />
 
                       {/* 4. Link da Conta-Filha */}
                       <div>
@@ -1007,6 +959,7 @@ export default function GerenciarCasas() {
                 {!editingId && (
                   <button
                     type="button"
+                    disabled={isSaving}
                     onClick={handleAddForm}
                     className="flex-1 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors font-medium text-sm"
                   >
@@ -1015,6 +968,7 @@ export default function GerenciarCasas() {
                 )}
                 <button
                   type="button"
+                  disabled={isSaving}
                   onClick={() => {
                     setShowModal(false);
                     setFormDataList([]);
@@ -1026,7 +980,7 @@ export default function GerenciarCasas() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSaving}
+                  disabled={isSaving || (!editingId && !formDataList.length)}
                   className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSaving ? "Salvando..." : editingId ? "Salvar" : `Salvar ${formDataList.length} Casa${formDataList.length !== 1 ? "s" : ""}`}

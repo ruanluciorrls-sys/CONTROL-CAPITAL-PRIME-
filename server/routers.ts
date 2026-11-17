@@ -1,4 +1,5 @@
 import { COOKIE_NAME } from "@shared/const";
+import { META_RECARGA_DECIMAL } from "@shared/recarga";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
@@ -25,6 +26,9 @@ const plataformaInput = z.object({
   ),
 });
 const plataformaId = z.string().trim().min(1).max(128);
+const metaRecargaInput = z.string().regex(META_RECARGA_DECIMAL)
+  .refine(valor => Number(valor) > 0, "Informe um valor de recarga maior que zero.")
+  .nullable().optional();
 
 async function isPrimaryAdmin(user: { id: number; role: string }) {
   return user.role === "admin" && await getPrimaryAdminId() === user.id;
@@ -163,6 +167,7 @@ export const appRouter = router({
         linkCasa: z.string().optional(),
         linkContaFina: z.string().optional(),
         meta: z.string().optional(),
+        metaRecarga: metaRecargaInput,
         prazo: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -196,6 +201,7 @@ export const appRouter = router({
         linkCasa: z.string().optional(),
         linkContaFina: z.string().optional(),
         meta: z.string().optional(),
+        metaRecarga: metaRecargaInput,
         prazo: z.string().optional(),
         status: z.enum(["ativa", "finalizada", "lixeira"]).optional(),
         dataFim: z.string().optional(),

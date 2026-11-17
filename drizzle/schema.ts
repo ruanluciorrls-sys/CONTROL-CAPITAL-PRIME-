@@ -44,6 +44,7 @@ export const casas = pgTable("casas", {
   linkCasa: text("linkCasa"),
   linkContaFina: text("linkContaFina"),
   meta: decimal("meta", { precision: 10, scale: 2 }),
+  metaRecarga: decimal("metaRecarga", { precision: 10, scale: 2 }),
   prazo: text("prazo"),
   dataInicio: date("dataInicio"),
   dataFim: date("dataFim"),

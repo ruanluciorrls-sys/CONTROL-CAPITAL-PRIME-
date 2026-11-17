@@ -2,7 +2,7 @@
 
 > **Leia este arquivo inteiro antes de mexer no código.** Ele existe para que qualquer IA (Claude, GPT, Gemini, etc.) consiga continuar o trabalho sem quebrar nada e sem precisar redescobrir tudo. Mantenha-o atualizado quando fizer mudanças estruturais.
 
-Última atualização: **2026-11-16** · Versão do app: **1.28.0** (ver [`CHANGELOG.md`](CHANGELOG.md)).
+Última atualização: **2026-11-17** · Versão do app: **1.29.0** (ver [`CHANGELOG.md`](CHANGELOG.md)).
 
 ---
 
@@ -25,6 +25,7 @@ Painel full-stack que um operador CPA usa para controlar a operação:
 
 ### Conceitos do domínio (decore isto)
 - **Casa / Meta**: a plataforma onde se opera. Tem `prazo` (data limite), `meta` (valor alvo), `media`.
+- **Recarga**: quando `casa.metaRecarga` tem valor, o montante é esse valor em reais e não há meta de quantidade de DEPs. O campo Salário recebido usa `relatorio.cooperacao` e mantém a mesma fórmula de lucro.
 - **Relatório**: vinculado a uma casa (`casaId`) + um `agente`. Contém `rows` (os ciclos) e `cooperacao`.
 - **Ciclo** = **uma linha** da planilha do relatório. **Resultado do ciclo = `saque − depósito − redepósito + baú`** (no código: `calc = (d,r,s,b) => s - d - r + b`).
 - **Lucro total do relatório** = soma dos `resultado` de todos os ciclos **+ `cooperacao`**.

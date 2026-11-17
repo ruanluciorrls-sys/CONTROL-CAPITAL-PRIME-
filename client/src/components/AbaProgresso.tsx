@@ -1,8 +1,10 @@
 import { ArrowRight } from "lucide-react";
+import { montanteDaOperacao } from "@shared/recarga";
 
 interface AbaProgressoProps {
   meta: number;
   media: number;
+  metaRecarga?: number | null;
   totalDeposito: number;
   totalSaque: number;
   totalBau: number;
@@ -13,15 +15,17 @@ interface AbaProgressoProps {
 export default function AbaProgresso({
   meta,
   media,
+  metaRecarga,
   totalDeposito,
   totalSaque,
   totalBau,
   cooperacao,
   rows,
 }: AbaProgressoProps) {
-  const montanteTotal = meta * media;
-  const percentualMontante = isNaN((totalDeposito / montanteTotal) * 100) ? 0 : (totalDeposito / montanteTotal) * 100;
-  const percentualDEP = isNaN((rows.length / meta) * 100) ? 0 : (rows.length / meta) * 100;
+  const recarga = metaRecarga != null;
+  const montanteTotal = montanteDaOperacao(meta, media, metaRecarga);
+  const percentualMontante = montanteTotal > 0 ? (totalDeposito / montanteTotal) * 100 : 0;
+  const percentualDEP = meta > 0 ? (rows.length / meta) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -79,7 +83,7 @@ export default function AbaProgresso({
       </div>
 
       {/* Card de Progresso de DEPs */}
-      <div className="bg-white rounded-lg p-6 border border-border shadow-sm">
+      {!recarga && <div className="bg-white rounded-lg p-6 border border-border shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-sm font-semibold text-muted-foreground mb-1">DEPs Realizados</p>
@@ -116,7 +120,7 @@ export default function AbaProgresso({
             </p>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Resumo Final */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white shadow-sm">
@@ -129,20 +133,20 @@ export default function AbaProgresso({
             </span>
             <span className="font-bold">{percentualMontante.toFixed(1)}%</span>
           </div>
-          <div className="flex items-center justify-between">
+          {!recarga && <div className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               <ArrowRight size={16} />
               DEPs Realizados
             </span>
             <span className="font-bold">{percentualDEP.toFixed(1)}%</span>
-          </div>
+          </div>}
           <div className="flex items-center justify-between pt-3 border-t border-white/20">
             <span className="flex items-center gap-2">
               <ArrowRight size={16} />
               Status Geral
             </span>
             <span className="font-bold">
-              {percentualMontante >= 100 && percentualDEP >= 100 ? "✓ Completo" : "Em Andamento"}
+              {percentualMontante >= 100 && (recarga || percentualDEP >= 100) ? "✓ Completo" : "Em Andamento"}
             </span>
           </div>
         </div>

@@ -694,6 +694,7 @@ export default function Relatorios() {
   };
 
   const currentRelatorio = selectedRelatorioId ? relatoriosAtivos.find((r) => r.id === selectedRelatorioId) : null;
+  const casaDoRelatorio = state.casas.find(c => c.id === currentRelatorio?.casaId);
 
   // ── Memória de jogos por REDE (VOY, EK...) — usa a rede da casa, com fallback no nome ──
   const getNomeInicialR = (nome: string) => (nome || "").trim().split(/\s+/)[0].toUpperCase();
@@ -777,7 +778,9 @@ export default function Relatorios() {
                     <option value="">Selecionar Meta</option>
                     {casasAtivas.map((casa) => (
                       <option key={casa.id} value={casa.id}>
-                        {casa.nome}{casa.meta ? ` — Meta: R$ ${Number(casa.meta).toFixed(2)}` : ""}
+                        {casa.nome}{casa.metaRecarga != null
+                          ? ` — Recarga: ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(casa.metaRecarga)}`
+                          : casa.meta ? ` — Meta: R$ ${Number(casa.meta).toFixed(2)}` : ""}
                       </option>
                     ))}
                   </select>
@@ -977,8 +980,9 @@ export default function Relatorios() {
                     handleCooperacaoChange(selectedRelatorioId, valor)
                   }
                   linkContaFilha={getCasaLinks(currentRelatorio.casaId).linkContaFilha}
-                  media={state.casas.find((c) => c.id === currentRelatorio.casaId)?.media || 0}
-                  meta={state.casas.find((c) => c.id === currentRelatorio.casaId)?.meta || 0}
+                  media={casaDoRelatorio?.media || 0}
+                  meta={casaDoRelatorio?.meta || 0}
+                  metaRecarga={casaDoRelatorio?.metaRecarga}
                   jogosUltimaVez={getJogosUltimaVez(currentRelatorio.casaId, currentRelatorio.id)}
                   rede={redeDaCasaR(currentRelatorio.casaId)}
                   rows={currentRelatorio.rows}
@@ -1018,8 +1022,9 @@ export default function Relatorios() {
 
         {renderedTab === "progresso" && currentRelatorio && (
           <AbaProgresso
-            meta={state.casas.find((c) => c.id === currentRelatorio.casaId)?.meta || 0}
-            media={state.casas.find((c) => c.id === currentRelatorio.casaId)?.media || 0}
+            meta={casaDoRelatorio?.meta || 0}
+            media={casaDoRelatorio?.media || 0}
+            metaRecarga={casaDoRelatorio?.metaRecarga}
             totalDeposito={currentRelatorio.rows.reduce((sum, r) => sum + (r.deposito || 0) + (r.redeposito || 0), 0)}
             totalSaque={currentRelatorio.rows.reduce((sum, r) => sum + r.saque, 0)}
             totalBau={currentRelatorio.rows.reduce((sum, r) => sum + r.bau, 0)}

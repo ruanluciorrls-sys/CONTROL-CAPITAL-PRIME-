@@ -71,8 +71,7 @@ export default function ImportExportXlsx() {
             const exists = state.casas.find((c) => c.id === item.id || c.nome === item.nome);
             if (!exists) {
               const { id, criadoEm, ...payload } = item;
-              await addCasa(payload);
-              countCasas++;
+              if (await addCasa(payload)) countCasas++;
             }
           }
 
@@ -126,6 +125,7 @@ export default function ImportExportXlsx() {
               login: String(row["login"] || row["usuario"] || row["user"] || ""),
               senha: String(row["senha"] || row["password"] || row["pass"] || ""),
               meta: Number(row["meta"] || row["target"] || row["valor"]) || 0,
+              metaRecarga: row["metarecarga"] === undefined || row["metarecarga"] === "" ? null : Number(row["metarecarga"]),
               media: Number(row["media"] || row["average"]) || 0,
               prazo: String(row["prazo"] || row["dias"] || row["periodo"] || ""),
               linkCasa: String(row["linkcasa"] || row["link casa"] || row["link_casa"] || row["link"] || ""),
@@ -135,8 +135,7 @@ export default function ImportExportXlsx() {
 
             const exists = state.casas.find((c) => c.nome === casaPayload.nome);
             if (!exists) {
-              await addCasa(casaPayload);
-              importedCasas++;
+              if (await addCasa(casaPayload)) importedCasas++;
             }
           }
         }

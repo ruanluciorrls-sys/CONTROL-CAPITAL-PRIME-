@@ -237,21 +237,35 @@ export async function toggleUserActive(userId: number, isActive: boolean) {
 }
 
 // Casas queries
-export async function getCasasByUserId(userId: number): Promise<Casa[]> {
+let metaRecargaReady: Promise<unknown> | undefined;
+
+async function ensureMetaRecargaSchema() {
   const db = await getDb();
+  if (!db) return null;
+  metaRecargaReady ??= db.execute(sql`ALTER TABLE casas ADD COLUMN IF NOT EXISTS "metaRecarga" NUMERIC(10, 2)`)
+    .catch(error => {
+      metaRecargaReady = undefined;
+      throw error;
+    });
+  await metaRecargaReady;
+  return db;
+}
+
+export async function getCasasByUserId(userId: number): Promise<Casa[]> {
+  const db = await ensureMetaRecargaSchema();
   if (!db) return [];
   return db.select().from(casas).where(eq(casas.userId, userId));
 }
 
 export async function createCasa(casa: InsertCasa): Promise<Casa | null> {
-  const db = await getDb();
+  const db = await ensureMetaRecargaSchema();
   if (!db) return null;
   await db.insert(casas).values(casa);
   return db.select().from(casas).where(eq(casas.id, casa.id)).limit(1).then(r => r[0] || null);
 }
 
 export async function updateCasa(id: string, userId: number, data: Partial<InsertCasa>): Promise<void> {
-  const db = await getDb();
+  const db = await ensureMetaRecargaSchema();
   if (!db) return;
   await db.update(casas).set({ ...data, atualizadoEm: new Date() }).where(and(eq(casas.id, id), eq(casas.userId, userId)));
 }

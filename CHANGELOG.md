@@ -7,6 +7,12 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.29.0] - 2026-11-17
+
+### Adicionado
+- Opção Recarga na criação e edição de casas. O formulário mostra uma única meta em reais e preserva Meta e Média dos cadastros CPA.
+- Na Operação CPA, recargas exibem um cartão maior de Montante a atingir, sem contagem de depositantes, e o campo Salário recebido no lugar de Cooperação.
+
 ## [1.28.0] - 2026-11-16
 
 ### Adicionado

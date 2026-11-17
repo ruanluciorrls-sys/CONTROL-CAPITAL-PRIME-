@@ -5,8 +5,8 @@ import { celebrar } from "@/lib/celebrar";
 
 interface AppContextType {
   state: AppState;
-  addCasa: (casa: Omit<CasaData, "id" | "criadoEm">) => void;
-  updateCasa: (id: string, casa: Partial<CasaData>) => void;
+  addCasa: (casa: Omit<CasaData, "id" | "criadoEm">) => Promise<boolean>;
+  updateCasa: (id: string, casa: Partial<CasaData>) => Promise<boolean>;
   deleteCasa: (id: string) => void;
   finalizarCasa: (id: string) => void;
   restaurarCasa: (id: string) => void;
@@ -124,6 +124,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const casas = (casasQuery.data || []).map((casa: any) => ({
       ...casa,
       meta: casa.meta ? Number(casa.meta) : 0,
+      metaRecarga: casa.metaRecarga == null ? null : Number(casa.metaRecarga),
       media: casa.media ? Number(casa.media) : 0,
       redeNome: casa.redeNome || "",
       reembolso: casa.reembolso || null,
@@ -209,6 +210,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         linkCasa: casa.linkCasa,
         linkContaFina: casa.linkContaFilha,
         meta: casa.meta?.toString(),
+        metaRecarga: casa.metaRecarga == null ? casa.metaRecarga : String(casa.metaRecarga),
         prazo: casa.prazo,
       });
       // Anexa a casa nova ao cache (sem refetch da lista toda = bem mais rápido)
@@ -217,15 +219,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const lista = old || [];
           return lista.some((c: any) => c.id === (result as any).id) ? lista : [...lista, result];
         });
-      } else {
-        await casasQuery.refetch();
+        return true;
       }
+      await casasQuery.refetch();
+      return false;
     } catch (error) {
       console.error("Erro ao criar casa:", error);
+      return false;
     }
   };
 
   const updateCasa = async (id: string, updates: Partial<CasaData>) => {
+    const metaRecarga = updates.metaRecarga == null ? updates.metaRecarga : String(updates.metaRecarga);
     // ATUALIZAÇÃO OTIMISTA: aplica as mudanças na hora
     setState((prev) => ({
       ...prev,
@@ -240,11 +245,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...(updates.linkCasa !== undefined ? { linkCasa: updates.linkCasa } : {}),
       ...(updates.linkContaFilha !== undefined ? { linkContaFina: updates.linkContaFilha } : {}),
       ...(updates.meta !== undefined ? { meta: updates.meta?.toString() } : {}),
+      ...(metaRecarga !== undefined ? { metaRecarga } : {}),
       ...(updates.prazo !== undefined ? { prazo: updates.prazo } : {}),
       ...(updates.status !== undefined ? { status: updates.status } : {}),
       ...(updates.reembolso !== undefined ? { reembolso: updates.reembolso } : {}),
     });
-    updateCasaMutation.mutateAsync({
+    return updateCasaMutation.mutateAsync({
       id,
       nome: updates.nome,
       login: updates.login,
@@ -254,13 +260,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       linkCasa: updates.linkCasa,
       linkContaFina: updates.linkContaFilha,
       meta: updates.meta?.toString(),
+      metaRecarga,
       prazo: updates.prazo,
       status: updates.status,
       reembolso: updates.reembolso,
       reembolsadoEm: updates.reembolsadoEm,
-    }).catch((error) => {
+    }).then(() => true).catch((error) => {
       console.error("Erro ao atualizar casa:", error);
-      casasQuery.refetch();
+      void casasQuery.refetch();
+      return false;
     });
   };
 

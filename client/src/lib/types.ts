@@ -5,6 +5,7 @@ export interface CasaData {
   senha: string;
   redeNome?: string;
   meta: number;
+  metaRecarga?: number | null;
   media: number;
   prazo: string;
   linkCasa: string;

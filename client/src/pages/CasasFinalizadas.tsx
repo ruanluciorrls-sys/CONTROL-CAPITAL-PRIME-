@@ -15,6 +15,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { useConfirm } from "@/hooks/useConfirm";
+import { META_RECARGA_MAXIMA, metaRecargaValida } from "@shared/recarga";
 
 export default function CasasFinalizadas() {
   const { state, updateCasa, deletePermanentementeCasa, esvaziarLixeiraCasas } = useApp();
@@ -124,9 +125,16 @@ export default function CasasFinalizadas() {
     setEditData({ ...casa, agente: casa.agente || getAgenteCasa(casa.id) });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editData) return;
-    updateCasa(editData.id, editData);
+    if (editData.metaRecarga != null && !metaRecargaValida(editData.metaRecarga)) {
+      toast.error("Informe uma meta de recarga válida e maior que zero.");
+      return;
+    }
+    if (!await updateCasa(editData.id, editData)) {
+      toast.error("Não foi possível salvar a casa.");
+      return;
+    }
     setEditingCasa(null);
     setEditData(null);
     toast.success("Casa atualizada com sucesso!");
@@ -598,11 +606,20 @@ export default function CasasFinalizadas() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-white/70">Meta</label>
+                <label className="mb-1 block text-sm font-medium text-white/70" htmlFor="meta-casa-finalizada">
+                  {editData.metaRecarga != null ? "Meta - Recarga (R$)" : "Meta"}
+                </label>
                 <input
+                  id="meta-casa-finalizada"
                   type="number"
-                  value={editData.meta || 0}
-                  onChange={(e) => setEditData({ ...editData, meta: parseFloat(e.target.value) || 0 })}
+                  inputMode="decimal"
+                  step={editData.metaRecarga != null ? "0.01" : undefined}
+                  min={editData.metaRecarga != null ? "0.01" : undefined}
+                  max={editData.metaRecarga != null ? META_RECARGA_MAXIMA : undefined}
+                  value={editData.metaRecarga ?? editData.meta ?? 0}
+                  onChange={(e) => setEditData({ ...editData,
+                    [editData.metaRecarga != null ? "metaRecarga" : "meta"]: Number(e.target.value) || 0,
+                  })}
                   className="w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-white outline-none transition focus:border-[#d4a017]/60 focus:ring-2 focus:ring-[#d4a017]/15"
                 />
               </div>
