@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import TabNavigation from "@/components/TabNavigation";
 import MobileNav from "@/components/MobileNav";
+import PageFade from "@/components/PageFade";
 import { AppProvider, useApp } from "@/contexts/AppContext";
 import { SupabaseProvider } from "@/contexts/SupabaseContext";
 import Login from "@/pages/Login";
@@ -17,7 +18,7 @@ const EditarDados = lazy(() => import("@/pages/EditarDados"));
 const Slots = lazy(() => import("@/pages/Slots"));
 const AdminPanel = lazy(() => import("@/pages/AdminPanel"));
 import { CheckCircle, Edit3, Home, FileText, Moon, Sun, LogOut, Zap, Shield, Crown, Wallet, Key, DollarSign, RefreshCw, CalendarDays, Flame, X } from "lucide-react";
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -25,7 +26,6 @@ import { setNavigateFn } from "@/lib/navigate";
 import NotificationCenter from "@/components/NotificationCenter";
 import Celebracao from "@/components/Celebracao";
 import InstallButton from "@/components/InstallButton";
-import { usePageTransition } from "@/hooks/usePageTransition";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 
@@ -46,6 +46,7 @@ function AppContent() {
   const { state } = useApp();
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const pageContainer = useRef<HTMLElement>(null);
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem("lastActiveTab") || "dashboard";
   });
@@ -104,8 +105,6 @@ function AppContent() {
   useEffect(() => {
     setNavigateFn(handleTabChange);
   }, []);
-
-  const { isVisible, renderedValue: renderedTab } = usePageTransition(activeTab);
 
   const renderContent = (tab: string) => {
     switch (tab) {
@@ -349,17 +348,17 @@ function AppContent() {
       {/* ── MAIN CONTENT AREA ── */}
       <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden relative">
         <main
-          key={refreshKey}
-          className={`relative z-10 flex-1 overflow-y-auto p-4 md:p-8 max-w-7xl mx-auto w-full transition-opacity duration-300 ${
-            isVisible && !isRefreshing ? "page-transition-enter" : "page-transition-exit"
-          }`}
+          ref={pageContainer}
+          className="relative z-10 flex-1 overflow-y-auto p-4 md:p-8 max-w-7xl mx-auto w-full"
         >
           <Suspense fallback={
             <div className="flex items-center justify-center py-24">
               <div style={{ width: 36, height: 36, border: "3px solid rgba(212,160,23,0.2)", borderTopColor: "#d4a017", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
             </div>
           }>
-            {renderContent(renderedTab)}
+            <PageFade target={pageContainer} tab={activeTab} refreshKey={refreshKey}>
+              {renderContent(activeTab)}
+            </PageFade>
           </Suspense>
         </main>
       </div>

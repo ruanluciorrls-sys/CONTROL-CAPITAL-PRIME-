@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from "react";
-import { useAutoSave } from "@/hooks/useAutoSave";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Plus, Trash2, Edit2, Check, X, ExternalLink, Copy, TrendingUp, TrendingDown, Undo2 } from "lucide-react";
 import { setEditingActive } from "@/lib/syncLock";
 import AvisoRede from "@/components/AvisoRede";
 import { montanteDaOperacao } from "@shared/recarga";
+import type { SalvamentoRelatorio } from "@/lib/salvamentoRelatorios";
+import { progressoRecarga } from "@/lib/visaoRelatorios";
 
 interface RelatorioRow {
   numero: number;
@@ -38,22 +39,29 @@ interface RelatorioSpreadsheetProps {
   onDeleteRow: (numero: number) => void;
   onUpdateRow: (numero: number, row: RelatorioRow) => void;
   onRestoreRows?: (rows: RelatorioRow[]) => void;
+  salvamento?: SalvamentoRelatorio;
+  ocultarValores?: boolean;
 }
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+const valorOculto = "••••";
+const camposValores = ["deposito", "redeposito", "saque", "bau"] as const;
 
 const inputStyle = "w-full px-2 py-1.5 rounded-lg text-right text-sm text-white font-mono bg-transparent border border-white/20 focus:outline-none focus:border-[#d4a017] focus:bg-white/5";
 
 export default function RelatorioSpreadsheet({
   casaNome, agente, prazo, login, cooperacao, onCooperacaoChange,
   linkContaFilha, media = 0, meta = 0, metaRecarga, jogosUltimaVez = "", rede = "", rows, onAddRow, onDeleteRow, onUpdateRow, onRestoreRows,
+  salvamento, ocultarValores = false,
 }: RelatorioSpreadsheetProps) {
   const [newRow, setNewRow] = useState<RelatorioRow>({ numero: rows.length + 1, deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editRow, setEditRow] = useState<RelatorioRow | null>(null);
-  const [cooperacaoInput, setCooperacaoInput] = useState(isNaN(cooperacao) ? "0" : cooperacao.toString());
-  const [isSaving, setIsSaving] = useState(false);
+  const [cooperacaoRascunho, setCooperacaoRascunho] = useState<string | null>(null);
+  const cooperacaoInput = cooperacaoRascunho ?? (isNaN(cooperacao) ? "0" : cooperacao.toString());
+  const valorCooperacao = parseFloat(cooperacaoInput);
+  const cooperacaoPendente = cooperacaoRascunho !== null && !isNaN(valorCooperacao) && valorCooperacao !== cooperacao;
   const [linkCopiado, setLinkCopiado] = useState(false);
   const [loginCopiado, setLoginCopiado] = useState(false);
 
@@ -64,18 +72,24 @@ export default function RelatorioSpreadsheet({
     setTimeout(() => setLoginCopiado(false), 2000);
   };
 
-  const { triggerSave } = useAutoSave({
-    onSave: async () => {
-      const n = parseFloat(cooperacaoInput);
-      if (!isNaN(n) && n !== cooperacao) onCooperacaoChange(n);
-    },
-    delay: 800,
-    onSaving: setIsSaving,
-  });
+  const confirmarCooperacaoRef = useRef(onCooperacaoChange);
+  useEffect(() => { confirmarCooperacaoRef.current = onCooperacaoChange; }, [onCooperacaoChange]);
+  const debounceCooperacaoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const confirmarCooperacao = useCallback((valor: number) => {
+    if (debounceCooperacaoRef.current !== null) clearTimeout(debounceCooperacaoRef.current);
+    setCooperacaoRascunho(null);
+    confirmarCooperacaoRef.current(valor);
+  }, []);
 
-  useEffect(() => { triggerSave(); }, [cooperacaoInput, triggerSave]);
-  useEffect(() => { triggerSave(); }, [rows, triggerSave]);
-  useEffect(() => { setCooperacaoInput(isNaN(cooperacao) ? "0" : cooperacao.toString()); }, [cooperacao]);
+  useEffect(() => {
+    if (ocultarValores || !cooperacaoPendente) return;
+    const timer = setTimeout(() => confirmarCooperacao(valorCooperacao), 800);
+    debounceCooperacaoRef.current = timer;
+    return () => {
+      clearTimeout(timer);
+      debounceCooperacaoRef.current = null;
+    };
+  }, [ocultarValores, cooperacaoPendente, valorCooperacao, confirmarCooperacao]);
   const proximoNumero = () => (rows.length ? Math.max(...rows.map((r) => r.numero || 0)) : 0) + 1;
   useEffect(() => { setNewRow({ numero: proximoNumero(), deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 }); }, [rows.length]);
 
@@ -103,7 +117,7 @@ export default function RelatorioSpreadsheet({
 
   const desfazer = () => {
     const hist = historicoRef.current;
-    if (hist.length === 0 || !onRestoreRows) return;
+    if (ocultarValores || hist.length === 0 || !onRestoreRows) return;
     const anterior = hist.pop()!;
     restaurandoRef.current = true;
     rowsAnteriorRef.current = anterior;
@@ -114,13 +128,14 @@ export default function RelatorioSpreadsheet({
   const calc = (d: number, r: number, s: number, b: number) => s - d - r + b;
 
   const handleAddRow = () => {
+    if (ocultarValores) return;
     const resultado = calc(newRow.deposito, newRow.redeposito, newRow.saque, newRow.bau);
     onAddRow({ ...newRow, numero: proximoNumero(), resultado });
     setNewRow({ numero: proximoNumero() + 1, deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 });
   };
 
   const handleEditSave = () => {
-    if (!editRow || editingId === null) return;
+    if (ocultarValores || !editRow || editingId === null) return;
     const d = isNaN(editRow.deposito) ? 0 : editRow.deposito;
     const r = isNaN(editRow.redeposito) ? 0 : editRow.redeposito;
     const s = isNaN(editRow.saque) ? 0 : editRow.saque;
@@ -147,10 +162,21 @@ export default function RelatorioSpreadsheet({
   };
 
   const recarga = metaRecarga != null;
+  const progressoDaRecarga = metaRecarga != null && !ocultarValores ? progressoRecarga(rows, metaRecarga) : null;
   const rotuloRecebimento = recarga ? "Salário recebido" : "Cooperação";
   const montante = montanteDaOperacao(meta, media, metaRecarga);
   const progressoPct = montante > 0 ? Math.min((totals.deposito / montante) * 100, 100) : 0;
   const resultadoFinal = totals.resultado + cooperacao;
+  const exibirValor = (valor: number) => ocultarValores ? valorOculto : fmt(valor);
+  const resultadoPositivo = totals.resultado >= 0;
+  const resultadoFinalPositivo = resultadoFinal >= 0;
+  const linhaEmEdicao = editRow && rows.find(row => row.numero === editingId);
+  const linhaPendente = camposValores.some(campo =>
+    newRow[campo] !== 0 || (linhaEmEdicao && editRow && linhaEmEdicao[campo] !== editRow[campo]),
+  );
+  const edicaoLocal = cooperacaoPendente || linhaPendente;
+  const rotuloEdicaoLocal = ocultarValores ? "Edição local pausada" :
+    cooperacaoPendente ? "Aguardando envio..." : "Alterações locais não enviadas";
   const prazoFmt = prazo ? new Date(prazo + "T00:00:00").toLocaleDateString("pt-BR") : null;
 
   // Remove traço/espaços finais do nome (ex: "VOY 01 -" -> "VOY 01")
@@ -173,15 +199,23 @@ export default function RelatorioSpreadsheet({
       onBlurCapture={() => setEditingActive(false)}
     >
 
-      {/* Auto-save indicator */}
-      {isSaving && (
-        <div className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#d4a017]/20 w-fit"
-          style={{ background: "rgba(212,160,23,0.06)" }}
-        >
-          <div className="w-1.5 h-1.5 rounded-full bg-[#d4a017] animate-pulse" />
-          <p className="text-xs text-[#d4a017]/70 font-bold">Salvando...</p>
-        </div>
-      )}
+      <div role="status" aria-live="polite" className={!edicaoLocal && !salvamento ? "sr-only" : undefined}>
+        {(edicaoLocal || salvamento) && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 rounded-xl border border-[#d4a017]/20 w-fit text-xs font-bold"
+            style={{ background: "rgba(212,160,23,0.06)" }}
+          >
+            {edicaoLocal && <span className="text-[#d4a017]">{rotuloEdicaoLocal}</span>}
+            {salvamento?.status === "salvando" && <span className="text-[#d4a017]">Salvando no servidor...</span>}
+            {salvamento?.status === "erro" && <span className="text-red-400">Não foi possível confirmar o salvamento.</span>}
+            {salvamento?.status === "salvo" && !edicaoLocal && (
+              <span className="text-emerald-400">
+                Salvo às{" "}
+                <time dateTime={salvamento.salvoEm}>{new Date(salvamento.salvoEm).toLocaleTimeString("pt-BR")}</time>
+              </span>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Lembrete: jogos da última vez nesta rede/casa */}
       {jogosUltimaVez && jogosUltimaVez.trim() && (
@@ -288,7 +322,7 @@ export default function RelatorioSpreadsheet({
           style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)", borderLeft: "3px solid #60a5fa" }}
         >
           <p className="text-[9px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 mb-2">Quantidade de DEP</p>
-          <p className="text-3xl font-black" style={{ color: "#60a5fa" }}>{meta}</p>
+          <p className="text-3xl font-black" style={{ color: "#60a5fa" }}>{ocultarValores ? valorOculto : meta}</p>
           <p className="text-[10px] text-white/50 dark:text-white/40 mt-1">DEPs necessários</p>
         </div>}
 
@@ -298,10 +332,15 @@ export default function RelatorioSpreadsheet({
         >
           <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400/70 dark:text-emerald-400/50 mb-2">Montante a Atingir</p>
           <p className={`${recarga ? "text-4xl" : "text-3xl"} font-black text-emerald-300 dark:text-emerald-200`}>
-            {fmt(isNaN(montante) ? 0 : montante)}
+            {exibirValor(isNaN(montante) ? 0 : montante)}
           </p>
+          {progressoDaRecarga && (
+            <p className="mt-1 text-xs text-emerald-100">
+              {fmt(progressoDaRecarga.realizado)} lançados · faltam {fmt(progressoDaRecarga.falta)}
+            </p>
+          )}
           {prazoFmt && <p className="text-[10px] text-emerald-400/55 dark:text-emerald-400/40 mt-1">Prazo: {prazoFmt}</p>}
-          {montante > 0 && (
+          {!ocultarValores && montante > 0 && (
             <div className="mt-3">
               <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(74,222,128,0.1)" }}>
                 <div className="h-full rounded-full transition-all duration-500"
@@ -317,22 +356,22 @@ export default function RelatorioSpreadsheet({
           style={{ background: "linear-gradient(145deg, rgba(13, 7, 32, 0.75), rgba(21, 11, 46, 0.5))", borderLeft: "3px solid #a78bfa" }}
         >
           <p className="text-[9px] font-black uppercase tracking-widest text-[#a78bfa]/70 dark:text-[#a78bfa]/50 mb-2">{rotuloRecebimento}</p>
-          <div className="flex gap-2 items-center mb-2">
+          {!ocultarValores && <div className="flex gap-2 items-center mb-2">
             <input
               type="number"
               aria-label={rotuloRecebimento}
               inputMode="decimal"
               value={cooperacaoInput === "0" ? "" : cooperacaoInput}
-              onChange={(e) => setCooperacaoInput(e.target.value || "0")}
+              onChange={(e) => setCooperacaoRascunho(e.target.value || "0")}
               className="flex-1 px-3 py-1.5 rounded-xl text-sm text-white font-mono bg-transparent border border-white/15 focus:outline-none focus:border-[#a78bfa]"
               placeholder=""
             />
-            <button onClick={() => onCooperacaoChange(parseFloat(cooperacaoInput) || 0)}
+            <button onClick={() => { if (cooperacaoPendente) confirmarCooperacao(valorCooperacao); }}
               className="px-3 py-1.5 rounded-xl text-xs font-black text-[#050b18]"
               style={{ background: "linear-gradient(135deg, #a78bfa, #7c3aed)" }}
             >OK</button>
-          </div>
-          <p className="text-2xl font-black text-[#a78bfa]">{fmt(cooperacao)}</p>
+          </div>}
+          <p className="text-2xl font-black text-[#a78bfa]">{exibirValor(cooperacao)}</p>
         </div>
       </div>
 
@@ -356,12 +395,12 @@ export default function RelatorioSpreadsheet({
             </thead>
             <tbody>
               {rows.map((row, idx) =>
-                editingId === row.numero ? (
+                !ocultarValores && editingId === row.numero ? (
                   <tr key={idx} style={{ background: "rgba(212,160,23,0.06)", borderBottom: "1px solid rgba(212,160,23,0.15)" }}>
                     <td className="px-4 py-2 text-[#d4a017] font-black text-sm">
                       <div className="flex items-center gap-1.5"><Edit2 size={12} className="animate-pulse" />{row.numero}</div>
                     </td>
-                    {(["deposito", "redeposito", "saque", "bau"] as const).map((f) => (
+                    {camposValores.map((f) => (
                       <td key={f} className="px-2 py-2">
                         <input type="number"
                           value={editRow?.[f] === 0 ? "" : editRow?.[f] || 0}
@@ -391,22 +430,22 @@ export default function RelatorioSpreadsheet({
                 ) : (
                   <tr key={idx} className={tdBorder}
                     style={{
-                      background: row.resultado < 0 ? "rgba(248,113,113,0.04)" : row.resultado > 0 ? "rgba(74,222,128,0.04)" : "transparent",
-                      cursor: "pointer",
+                      background: ocultarValores ? "transparent" : row.resultado < 0 ? "rgba(248,113,113,0.04)" : row.resultado > 0 ? "rgba(74,222,128,0.04)" : "transparent",
+                      cursor: ocultarValores ? undefined : "pointer",
                     }}
-                    onClick={() => { setEditingId(row.numero); setEditRow({ ...row }); }}
+                    onClick={ocultarValores ? undefined : () => { setEditingId(row.numero); setEditRow({ ...row }); }}
                   >
                     <td className="px-4 py-3 text-white/40 font-bold text-sm">{row.numero}</td>
                     {[row.deposito, row.redeposito, row.saque, row.bau].map((v, i) => (
-                      <td key={i} className={tdStyle}>{fmt(v)}</td>
+                      <td key={i} className={tdStyle}>{exibirValor(v)}</td>
                     ))}
                     <td className={`${tdStyle} font-black`}
-                      style={{ color: row.resultado < 0 ? "#f87171" : row.resultado > 0 ? "#4ade80" : "rgba(255,255,255,0.5)" }}
+                      style={{ color: ocultarValores ? undefined : row.resultado < 0 ? "#f87171" : row.resultado > 0 ? "#4ade80" : "rgba(255,255,255,0.5)" }}
                     >
-                      {fmt(row.resultado)}
+                      {exibirValor(row.resultado)}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <div className="flex gap-1.5 justify-center opacity-0 hover:opacity-100 transition-opacity"
+                      {!ocultarValores && <div className="flex gap-1.5 justify-center opacity-0 hover:opacity-100 transition-opacity"
                         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
                       >
                         <button onClick={() => { setEditingId(row.numero); setEditRow({ ...row }); }}
@@ -417,16 +456,16 @@ export default function RelatorioSpreadsheet({
                           className="w-7 h-7 rounded-lg flex items-center justify-center border border-red-500/15 text-red-400/40 hover:text-red-400 hover:border-red-500/30 transition-colors"
                           style={{ background: "rgba(239,68,68,0.04)" }}
                         ><Trash2 size={12} /></button>
-                      </div>
+                      </div>}
                     </td>
                   </tr>
                 )
               )}
 
               {/* Nova linha */}
-              <tr style={{ background: "rgba(212,160,23,0.04)", borderTop: "1px solid rgba(212,160,23,0.15)" }}>
+              {!ocultarValores && <tr style={{ background: "rgba(212,160,23,0.04)", borderTop: "1px solid rgba(212,160,23,0.15)" }}>
                 <td className="px-4 py-3 text-[#d4a017]/60 font-black text-sm">{newRow.numero}</td>
-                {(["deposito", "redeposito", "saque", "bau"] as const).map((f) => (
+                {camposValores.map((f) => (
                   <td key={f} className="px-2 py-2">
                     <input type="number"
                       value={newRow[f] || ""}
@@ -446,18 +485,18 @@ export default function RelatorioSpreadsheet({
                     style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
                   ><Plus size={13} /> Adicionar</button>
                 </td>
-              </tr>
+              </tr>}
 
               {/* Totais */}
               <tr style={{ background: "rgba(255,255,255,0.04)", borderTop: "2px solid rgba(255,255,255,0.1)" }}>
                 <td className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-white/40">TOTAL</td>
                 {[totals.deposito, totals.redeposito, totals.saque, totals.bau].map((v, i) => (
-                  <td key={i} className="px-4 py-3 text-right font-mono text-sm font-black text-white/60">{fmt(v)}</td>
+                  <td key={i} className="px-4 py-3 text-right font-mono text-sm font-black text-white/60">{exibirValor(v)}</td>
                 ))}
                 <td className="px-4 py-3 text-right font-mono text-base font-black"
-                  style={{ color: totals.resultado < 0 ? "#f87171" : totals.resultado > 0 ? "#4ade80" : "rgba(255,255,255,0.5)" }}
+                  style={{ color: ocultarValores ? undefined : totals.resultado < 0 ? "#f87171" : totals.resultado > 0 ? "#4ade80" : "rgba(255,255,255,0.5)" }}
                 >
-                  {fmt(totals.resultado)}
+                  {exibirValor(totals.resultado)}
                 </td>
                 <td />
               </tr>
@@ -465,11 +504,13 @@ export default function RelatorioSpreadsheet({
           </table>
           </div>
           <div className="flex items-center justify-between gap-2 px-4 py-2 flex-wrap">
-            <p className="text-[9px] text-white/45 dark:text-white/30">Dica: clique numa linha para editar · arraste a tabela para o lado no celular</p>
+            <p className="text-[9px] text-white/45 dark:text-white/30">
+              {ocultarValores ? "Valores ocultos. Revele os valores para editar." : "Dica: clique numa linha para editar · arraste a tabela para o lado no celular"}
+            </p>
             {onRestoreRows && (
               <button
                 onClick={desfazer}
-                disabled={!podeDesfazer}
+                disabled={ocultarValores || !podeDesfazer}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                 style={{ background: "rgba(212,160,23,0.1)", color: "#f3d078", border: "1px solid rgba(212,160,23,0.3)" }}
                 title="Desfazer a última ação (recupera linha excluída, edição, etc.)"
@@ -503,7 +544,7 @@ export default function RelatorioSpreadsheet({
               <p className="text-xl font-black"
                 style={{ background: `linear-gradient(135deg, #ffffff 30%, ${color})`, WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}
               >
-                {isText ? value : fmt(value as number)}
+                {ocultarValores ? valorOculto : isText ? value : fmt(value as number)}
               </p>
             </div>
           ))}
@@ -511,37 +552,39 @@ export default function RelatorioSpreadsheet({
           {/* Resultado */}
           <div className="rounded-2xl p-4 border overflow-hidden relative transition-all duration-300 hover:-translate-y-0.5"
             style={{
-              background: totals.resultado >= 0 ? "rgba(74,222,128,0.08)" : "rgba(248,113,113,0.08)",
-              borderColor: totals.resultado >= 0 ? "rgba(74,222,128,0.3)" : "rgba(248,113,113,0.3)",
+              background: ocultarValores ? "rgba(255,255,255,0.03)" : resultadoPositivo ? "rgba(74,222,128,0.08)" : "rgba(248,113,113,0.08)",
+              borderColor: ocultarValores ? "rgba(255,255,255,0.08)" : resultadoPositivo ? "rgba(74,222,128,0.3)" : "rgba(248,113,113,0.3)",
             }}
           >
-            <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${totals.resultado >= 0 ? "rgba(74,222,128,0.6)" : "rgba(248,113,113,0.6)"}, transparent)` }} />
+            {!ocultarValores && <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${resultadoPositivo ? "rgba(74,222,128,0.6)" : "rgba(248,113,113,0.6)"}, transparent)` }} />}
             <div className="flex items-center gap-1.5 mb-2">
-              {totals.resultado >= 0
+              {!ocultarValores && (resultadoPositivo
                 ? <TrendingUp size={14} className="text-emerald-400" />
                 : <TrendingDown size={14} className="text-red-400" />
-              }
-              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: totals.resultado >= 0 ? "#4ade80" : "#f87171" }}>
+              )}
+              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: ocultarValores ? undefined : resultadoPositivo ? "#4ade80" : "#f87171" }}>
                 RESULTADO
               </p>
             </div>
-            <p className="text-2xl font-black" style={{ color: totals.resultado >= 0 ? "#4ade80" : "#f87171" }}>
-              {fmt(totals.resultado)}
+            <p className="text-2xl font-black" style={{ color: ocultarValores ? undefined : resultadoPositivo ? "#4ade80" : "#f87171" }}>
+              {exibirValor(totals.resultado)}
             </p>
           </div>
 
           {/* Resultado Final + Cooperação */}
           <div className="rounded-2xl p-4 border overflow-hidden relative transition-all duration-300 hover:-translate-y-0.5"
             style={{
-              background: resultadoFinal >= 0 ? "rgba(212,160,23,0.1)" : "rgba(248,113,113,0.08)",
-              borderColor: resultadoFinal >= 0 ? "rgba(212,160,23,0.35)" : "rgba(248,113,113,0.3)",
+              background: ocultarValores ? "rgba(255,255,255,0.03)" : resultadoFinalPositivo ? "rgba(212,160,23,0.1)" : "rgba(248,113,113,0.08)",
+              borderColor: ocultarValores ? "rgba(255,255,255,0.08)" : resultadoFinalPositivo ? "rgba(212,160,23,0.35)" : "rgba(248,113,113,0.3)",
             }}
           >
-            <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${resultadoFinal >= 0 ? "rgba(212,160,23,0.7)" : "rgba(248,113,113,0.6)"}, transparent)` }} />
-            <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full blur-2xl pointer-events-none" style={{ background: resultadoFinal >= 0 ? "rgba(212,160,23,0.12)" : "rgba(248,113,113,0.1)" }} />
+            {!ocultarValores && <>
+              <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${resultadoFinalPositivo ? "rgba(212,160,23,0.7)" : "rgba(248,113,113,0.6)"}, transparent)` }} />
+              <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full blur-2xl pointer-events-none" style={{ background: resultadoFinalPositivo ? "rgba(212,160,23,0.12)" : "rgba(248,113,113,0.1)" }} />
+            </>}
             <p className="relative text-[9px] font-black uppercase tracking-widest text-white/40 mb-2">{recarga ? "RESULTADO + SALÁRIO" : "RESULTADO + COOP."}</p>
-            <p className="relative text-2xl font-black" style={{ color: resultadoFinal >= 0 ? "#d4a017" : "#f87171", textShadow: resultadoFinal >= 0 ? "0 0 22px rgba(212,160,23,0.35)" : "0 0 22px rgba(248,113,113,0.3)" }}>
-              {fmt(resultadoFinal)}
+            <p className="relative text-2xl font-black" style={ocultarValores ? undefined : { color: resultadoFinalPositivo ? "#d4a017" : "#f87171", textShadow: resultadoFinalPositivo ? "0 0 22px rgba(212,160,23,0.35)" : "0 0 22px rgba(248,113,113,0.3)" }}>
+              {exibirValor(resultadoFinal)}
             </p>
           </div>
         </div>

@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect, useRef } from "react";
 import { AppState, CasaData, RelatorioData } from "@/lib/types";
 import { trpc } from "@/lib/trpc";
 import { celebrar } from "@/lib/celebrar";
+import { criarFilaSalvamentoRelatorios, type SalvamentoRelatorios } from "@/lib/salvamentoRelatorios";
+import { isEditingActive } from "@/lib/syncLock";
 
 interface AppContextType {
   state: AppState;
@@ -14,6 +16,7 @@ interface AppContextType {
   deletePermanentementeCasa: (id: string) => void;
   addRelatorio: (relatorio: Omit<RelatorioData, "id" | "criadoEm">) => void;
   updateRelatorio: (id: string, relatorio: Partial<RelatorioData>) => void;
+  salvamentoRelatorios?: SalvamentoRelatorios;
   deleteRelatorio: (id: string) => void;
   finalizarRelatorio: (id: string) => void;
   reutilizarRelatorio: (id: string) => void;
@@ -48,6 +51,8 @@ const initialState: AppState = {
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>(initialState);
   const [isLoading, setIsLoading] = useState(true);
+  const [salvamentoRelatorios, setSalvamentoRelatorios] = useState<SalvamentoRelatorios>({});
+  const temGravacaoPendente = Object.values(salvamentoRelatorios).some(salvamento => salvamento?.status === "salvando");
   
   // Queries tRPC
   const casasQuery = trpc.casas.list.useQuery(undefined, {
@@ -60,6 +65,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     enabled: true,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnWindowFocus: false,
+    refetchOnReconnect: !temGravacaoPendente,
+    refetchInterval: () => (temGravacaoPendente || isEditingActive() ? false : 12000),
   });
 
   const settingsQuery = trpc.settings.get.useQuery();
@@ -73,6 +80,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const createRelatorioMutation = trpc.relatorios.create.useMutation();
   const updateRelatorioMutation = trpc.relatorios.update.useMutation();
   const deleteRelatorioMutation = trpc.relatorios.delete.useMutation();
+  const [filaSalvamentoRelatorios] = useState(() =>
+    criarFilaSalvamentoRelatorios<Parameters<typeof updateRelatorioMutation.mutateAsync>[0]>(
+      (id, salvamento) => setSalvamentoRelatorios(atual => ({ ...atual, [id]: salvamento })),
+      () => { void relatoriosQuery.refetch(); },
+    ),
+  );
+  const gravarRelatorio = (patch: Parameters<typeof updateRelatorioMutation.mutateAsync>[0]) =>
+    filaSalvamentoRelatorios.enfileirar(patch, updateRelatorioMutation.mutateAsync);
   
   const updateSettingsMutation = trpc.settings.update.useMutation({
     onSettled: () => utils.settings.get.invalidate(),
@@ -194,9 +209,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (pendentes.length === 0) { prazosMigrados.current = true; return; }
     prazosMigrados.current = true;
-    Promise.allSettled(
-      pendentes.map((patch) => updateRelatorioMutation.mutateAsync(patch))
-    ).then(() => { relatoriosQuery.refetch(); });
+    void utils.relatorios.list.cancel();
+    pendentes.forEach(gravarRelatorio);
+    filaSalvamentoRelatorios.solicitarReconciliacao();
   }, [relatoriosQuery.data]);
 
   const addCasa = async (casa: Omit<CasaData, "id" | "criadoEm">) => {
@@ -359,7 +374,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           return lista.some((r: any) => r.id === relId) ? lista : [...lista, novo];
         });
       } else {
-        await relatoriosQuery.refetch();
+        filaSalvamentoRelatorios.solicitarReconciliacao();
       }
     } catch (error) {
       console.error("Erro ao criar relatório:", error);
@@ -377,6 +392,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
+      // Uma leitura anterior a esta alteracao nao deve substituir o cache otimista.
+      void utils.relatorios.list.cancel();
       // ATUALIZAÇÃO OTIMISTA: muda a tela na hora, sem esperar o servidor
       setState((prev) => ({
         ...prev,
@@ -403,15 +420,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...(relatorio.cooperacao !== undefined ? { cooperacao: relatorio.cooperacao.toString() } : {}),
         ...(relatorio.agente !== undefined ? { agente: relatorio.agente } : {}),
         ...(relatorio.status !== undefined ? { status: relatorio.status } : {}),
+        ...(relatorio.prazo !== undefined ? { prazo: relatorio.prazo } : {}),
         ...(relatorio.etiqueta !== undefined ? { etiqueta: relatorio.etiqueta } : {}),
         ...(relatorio.jogos !== undefined ? { jogos: relatorio.jogos } : {}),
         ...(relatorio.reembolso !== undefined ? { reembolso: relatorio.reembolso } : {}),
+        ...(relatorio.reembolsadoEm !== undefined ? { reembolsadoEm: relatorio.reembolsadoEm ? new Date(relatorio.reembolsadoEm) : null } : {}),
       });
 
       // Deep copy dos rows para evitar compartilhamento
       const rowsCopy = relatorio.rows ? JSON.parse(JSON.stringify(relatorio.rows)) : undefined;
       // Sincroniza com o servidor em segundo plano (não trava a UI; sem refetch da lista inteira)
-      updateRelatorioMutation.mutateAsync({
+      void gravarRelatorio({
         id,
         agente: relatorio.agente,
         prazo: relatorio.prazo,
@@ -422,9 +441,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         status: relatorio.status,
         reembolso: relatorio.reembolso,
         reembolsadoEm: relatorio.reembolsadoEm,
-      }).catch((error) => {
-        console.error("Erro ao atualizar relatório:", error);
-        relatoriosQuery.refetch(); // em caso de erro, reconcilia com o servidor
       });
     } catch (error) {
       console.error("Erro ao atualizar relatório:", error);
@@ -437,12 +453,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     removeRelCache(id);
     deleteRelatorioMutation.mutateAsync({ id }).catch((error) => {
       console.error("Erro ao deletar relatório:", error);
-      relatoriosQuery.refetch();
+      filaSalvamentoRelatorios.solicitarReconciliacao();
     });
   };
 
   const finalizarRelatorio = async (id: string) => {
     try {
+      const finalizadoEm = new Date().toISOString();
       // 🎉 Comemora se o relatório deu lucro
       try {
         const rel = state.relatorios.find((r) => r.id === id);
@@ -453,22 +470,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch {}
       try {
         const finalizadosEm = JSON.parse(localStorage.getItem(RELATORIOS_FINALIZADOS_EM_KEY) || "{}");
-        finalizadosEm[id] = new Date().toISOString();
+        finalizadosEm[id] = finalizadoEm;
         localStorage.setItem(RELATORIOS_FINALIZADOS_EM_KEY, JSON.stringify(finalizadosEm));
       } catch {}
+      void utils.relatorios.list.cancel();
       // ATUALIZAÇÃO OTIMISTA: marca como finalizado na hora
       setState((prev) => ({
         ...prev,
         relatorios: prev.relatorios.map((r) =>
-          r.id === id ? { ...r, status: "finalizado", finalizadoEm: new Date().toISOString() } : r
+          r.id === id ? { ...r, status: "finalizado", finalizadoEm } : r
         ),
       }));
-      patchRelCache(id, { status: "finalizado" });
+      patchRelCache(id, { status: "finalizado", finalizadoEm: new Date(finalizadoEm) });
       // Sincroniza em segundo plano — envia a data de finalização pra ela sempre ficar salva no banco
-      updateRelatorioMutation.mutateAsync({ id, status: "finalizado", finalizadoEm: new Date().toISOString() }).catch((error) => {
-        console.error("Erro ao finalizar relatório:", error);
-        relatoriosQuery.refetch();
-      });
+      void gravarRelatorio({ id, status: "finalizado", finalizadoEm });
     } catch (error) {
       console.error("Erro ao finalizar relatório:", error);
     }
@@ -477,16 +492,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const reutilizarRelatorio = async (id: string) => {
     const relatorioParaReutilizar = state.relatorios.find((r) => r.id === id);
     if (relatorioParaReutilizar) {
+      void utils.relatorios.list.cancel();
       // ATUALIZAÇÃO OTIMISTA: volta para "ativo" na hora
       setState((prev) => ({
         ...prev,
         relatorios: prev.relatorios.map((r) => (r.id === id ? { ...r, status: "ativo" } : r)),
       }));
       patchRelCache(id, { status: "ativo" });
-      updateRelatorioMutation.mutateAsync({ id, status: "ativo" }).catch((error) => {
-        console.error("Erro ao reutilizar relatório:", error);
-        relatoriosQuery.refetch();
-      });
+      void gravarRelatorio({ id, status: "ativo" });
     }
   };
 
@@ -502,7 +515,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           cooperacao: relatorioDuplicar.cooperacao.toString(),
           rows: rowsCopy as any,
         });
-        await relatoriosQuery.refetch();
+        filaSalvamentoRelatorios.solicitarReconciliacao();
       } catch (error) {
         console.error("Erro ao duplicar relatório:", error);
       }
@@ -515,7 +528,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       for (const rel of relatoriosLixeira) {
         await deleteRelatorioMutation.mutateAsync({ id: rel.id });
       }
-      await relatoriosQuery.refetch();
+      filaSalvamentoRelatorios.solicitarReconciliacao();
     } catch (error) {
       console.error("Erro ao esvaziar lixeira:", error);
     }
@@ -599,6 +612,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         deletePermanentementeCasa,
         addRelatorio,
         updateRelatorio,
+        salvamentoRelatorios,
         deleteRelatorio,
         finalizarRelatorio,
         reutilizarRelatorio,

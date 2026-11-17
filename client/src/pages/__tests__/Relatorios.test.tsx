@@ -1,17 +1,28 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { expect, it, vi } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { beforeEach, expect, it, vi } from "vitest";
 import { aplicarOrdemRelatorios, moverRelatorio } from "@/lib/ordemRelatorios";
+import { prazoDeRelatorio, progressoRecarga } from "@/lib/visaoRelatorios";
 import Relatorios from "../Relatorios";
 
 const preferencias = vi.hoisted(() => ({ ordem: [] as string[], salvar: vi.fn() }));
 
+vi.mock("@/components/RelatorioSpreadsheet", () => ({
+  default: ({ agente, ocultarValores }: { agente: string; ocultarValores?: boolean }) =>
+    <div data-testid="planilha">{agente}: {ocultarValores ? "Valores ocultos" : "Planilha aberta"}</div>,
+}));
+
 vi.mock("@/contexts/AppContext", () => ({
   useApp: () => ({
     state: {
-      casas: [{ id: "casa", nome: "Rede", status: "ativa" }],
+      casas: [
+        { id: "casa", nome: "Rede", status: "ativa", meta: 10, media: 100 },
+        { id: "recarga", nome: "Rede", status: "ativa", metaRecarga: 2000 },
+      ],
       relatorios: ["Ana", "Bia", "Cris"].map((agente, index) => ({
-        id: agente, agente, casaId: "casa", rows: [], cooperacao: 0, status: "ativo",
+        id: agente, agente, casaId: agente === "Bia" ? "recarga" : "casa",
+        rows: agente === "Bia" ? [{ numero: 1, deposito: 1000, redeposito: 250, saque: 0, bau: 0, resultado: 0 }] : [],
+        cooperacao: 0, status: "ativo",
         criadoEm: `2026-11-0${index + 1}T00:00:00Z`,
       })),
     },
@@ -20,6 +31,12 @@ vi.mock("@/contexts/AppContext", () => ({
     reordenarRelatorios: preferencias.salvar,
   }),
 }));
+
+beforeEach(() => {
+  sessionStorage.clear();
+  preferencias.ordem = [];
+  preferencias.salvar.mockClear();
+});
 
 it("muda o cartao de posicao e le a ordem salva ao reabrir a tela", () => {
   preferencias.ordem = [];
@@ -43,4 +60,66 @@ it("ignora IDs fora da lista e acrescenta novos cartoes depois da ordem salva", 
   expect(aplicarOrdemRelatorios(relatorios, ["removido", "b", "a"]).map(r => r.id)).toEqual(["b", "a", "novo"]);
   expect(moverRelatorio(["a", "b"], 0, 1)).toEqual(["b", "a"]);
   expect(moverRelatorio(["a", "b"], 1, 1)).toBeNull();
+});
+
+it("filtra e compacta sem gravar uma ordem diferente", () => {
+  preferencias.ordem = ["Cris", "Bia", "Ana"];
+  render(<Relatorios />);
+  const lista = () => screen.getAllByRole("article").map(card => card.getAttribute("aria-label"));
+  expect(lista()).toEqual(["Rede-Cris", "Rede-Bia", "Rede-Ana"]);
+  fireEvent.change(screen.getByRole("combobox", { name: "Tipo de operação" }), { target: { value: "recarga" } });
+  expect(lista()).toEqual(["Rede-Bia"]);
+  expect(screen.queryByRole("button", { name: "Organizar" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Selecionar vários" }));
+  fireEvent.click(screen.getByRole("button", { name: "Marcar visíveis" }));
+  expect(screen.getByText("1 selecionado(s)")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+  fireEvent.click(screen.getByRole("button", { name: "Limpar filtros" }));
+  fireEvent.click(screen.getByRole("button", { name: "Modo compacto" }));
+  expect(lista()).toEqual(["Rede-Cris", "Rede-Bia", "Rede-Ana"]);
+  expect(screen.queryByText("Montante a atingir")).not.toBeInTheDocument();
+  expect(preferencias.salvar).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByRole("searchbox", { name: "Buscar casa ou agente" }), { target: { value: "  bíA  " } });
+  expect(lista()).toEqual(["Rede-Bia"]);
+});
+
+it("mostra o resumo em leitura, oculta valores e reabre o ultimo relatorio", () => {
+  const tela = render(<Relatorios />);
+  const recarga = screen.getByRole("article", { name: "Rede-Bia" });
+  expect(within(recarga).getByText(/faltam R\$\s*750,00/)).toBeInTheDocument();
+  fireEvent.click(within(recarga).getByRole("button", { name: "Ver resumo de Rede-Bia" }));
+  expect(within(screen.getByRole("dialog")).getByText(/Resumo sem editar/)).toBeInTheDocument();
+  expect(screen.queryByTestId("planilha")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Fechar resumo" }));
+  fireEvent.click(screen.getByRole("button", { name: "Abrir Rede-Bia" }));
+  expect(within(recarga).getByText("Em edição")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Ocultar valores" }));
+  expect(within(recarga).getByText("Valor oculto")).toBeInTheDocument();
+  expect(screen.getByTestId("planilha")).toHaveTextContent("Bia: Valores ocultos");
+  tela.unmount();
+  render(<Relatorios />);
+  fireEvent.click(screen.getByRole("button", { name: "Último relatório" }));
+  expect(screen.getByTestId("planilha")).toHaveTextContent("Bia: Planilha aberta");
+});
+
+it("usa dias de calendario para o prazo e mantem a regra do total da recarga", () => {
+  const agora = new Date(2026, 10, 17, 23);
+  expect(prazoDeRelatorio("2026-11-16", agora)).toBe("atrasado");
+  expect(prazoDeRelatorio("2026-11-17", agora)).toBe("hoje");
+  expect(prazoDeRelatorio("2026-11-18", agora)).toBe("amanha");
+  expect(prazoDeRelatorio("2026-02-30", agora)).toBe("sem-prazo");
+  expect(progressoRecarga([{ numero: 1, deposito: 1500, redeposito: 600, saque: 150, bau: 0, resultado: 0 }], 2000))
+    .toEqual({ realizado: 2100, falta: 0, percentual: 100 });
+});
+
+it("mantem as acoes no menu compacto do celular", () => {
+  render(<Relatorios />);
+  fireEvent.keyDown(screen.getByRole("button", { name: "Mais ações de Rede-Ana" }), { key: "Enter" });
+  const menu = screen.getByRole("menu");
+  for (const name of ["Ver resumo", "Etiqueta", "Duplicar", "Mover para Reembolso", "Lixeira"]) {
+    expect(within(menu).getByRole("menuitem", { name: new RegExp(name) })).toBeInTheDocument();
+  }
+  fireEvent.click(within(menu).getByRole("menuitem", { name: "Ver resumo" }));
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(screen.queryByTestId("planilha")).not.toBeInTheDocument();
 });

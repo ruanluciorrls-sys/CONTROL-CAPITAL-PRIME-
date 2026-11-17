@@ -1,6 +1,6 @@
 import { useApp } from "@/contexts/AppContext";
 import { trpc } from "@/lib/trpc";
-import { Plus, Trash2, Copy, Clock, ChevronDown, X, Check, CheckCircle2, Circle, CheckCheck, Tag, ArrowLeft, ArrowRight, ArrowUp, ArrowDown, ListOrdered } from "lucide-react";
+import { Plus, Trash2, Copy, Clock, ChevronDown, X, Check, CheckCircle2, Circle, CheckCheck, Tag, ArrowLeft, ArrowRight, ArrowUp, ArrowDown, ListOrdered, Ellipsis, Search } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -10,6 +10,16 @@ import AbaProgresso from "@/components/AbaProgresso";
 import { usePageTransition } from "@/hooks/usePageTransition";
 import { useConfirm } from "@/hooks/useConfirm";
 import { aplicarOrdemRelatorios, moverRelatorio } from "@/lib/ordemRelatorios";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { moedaRelatorio, normalizarBuscaRelatorio, prazoDeRelatorio, progressoRecarga } from "@/lib/visaoRelatorios";
+import { montanteDaOperacao } from "@shared/recarga";
+import type { RelatorioData } from "@/lib/types";
+
+const ULTIMO_RELATORIO_KEY = "capital-prime:ultimo-relatorio";
+const PRAZO_ETIQUETAS = {
+  "sem-prazo": "Sem prazo", atrasado: "Atrasado", hoje: "Vence hoje", amanha: "Amanhã", futuro: "",
+};
 
 const REPORT_ACCENTS = [
   "#60a5fa", "#34d399", "#a78bfa", "#f472b6", "#eab308",
@@ -22,16 +32,20 @@ function getReportAccent(index: number) {
 
 // ----- Sub-component: card individual de relatório -----
 interface RelatorioCardProps {
-  rel: any;
+  rel: RelatorioData;
   accent: string;
   isSelected: boolean;
   nome: string;
   loginCasa: string;
   lucroTotal: number;
   prazoDate: string | null;
-  isVencido: boolean;
+  estadoPrazo: keyof typeof PRAZO_ETIQUETAS;
   countdown: string;
+  metaRecarga?: number | null;
+  compacto: boolean;
+  ocultarValores: boolean;
   onSelect: () => void;
+  onResumo: (e: React.MouseEvent) => void;
   onDuplicate: (e: React.MouseEvent) => void;
   onDelete: (e: React.MouseEvent) => void;
   onEtiqueta?: (e: React.MouseEvent) => void;
@@ -39,21 +53,24 @@ interface RelatorioCardProps {
   selectMode?: boolean;
   checked?: boolean;
   onToggleCheck?: (e: React.MouseEvent) => void;
-  ordem?: {
-    index: number;
-    total: number;
-    salvando: boolean;
-    mover: (direcao: -1 | 1) => void;
-  };
+  ordem?: { index: number; total: number; salvando: boolean; mover: (direcao: -1 | 1) => void };
 }
 
 function RelatorioCard({
-  rel, accent, isSelected, nome, loginCasa, lucroTotal,
-  prazoDate, isVencido, countdown, onSelect, onDuplicate, onDelete, onEtiqueta, onReembolso,
-  selectMode, checked, onToggleCheck, ordem,
+  rel, accent, isSelected, nome, loginCasa, lucroTotal, prazoDate, estadoPrazo, countdown,
+  metaRecarga, compacto, ocultarValores, onSelect, onResumo, onDuplicate, onDelete,
+  onEtiqueta, onReembolso, selectMode, checked, onToggleCheck, ordem,
 }: RelatorioCardProps) {
   const [loginCopiado, setLoginCopiado] = useState(false);
-
+  const progresso = metaRecarga != null ? progressoRecarga(rel.rows, metaRecarga) : null;
+  const labelPrazo = PRAZO_ETIQUETAS[estadoPrazo];
+  const acoes = [
+    { titulo: "Ver resumo", icone: <Search size={14} />, handler: onResumo },
+    { titulo: "Etiqueta", icone: <Tag size={14} />, handler: onEtiqueta },
+    { titulo: "Duplicar", icone: <Copy size={14} />, handler: onDuplicate },
+    { titulo: "Mover para Reembolso", icone: <span aria-hidden="true">💸</span>, handler: onReembolso },
+    { titulo: "Lixeira", icone: <Trash2 size={14} />, handler: onDelete },
+  ].filter(acao => acao.handler);
   const copyLogin = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!loginCasa) return;
@@ -61,190 +78,115 @@ function RelatorioCard({
     setLoginCopiado(true);
     setTimeout(() => setLoginCopiado(false), 2000);
   };
+  const resultadoTexto = ocultarValores ? "Valor oculto" : `${lucroTotal >= 0 ? "+" : ""}${moedaRelatorio.format(lucroTotal)}`;
 
   return (
-    <div
-      onClick={(e) => { if (selectMode && onToggleCheck) { onToggleCheck(e); } else { onSelect(); } }}
-      className="group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
+    <article
+      aria-label={nome}
+      onClick={e => selectMode && onToggleCheck ? onToggleCheck(e) : onSelect()}
+      className={`relative cursor-pointer rounded-2xl transition-colors ${compacto ? "p-3 md:p-4" : "p-4 md:p-5"}`}
       style={{
         backgroundColor: "#0c1524",
         backgroundImage: `linear-gradient(145deg, color-mix(in srgb, ${accent} 40%, #070e20), color-mix(in srgb, ${accent} 22%, #070e20))`,
-        border: `1px solid ${checked ? "#d4a017" : isSelected ? accent : `color-mix(in srgb, ${accent} 55%, #070e20)`}`,
-        boxShadow: checked ? "0 0 24px rgba(212,160,23,0.25)" : isSelected ? `0 0 0 2px ${accent}` : "none",
+        border: `1px solid ${checked || isSelected ? "#d4a017" : `color-mix(in srgb, ${accent} 55%, #070e20)`}`,
+        borderInlineStart: `3px solid ${accent}`,
+        boxShadow: checked || isSelected ? "0 0 0 1px #d4a017" : "none",
       }}
     >
-      {/* Checkbox de seleção múltipla */}
-      {selectMode && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onToggleCheck?.(e); }}
-          className="absolute top-2 right-2 z-10 w-6 h-6 rounded-lg flex items-center justify-center"
-          style={{ color: checked ? "#d4a017" : "rgba(255,255,255,0.45)", background: "rgba(0,0,0,0.4)" }}
-          title={checked ? "Desmarcar" : "Selecionar"}
-        >
-          {checked ? <CheckCircle2 size={18} /> : <Circle size={18} />}
-        </button>
-      )}
+      {selectMode && <button type="button" onClick={e => { e.stopPropagation(); onToggleCheck?.(e); }}
+        aria-label={checked ? "Desmarcar" : "Selecionar"} aria-pressed={Boolean(checked)}
+        className="absolute top-2 right-2 grid h-11 w-11 place-items-center rounded-lg bg-black/35 text-amber-200">
+        {checked ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+      </button>}
 
-      {/* Barra de cor no topo */}
-      <div className="h-[2px] w-full" style={{ background: accent }} />
-
-      {/* Etiquetas (várias) na frente do card */}
-      {rel.etiqueta && (
-        <div className="px-5 pt-3 flex flex-wrap gap-1.5">
-          {String(rel.etiqueta).split(",").map((t: string) => t.trim()).filter(Boolean).map((t: string, i: number) => (
-            <span key={i} className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-black uppercase tracking-wider"
-              style={{ background: "rgba(212,160,23,0.18)", color: "#f3d078", border: "1px solid rgba(212,160,23,0.4)" }}
-            >
-              <Tag size={9} /> {t}
-            </span>
-          ))}
+      {ordem && <div className="mb-3 flex items-center justify-between gap-2" role="group" aria-label={`Posição de ${nome}`}>
+        <span className="text-xs font-bold text-white/85 tabular-nums">{ordem.index + 1} de {ordem.total}</span>
+        <div className="flex gap-2">
+          {([-1, 1] as const).map(direcao => {
+            const anterior = direcao === -1;
+            const label = anterior ? "Mover para frente" : "Mover para trás";
+            const Vertical = anterior ? ArrowUp : ArrowDown;
+            const Horizontal = anterior ? ArrowLeft : ArrowRight;
+            return <button key={direcao} type="button" aria-label={`${label}: ${nome}`} title={label}
+              disabled={ordem.salvando || (anterior ? ordem.index === 0 : ordem.index === ordem.total - 1)}
+              onClick={e => { e.stopPropagation(); ordem.mover(direcao); }}
+              className="grid h-11 w-11 place-items-center rounded-lg border border-white/25 bg-black/35 text-white hover:bg-black/55 disabled:opacity-30">
+              <Vertical className="md:hidden" size={18} />
+              <Horizontal className="hidden md:block" size={18} />
+            </button>;
+          })}
         </div>
-      )}
+      </div>}
 
-      <div className="p-5">
-        {ordem && (
-          <div className="mb-3 flex items-center justify-between gap-2" role="group" aria-label={`Posição de ${nome}`}>
-            <span className="text-xs font-bold text-white/85 tabular-nums">{ordem.index + 1} de {ordem.total}</span>
-            <div className="flex gap-2">
-              {([-1, 1] as const).map(direcao => {
-                const anterior = direcao === -1;
-                const label = anterior ? "Mover para frente" : "Mover para trás";
-                const Vertical = anterior ? ArrowUp : ArrowDown;
-                const Horizontal = anterior ? ArrowLeft : ArrowRight;
-                return (
-                  <button
-                    key={direcao}
-                    type="button"
-                    aria-label={`${label}: ${nome}`}
-                    title={label}
-                    disabled={ordem.salvando || (anterior ? ordem.index === 0 : ordem.index === ordem.total - 1)}
-                    onClick={e => { e.stopPropagation(); ordem.mover(direcao); }}
-                    className="grid h-11 w-11 place-items-center rounded-lg border border-white/25 bg-black/35 text-white hover:bg-black/55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-30"
-                  >
-                    <Vertical className="md:hidden" size={18} />
-                    <Horizontal className="hidden md:block" size={18} />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        {/* Nome */}
-        <p className="font-black text-base text-white/90 truncate mb-1" title={nome}>
-          {nome}
-        </p>
-
-        {/* Login */}
-        {loginCasa && (
-          <div className="flex items-center gap-1.5 mb-3">
-            <span className="text-[9px] font-bold text-white/35 uppercase tracking-widest">Login:</span>
-            <span className="text-[10px] font-mono text-[#d4a017]/80 truncate flex-1">{loginCasa}</span>
-            <button
-              onClick={copyLogin}
-              title={loginCopiado ? "Copiado!" : "Copiar login"}
-              className="flex items-center justify-center w-4 h-4 rounded transition-all shrink-0"
-              style={{
-                background: loginCopiado ? "rgba(212,160,23,0.25)" : "rgba(212,160,23,0.08)",
-                border: "1px solid rgba(212,160,23,0.2)",
-                color: loginCopiado ? "#d4a017" : "rgba(212,160,23,0.5)",
-              }}
-            >
-              {loginCopiado ? <Check size={8} /> : <Copy size={8} />}
-            </button>
-          </div>
-        )}
-
-        {/* Stats — 3 colunas maiores */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          {/* Linhas */}
-          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(0,0,0,0.3)" }}>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-1">Linhas</p>
-            <p className="font-black text-xl" style={{ color: accent }}>{rel.rows.length}</p>
-          </div>
-
-          {/* Prazo + Countdown */}
-          <div className="rounded-xl p-3 text-center col-span-2" style={{ background: "rgba(0,0,0,0.3)" }}>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-1">Prazo</p>
-            {prazoDate ? (
-              <>
-                <p className="font-black text-base" style={{ color: isVencido ? "#f87171" : accent }}>
-                  {prazoDate}
-                </p>
-                <p className="text-[9px] font-bold mt-0.5" style={{ color: isVencido ? "#f87171" : "rgba(255,255,255,0.35)" }}>
-                  {isVencido ? "⚠ Vencido" : countdown}
-                </p>
-              </>
-            ) : (
-              <p className="font-black text-base text-white/20">—</p>
-            )}
-          </div>
-        </div>
-
-        {/* Lucro */}
-        <div className="rounded-xl py-4 px-4 flex flex-col items-center justify-center mb-3 relative overflow-hidden"
-          style={{
-            background: lucroTotal >= 0
-              ? "linear-gradient(145deg, rgba(74,222,128,0.08), rgba(74,222,128,0.04))"
-              : "linear-gradient(145deg, rgba(248,113,113,0.08), rgba(248,113,113,0.04))",
-            border: `1px solid ${lucroTotal >= 0 ? "rgba(74,222,128,0.2)" : "rgba(248,113,113,0.2)"}`,
-          }}
-        >
-          <p className="text-[9px] font-black uppercase tracking-widest mb-1.5"
-            style={{ color: lucroTotal >= 0 ? "rgba(74,222,128,0.5)" : "rgba(248,113,113,0.5)" }}
-          >Lucro</p>
-          <p className="font-black text-2xl tracking-tight"
-            style={{
-              color: lucroTotal >= 0 ? "#4ade80" : "#f87171",
-              textShadow: lucroTotal >= 0 ? "0 0 20px rgba(74,222,128,0.3)" : "0 0 20px rgba(248,113,113,0.3)",
-            }}
-          >
-            {lucroTotal >= 0 ? "+" : ""}R$ {lucroTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </p>
-        </div>
-
-        {/* Ações */}
-        <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-          {onEtiqueta && (
-            <button
-              onClick={onEtiqueta}
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-white/8 text-white/30 hover:text-[#d4a017] hover:border-[#d4a017]/30"
-              style={{ background: "rgba(255,255,255,0.04)" }}
-              title="Etiqueta"
-            >
-              <Tag size={14} />
-            </button>
-          )}
-          <button
-            onClick={onDuplicate}
-            className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-white/8 text-white/30 hover:text-[#60a5fa] hover:border-[#60a5fa]/30"
-            style={{ background: "rgba(255,255,255,0.04)" }}
-            title="Duplicar"
-          >
-            <Copy size={14} />
-          </button>
-          {onReembolso && (
-            <button
-              onClick={onReembolso}
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-orange-400/15 text-orange-400/50 hover:text-orange-400 hover:border-orange-400/40"
-              style={{ background: "rgba(251,146,60,0.05)" }}
-              title="Mover para Reembolso"
-            >
-              💸
-            </button>
-          )}
-          <button
-            onClick={onDelete}
-            className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors border border-red-500/15 text-red-400/40 hover:text-red-400 hover:border-red-500/30"
-            style={{ background: "rgba(239,68,68,0.04)" }}
-            title="Lixeira"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
+      <p className={`mb-1 truncate font-black text-white/90 ${selectMode ? "pr-11" : ""}`} title={nome}>{nome}</p>
+      <div className="mb-2 flex flex-wrap gap-1.5 text-[11px] font-semibold">
+        {progresso && <span className="rounded bg-black/35 px-1.5 py-0.5 text-emerald-200">Recarga</span>}
+        {labelPrazo && <span className={`rounded bg-black/35 px-1.5 py-0.5 ${estadoPrazo === "atrasado" ? "text-red-200" : estadoPrazo === "hoje" ? "text-amber-200" : "text-white/85"}`}>{labelPrazo}</span>}
+        {compacto && prazoDate && <span className="rounded bg-black/35 px-1.5 py-0.5 text-white/85">{prazoDate}</span>}
+        {isSelected && <span className="rounded bg-black/35 px-1.5 py-0.5 text-amber-200">Em edição</span>}
       </div>
-    </div>
+
+      {!compacto && <>
+        {rel.etiqueta && <div className="mb-2 flex flex-wrap gap-1.5">
+          {rel.etiqueta.split(",").map(t => t.trim()).filter(Boolean).map((t, i) => (
+            <span key={i} className="inline-flex items-center gap-1 rounded-md border border-amber-400/30 bg-amber-300/10 px-2 py-0.5 text-[10px] font-black uppercase text-amber-200"><Tag size={9} />{t}</span>
+          ))}
+        </div>}
+        {loginCasa && <div className="mb-3 flex items-center gap-2">
+          <span className="text-[10px] text-white/70">Login:</span>
+          <span className="min-w-0 flex-1 truncate font-mono text-xs text-amber-200">{loginCasa}</span>
+          <button type="button" onClick={copyLogin} aria-label={loginCopiado ? "Copiado!" : "Copiar login"}
+            className="grid h-8 w-8 place-items-center rounded border border-amber-400/25 bg-black/25 text-amber-200">
+            {loginCopiado ? <Check size={12} /> : <Copy size={12} />}
+          </button>
+        </div>}
+        <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/80">
+          <span>{rel.rows.length} {rel.rows.length === 1 ? "linha" : "linhas"}</span>
+          {prazoDate && <span>Prazo: {prazoDate}{countdown && estadoPrazo !== "atrasado" ? ` · ${countdown}` : ""}</span>}
+        </div>
+        {progresso && metaRecarga != null ? (
+          <div className="mb-3 rounded-xl border border-emerald-400/25 bg-emerald-950/55 p-3 text-emerald-200">
+            <p className="text-xs font-semibold">Montante a atingir</p>
+            <p className="break-words text-2xl font-black md:text-3xl">{ocultarValores ? "Valor oculto" : moedaRelatorio.format(metaRecarga)}</p>
+            {!ocultarValores && <>
+              <progress className="h-1.5 w-full accent-emerald-400" aria-label="Progresso da recarga" value={progresso.percentual} max={100} />
+              <p className="mt-1 text-xs text-white/85">{moedaRelatorio.format(progresso.realizado)} lançados · faltam {moedaRelatorio.format(progresso.falta)}</p>
+              <p className="mt-1 text-xs text-white/75">Resultado: {resultadoTexto}</p>
+            </>}
+          </div>
+        ) : (
+          <div className={`mb-3 rounded-xl border bg-black/25 p-3 ${ocultarValores ? "border-white/15 text-white/90" : lucroTotal >= 0 ? "border-emerald-400/25 text-[#4ade80]" : "border-red-400/25 text-[#f87171]"}`}>
+            <p className="text-xs font-semibold">Resultado</p>
+            <p className="break-words text-2xl font-black md:text-3xl">{resultadoTexto}</p>
+          </div>
+        )}
+      </>}
+
+      {!selectMode && <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={e => { e.stopPropagation(); onSelect(); }} aria-label={`Abrir ${nome}`}
+          className="min-h-11 rounded-lg bg-[#d4a017] px-3 text-xs font-black text-[#050b18] md:min-h-9">Abrir</button>
+        <div className="hidden flex-wrap items-center gap-1.5 md:flex">
+          {acoes.map(acao => <button type="button" key={acao.titulo} onClick={acao.handler} title={acao.titulo}
+            aria-label={acao.titulo === "Ver resumo" ? `Ver resumo de ${nome}` : acao.titulo}
+            className="flex min-h-9 min-w-9 items-center justify-center gap-1 rounded-lg border border-white/15 bg-black/25 px-2 text-xs text-white/85 hover:bg-black/45">
+            {acao.icone}{acao.titulo === "Ver resumo" && "Ver resumo"}
+          </button>)}
+        </div>
+        <div className="ml-auto md:hidden" onClick={e => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" aria-label={`Mais ações de ${nome}`} className="grid h-11 w-11 place-items-center rounded-lg border border-white/15 bg-black/25 text-white"><Ellipsis size={19} /></button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
+              {acoes.map(acao => <DropdownMenuItem key={acao.titulo} onClick={acao.handler} className="min-h-11">{acao.icone}{acao.titulo}</DropdownMenuItem>)}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>}
+    </article>
   );
 }
+
 
 // Plataformas do calendário (espelhando Calendario.tsx)
 const PLATAFORMAS_CALENDARIO = [
@@ -474,7 +416,7 @@ function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
 }
 
 export default function Relatorios() {
-  const { state, addRelatorio, updateRelatorio, deleteRelatorio, finalizarRelatorio, finalizarCasa, duplicarRelatorio, esvaziarLixeira, ordemRelatorios, salvandoOrdemRelatorios, reordenarRelatorios } = useApp();
+  const { state, addRelatorio, updateRelatorio, deleteRelatorio, finalizarRelatorio, finalizarCasa, duplicarRelatorio, esvaziarLixeira, ordemRelatorios, salvandoOrdemRelatorios, reordenarRelatorios, salvamentoRelatorios } = useApp();
   const { confirm, confirmEl } = useConfirm();
   const [finalizarDialogId, setFinalizarDialogId] = useState<string | null>(null);
   const [jogosTexto, setJogosTexto] = useState("");
@@ -504,6 +446,29 @@ export default function Relatorios() {
   const [selectMode, setSelectMode] = useState(false);
   const [organizandoRelatorios, setOrganizandoRelatorios] = useState(false);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [busca, setBusca] = useState("");
+  const [tipoFiltro, setTipoFiltro] = useState("");
+  const [prazoFiltro, setPrazoFiltro] = useState("");
+  const [compacto, setCompacto] = useState(false);
+  const [ocultarValores, setOcultarValores] = useState(false);
+  const [resumoId, setResumoId] = useState<string | null>(null);
+  const [ultimoRelatorioId, setUltimoRelatorioId] = useState(() => {
+    try { return sessionStorage.getItem(ULTIMO_RELATORIO_KEY) || ""; }
+    catch { return ""; }
+  });
+
+  const abrirRelatorio = (id: string) => {
+    setSelectedRelatorioId(id);
+    setUltimoRelatorioId(id);
+    try { sessionStorage.setItem(ULTIMO_RELATORIO_KEY, id); }
+    catch { /* navigation still works without storage */ }
+  };
+
+  const limparFiltros = () => {
+    setBusca("");
+    setTipoFiltro("");
+    setPrazoFiltro("");
+  };
 
   const toggleSelecionado = (id: string) => {
     setSelecionados((prev) => {
@@ -562,7 +527,21 @@ export default function Relatorios() {
     .sort((a, b) => a.criadoEm.localeCompare(b.criadoEm) || a.id.localeCompare(b.id));
   const coresDosRelatorios = new Map(relatoriosAtivosBase.map((r, index) => [r.id, getReportAccent(index)]));
   const relatoriosAtivos = aplicarOrdemRelatorios(relatoriosAtivosBase, ordemRelatorios ?? []);
-  const podeOrganizarRelatorios = ordemRelatorios !== undefined && relatoriosAtivos.length > 1 && !selectMode;
+  const casasPorId = new Map(state.casas.map(casa => [casa.id, casa]));
+  const buscaNormalizada = normalizarBuscaRelatorio(busca);
+  const filtrando = Boolean(buscaNormalizada || tipoFiltro || prazoFiltro);
+  const relatoriosVisiveis = relatoriosAtivos.filter(rel => {
+    const casa = casasPorId.get(rel.casaId);
+    const tipo = casa?.metaRecarga != null ? "recarga" : "cpa";
+    const prazo = prazoDeRelatorio(rel.prazo);
+    return (!buscaNormalizada || normalizarBuscaRelatorio(`${casa?.nome ?? ""} ${rel.agente || ""}`).includes(buscaNormalizada))
+      && (!tipoFiltro || tipoFiltro === tipo)
+      && (!prazoFiltro || (prazoFiltro === "proximo" ? prazo === "hoje" || prazo === "amanha" : prazoFiltro === prazo));
+  });
+  const ultimoRelatorio = relatoriosAtivos.find(r => r.id === ultimoRelatorioId);
+  const resumo = relatoriosAtivos.find(r => r.id === resumoId);
+  const casaResumo = resumo ? casasPorId.get(resumo.casaId) : undefined;
+  const podeOrganizarRelatorios = ordemRelatorios !== undefined && relatoriosAtivos.length > 1 && !selectMode && !filtrando;
   const mostrarSetasRelatorios = organizandoRelatorios && podeOrganizarRelatorios;
 
   const trocarPosicaoRelatorio = (index: number, direcao: -1 | 1) => {
@@ -714,7 +693,7 @@ export default function Relatorios() {
   return (
     <div className="space-y-4 md:space-y-8">
       {/* Abas de Navegação */}
-      <div className="flex gap-1 p-1 rounded-xl border border-white/10 w-fit"
+      <div className="flex gap-1 p-1 rounded-xl border border-white/10 w-fit max-w-full overflow-x-auto"
         style={{ background: "rgba(255,255,255,0.03)" }}
       >
         {[
@@ -725,7 +704,7 @@ export default function Relatorios() {
           { id: "lixeira", label: `Lixeira (${relatoriosLixeira.length})` },
         ].map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
-            className="px-5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
+            className="shrink-0 px-5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
             style={activeTab === tab.id ? {
               background: "linear-gradient(135deg, #d4a017, #f59e0b)",
               color: "#050b18",
@@ -739,6 +718,19 @@ export default function Relatorios() {
       <div className={`transition-opacity duration-300 ${
         isVisible ? "page-transition-enter" : "page-transition-exit"
       }`}>
+        {(relatoriosAtivos.length > 0 || relatoriosReembolso.length > 0 || ocultarValores) && (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <button type="button" aria-pressed={ocultarValores} onClick={() => setOcultarValores(v => !v)}
+              className="min-h-11 rounded-lg border border-white/15 bg-white/5 px-3 text-xs font-bold text-white/85 hover:bg-white/10">
+              {ocultarValores ? "Mostrar valores" : "Ocultar valores"}
+            </button>
+            {ultimoRelatorio && <button type="button" onClick={() => { abrirRelatorio(ultimoRelatorio.id); setActiveTab("relatorio"); }}
+              className="min-h-11 rounded-lg border border-white/15 bg-white/5 px-3 text-xs font-bold text-white/85 hover:bg-white/10">
+              Último relatório
+            </button>}
+          </div>
+        )}
+
         {renderedTab === "relatorio" && (
           <>
             {/* Botão Criar Novo Relatório */}
@@ -778,7 +770,7 @@ export default function Relatorios() {
                     <option value="">Selecionar Meta</option>
                     {casasAtivas.map((casa) => (
                       <option key={casa.id} value={casa.id}>
-                        {casa.nome}{casa.metaRecarga != null
+                        {casa.nome}{ocultarValores ? "" : casa.metaRecarga != null
                           ? ` — Recarga: ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(casa.metaRecarga)}`
                           : casa.meta ? ` — Meta: R$ ${Number(casa.meta).toFixed(2)}` : ""}
                       </option>
@@ -856,7 +848,7 @@ export default function Relatorios() {
                 <div className="flex items-center justify-between mb-5 gap-2 flex-wrap">
                   <h3 className="text-sm font-black text-white/70 uppercase tracking-wider">Relatórios Criados</h3>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-white/25">{relatoriosAtivos.length} ativo(s)</span>
+                    <span className="text-xs font-bold text-white/65">{filtrando ? `${relatoriosVisiveis.length} de ${relatoriosAtivos.length}` : `${relatoriosAtivos.length} ativo(s)`}</span>
                     {podeOrganizarRelatorios && (
                       <button
                         type="button"
@@ -868,7 +860,8 @@ export default function Relatorios() {
                       </button>
                     )}
                     <button
-                      onClick={() => { setOrganizandoRelatorios(false); setSelectMode((v) => !v); setSelecionados(new Set()); }}
+                        onClick={() => { setOrganizandoRelatorios(false); setSelectMode((v) => !v); setSelecionados(new Set()); }}
+                        disabled={!selectMode && !relatoriosVisiveis.length}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
                       style={selectMode
                         ? { background: "rgba(212,160,23,0.15)", color: "#d4a017", border: "1px solid rgba(212,160,23,0.35)" }
@@ -878,6 +871,30 @@ export default function Relatorios() {
                     </button>
                   </div>
                 </div>
+
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  <input type="search" aria-label="Buscar casa ou agente" placeholder="Buscar casa ou agente"
+                    value={busca} onChange={e => setBusca(e.target.value)}
+                    disabled={mostrarSetasRelatorios || selectMode}
+                    className="min-h-11 min-w-0 flex-[1_1_12rem] rounded-lg border border-white/15 bg-[#0c1524] px-3 text-base text-white placeholder:text-white/60 disabled:opacity-45 md:text-sm" />
+                  <select aria-label="Tipo de operação" value={tipoFiltro} onChange={e => setTipoFiltro(e.target.value)} disabled={mostrarSetasRelatorios || selectMode}
+                    className="min-h-11 rounded-lg border border-white/15 bg-[#0c1524] px-2 text-sm text-white disabled:opacity-45">
+                    <option value="">CPA e Recarga</option><option value="cpa">CPA</option><option value="recarga">Recarga</option>
+                  </select>
+                  <select aria-label="Prazo" value={prazoFiltro} onChange={e => setPrazoFiltro(e.target.value)} disabled={mostrarSetasRelatorios || selectMode}
+                    className="min-h-11 rounded-lg border border-white/15 bg-[#0c1524] px-2 text-sm text-white disabled:opacity-45">
+                    <option value="">Todos os prazos</option><option value="proximo">Hoje ou amanhã</option><option value="atrasado">Atrasados</option><option value="sem-prazo">Sem prazo</option>
+                  </select>
+                  <button type="button" aria-pressed={compacto} onClick={() => setCompacto(v => !v)}
+                    className="min-h-11 rounded-lg border border-amber-300/25 bg-amber-300/10 px-3 text-xs font-bold text-amber-200">
+                    {compacto ? "Modo completo" : "Modo compacto"}
+                  </button>
+                </div>
+
+                {filtrando && !selectMode && <p className="mb-3 text-xs text-white/75">
+                  <button type="button" onClick={limparFiltros} className="mr-2 py-2 font-bold text-amber-200 underline underline-offset-2">Limpar filtros</button>
+                  Para reorganizar a lista completa, limpe os filtros.
+                </p>}
 
                 {mostrarSetasRelatorios && (
                   <p role="status" className="mb-4 text-xs text-white/75">
@@ -893,9 +910,9 @@ export default function Relatorios() {
                     <span className="text-xs font-bold text-white/70">
                       {selecionados.size} selecionado(s)
                       <button
-                        onClick={() => setSelecionados(new Set(relatoriosAtivos.map((r) => r.id)))}
+                        onClick={() => setSelecionados(new Set(relatoriosVisiveis.map((r) => r.id)))}
                         className="ml-3 text-[10px] font-bold text-[#d4a017] hover:underline"
-                      >Marcar todos</button>
+                      >{filtrando ? "Marcar visíveis" : "Marcar todos"}</button>
                     </span>
                     <div className="flex items-center gap-2 flex-wrap">
                       <button
@@ -917,19 +934,20 @@ export default function Relatorios() {
                     </div>
                   </div>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {!relatoriosVisiveis.length && <p role="status" className="py-4 text-sm text-white/75">Nenhum relatório encontrado.</p>}
+                <div className={compacto ? "grid gap-2" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
                   {(() => {
-                    return relatoriosAtivos.map((rel, index) => {
+                    return relatoriosVisiveis.map((rel, index) => {
                       const accent = coresDosRelatorios.get(rel.id) ?? getReportAccent(index);
                       const lucroTotal = calculateTotalResultado(rel.rows, rel.cooperacao);
                       const isSelected = selectedRelatorioId === rel.id;
                       const nomeBase = getCasaNome(rel.casaId).replace(/[\s-]+$/, "").trim();
                       const nome = `${nomeBase}${rel.agente ? `-${rel.agente}` : ""}`;
-                      const countdown = rel.prazo ? calcCountdown(rel.prazo) : "";
-                      const prazoDate = rel.prazo
+                      const estadoPrazo = prazoDeRelatorio(rel.prazo);
+                      const countdown = estadoPrazo !== "sem-prazo" ? calcCountdown(rel.prazo!) : "";
+                      const prazoDate = estadoPrazo !== "sem-prazo"
                         ? new Date(rel.prazo + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
                         : null;
-                      const isVencido = rel.prazo ? new Date(rel.prazo + "T23:59:59") < new Date() : false;
 
                       return (
                         <RelatorioCard
@@ -941,9 +959,13 @@ export default function Relatorios() {
                           loginCasa={getCasaLogin(rel.casaId)}
                           lucroTotal={lucroTotal}
                           prazoDate={prazoDate}
-                          isVencido={isVencido}
+                          estadoPrazo={estadoPrazo}
                           countdown={countdown}
-                          onSelect={() => setSelectedRelatorioId(rel.id)}
+                          metaRecarga={casasPorId.get(rel.casaId)?.metaRecarga}
+                          compacto={compacto}
+                          ocultarValores={ocultarValores}
+                          onSelect={() => abrirRelatorio(rel.id)}
+                          onResumo={(e) => { e.stopPropagation(); setResumoId(rel.id); }}
                           onDuplicate={(e) => { e.stopPropagation(); duplicarRelatorio(rel.id); }}
                           onDelete={(e) => { e.stopPropagation(); handleDeleteRelatorio(rel.id); }}
                           onEtiqueta={(e) => { e.stopPropagation(); abrirEtiqueta(rel.id); }}
@@ -983,6 +1005,8 @@ export default function Relatorios() {
                   media={casaDoRelatorio?.media || 0}
                   meta={casaDoRelatorio?.meta || 0}
                   metaRecarga={casaDoRelatorio?.metaRecarga}
+                  salvamento={salvamentoRelatorios?.[currentRelatorio.id]}
+                  ocultarValores={ocultarValores}
                   jogosUltimaVez={getJogosUltimaVez(currentRelatorio.casaId, currentRelatorio.id)}
                   rede={redeDaCasaR(currentRelatorio.casaId)}
                   rows={currentRelatorio.rows}
@@ -1020,7 +1044,9 @@ export default function Relatorios() {
           </>
         )}
 
-        {renderedTab === "progresso" && currentRelatorio && (
+        {renderedTab === "progresso" && currentRelatorio && (ocultarValores ? (
+          <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">Os valores de progresso estão ocultos.</p>
+        ) : (
           <AbaProgresso
             meta={casaDoRelatorio?.meta || 0}
             media={casaDoRelatorio?.media || 0}
@@ -1031,7 +1057,7 @@ export default function Relatorios() {
             cooperacao={currentRelatorio.cooperacao}
             rows={currentRelatorio.rows}
           />
-        )}
+        ))}
 
         {renderedTab === "reembolso" && (
           <div className="space-y-4">
@@ -1050,7 +1076,7 @@ export default function Relatorios() {
                     <div key={rel.id} className="rounded-2xl p-4 border border-orange-400/25 flex flex-col" style={{ background: "rgba(251,146,60,0.05)" }}>
                       <p className="text-[10px] font-black uppercase tracking-wider text-orange-300/70">💸 Reembolso pendente</p>
                       <h4 className="text-base font-black text-white mt-1 truncate">{nome}</h4>
-                      <p className="text-xs mt-1" style={{ color: lucro >= 0 ? "#4ade80" : "#f87171" }}>Resultado: R$ {lucro.toFixed(2)}</p>
+                      <p className="text-xs mt-1" style={{ color: ocultarValores ? undefined : lucro >= 0 ? "#4ade80" : "#f87171" }}>Resultado: {ocultarValores ? "Valor oculto" : moedaRelatorio.format(lucro)}</p>
                       <div className="flex gap-2 mt-4">
                         <button onClick={() => { updateRelatorio(rel.id, { reembolso: null }); toast.success("Voltou pra ativo ↩️"); }}
                           className="flex-1 px-3 py-2 rounded-xl text-xs font-bold border border-white/12 text-white/70 hover:bg-white/5 transition-colors">↩️ Voltar</button>
@@ -1164,6 +1190,20 @@ export default function Relatorios() {
           </div>
         )}
 
+        <Dialog open={Boolean(resumo)} onOpenChange={open => { if (!open) setResumoId(null); }}>
+          <DialogContent className="max-w-sm border-white/15 bg-[#0c1524] text-white" showCloseButton={false}>
+            <DialogHeader>
+              <DialogTitle>{resumo ? getCasaNome(resumo.casaId) : "Resumo do relatório"}</DialogTitle>
+              <DialogDescription>Resumo sem editar. {casaResumo?.metaRecarga != null ? "Recarga" : "CPA"}</DialogDescription>
+            </DialogHeader>
+            {resumo && <dl className="space-y-2 text-sm">
+              <div className="flex flex-wrap justify-between gap-x-3"><dt>Prazo</dt><dd>{prazoDeRelatorio(resumo.prazo) === "sem-prazo" ? "Sem prazo" : new Date(resumo.prazo + "T12:00:00").toLocaleDateString("pt-BR")}</dd></div>
+              <div className="flex flex-wrap justify-between gap-x-3"><dt>Montante a atingir</dt><dd>{ocultarValores ? "Valor oculto" : moedaRelatorio.format(montanteDaOperacao(casaResumo?.meta ?? 0, casaResumo?.media ?? 0, casaResumo?.metaRecarga))}</dd></div>
+              <div className="flex flex-wrap justify-between gap-x-3"><dt>Resultado</dt><dd>{ocultarValores ? "Valor oculto" : moedaRelatorio.format(calculateTotalResultado(resumo.rows, resumo.cooperacao))}</dd></div>
+            </dl>}
+            <DialogClose asChild><button type="button" className="min-h-11 rounded-lg border border-white/15 bg-white/5 px-3 text-sm font-bold">Fechar resumo</button></DialogClose>
+          </DialogContent>
+        </Dialog>
         {confirmEl}
 
         {/* Modal: etiqueta do relatório */}

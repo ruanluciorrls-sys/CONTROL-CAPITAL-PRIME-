@@ -50,7 +50,8 @@ describe("Recarga", () => {
 
     rerender(<RelatorioSpreadsheet {...props} metaRecarga={8000} />);
     expect(screen.queryByText("Quantidade de DEP")).not.toBeInTheDocument();
-    expect(screen.getByText(/R\$\s*8\.000,00/)).toBeInTheDocument();
+    expect(screen.getByText(/^R\$\s*8\.000,00$/)).toBeInTheDocument();
+    expect(screen.getByText(/faltam R\$\s*8\.000,00/)).toBeInTheDocument();
     fireEvent.change(screen.getByRole("spinbutton", { name: "Salário recebido" }), { target: { value: "300" } });
     fireEvent.click(screen.getByRole("button", { name: "OK" }));
     expect(onCooperacaoChange).toHaveBeenCalledWith(300);

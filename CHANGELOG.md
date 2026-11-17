@@ -7,6 +7,14 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.30.0] - 2026-11-17
+
+### Adicionado
+- Busca, filtros, modo compacto, resumo sem edição e atalho para o último relatório usado na sessão.
+- Cartões mostram o progresso da Recarga, o estado do prazo e qual relatório está aberto. A ordem salva e a paleta atual foram preservadas.
+- Controle para ocultar valores na Operação CPA, ações acessíveis no celular e confirmação de salvamento da planilha pelo servidor.
+- Fade discreto entre páginas com suporte à preferência de movimento reduzido.
+
 ## [1.29.0] - 2026-11-17
 
 ### Adicionado
