@@ -239,9 +239,9 @@ export default function RelatorioSpreadsheet({
       {rede && <AvisoRede rede={rede} />}
 
       {/* Header — Info do Relatório */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="planilha-cabecalho grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Agente + Prazo */}
-        <div className="rounded-2xl p-5 border relative overflow-hidden"
+        <div className="planilha-cartao rounded-2xl p-5 border relative overflow-hidden"
           style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)" }}
         >
           <div className="absolute left-0 top-0 h-full w-[3px] rounded-l-2xl" style={{ background: "#d4a017" }} />
@@ -249,9 +249,9 @@ export default function RelatorioSpreadsheet({
           <p className="planilha-titulo-agente font-black text-lg text-white/90 dark:text-white truncate">{agente || "—"}</p>
           {/* Login da conta */}
           {login && (
-            <div className="flex items-center gap-1.5 mt-2">
+            <div className="planilha-login flex items-center gap-1.5 mt-2">
               <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Login:</span>
-              <span className="text-[11px] font-mono text-[#d4a017]/90 truncate flex-1">{login}</span>
+              <span className="min-w-0 text-[11px] font-mono text-[#d4a017]/90 truncate">{login}</span>
               <button
                 onClick={copyLogin}
                 title={loginCopiado ? "Copiado!" : "Copiar login"}
@@ -272,7 +272,7 @@ export default function RelatorioSpreadsheet({
         </div>
 
         {/* Casa Nome */}
-        <div className="relative overflow-hidden rounded-2xl p-5 border border-emerald-500/20 flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/35"
+        <div className="planilha-cartao relative overflow-hidden rounded-2xl p-5 border border-emerald-500/20 flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/35"
           style={{ background: "linear-gradient(145deg, rgba(7, 26, 18, 0.75), rgba(12, 42, 30, 0.5))" }}
         >
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
@@ -285,20 +285,20 @@ export default function RelatorioSpreadsheet({
 
         {/* Link da Conta-Filha */}
         {linkContaFilha ? (
-          <div className="rounded-2xl p-5 border border-[#a78bfa]/20 flex flex-col"
+          <div className="planilha-cartao rounded-2xl p-5 border border-[#a78bfa]/20 flex flex-col"
             style={{ background: "linear-gradient(145deg, rgba(13, 7, 32, 0.75), rgba(21, 11, 46, 0.5))" }}
           >
             <p className="text-[9px] font-black uppercase tracking-widest text-[#a78bfa]/70 dark:text-[#a78bfa]/50 mb-2">Link da Conta-Filha</p>
 
             {/* Link real exibido */}
             <a href={linkContaFilha} target="_blank" rel="noopener noreferrer"
-              className="block text-[11px] font-mono text-[#c4b5fd]/80 hover:text-[#c4b5fd] transition-colors truncate mb-3 underline decoration-[#a78bfa]/30 underline-offset-2"
+              className="planilha-link block text-[11px] font-mono text-[#c4b5fd]/80 hover:text-[#c4b5fd] transition-colors truncate mb-3 underline decoration-[#a78bfa]/30 underline-offset-2"
               title={linkContaFilha}
             >
               {linkContaFilha.replace(/^https?:\/\//, "")}
             </a>
 
-            <div className="flex gap-2 mt-auto">
+            <div className="flex justify-center gap-2 mt-auto">
               <a href={linkContaFilha} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all"
                 style={{ background: "rgba(167,139,250,0.1)", color: "#a78bfa" }}
@@ -306,7 +306,7 @@ export default function RelatorioSpreadsheet({
                 <ExternalLink size={11} /> Acessar
               </a>
               <button onClick={copyLink}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ml-auto"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all"
                 style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa" }}
               >
                 {linkCopiado ? <><Check size={11} /> Copiado</> : <><Copy size={11} /> Copiar</>}
@@ -317,9 +317,9 @@ export default function RelatorioSpreadsheet({
       </div>
 
       {/* Cards de Métricas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="planilha-metricas grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Qtd DEP */}
-        {!recarga && <div className="rounded-2xl p-5 border transition-all duration-300 hover:-translate-y-0.5"
+        {!recarga && <div className="planilha-cartao rounded-2xl p-5 border transition-all duration-300 hover:-translate-y-0.5"
           style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)", borderLeft: "3px solid #60a5fa" }}
         >
           <p className="text-[9px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 mb-2">Quantidade de DEP</p>
@@ -328,7 +328,7 @@ export default function RelatorioSpreadsheet({
         </div>}
 
         {/* Montante */}
-        <div className={`rounded-2xl p-5 border border-emerald-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/35 ${recarga ? "md:col-span-2" : ""}`}
+        <div className={`planilha-cartao rounded-2xl p-5 border border-emerald-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/35 ${recarga ? "md:col-span-2" : ""}`}
           style={{ background: "linear-gradient(145deg, rgba(7, 26, 18, 0.75), rgba(12, 42, 30, 0.5))", borderLeft: "3px solid #4ade80" }}
         >
           <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400/70 dark:text-emerald-400/50 mb-2">Montante a Atingir</p>
@@ -353,7 +353,7 @@ export default function RelatorioSpreadsheet({
         </div>
 
         {/* Progresso Cooperação */}
-        <div className="rounded-2xl p-5 border border-[#a78bfa]/20 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#a78bfa]/35"
+        <div className="planilha-cartao rounded-2xl p-5 border border-[#a78bfa]/20 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#a78bfa]/35"
           style={{ background: "linear-gradient(145deg, rgba(13, 7, 32, 0.75), rgba(21, 11, 46, 0.5))", borderLeft: "3px solid #a78bfa" }}
         >
           <p className="text-[9px] font-black uppercase tracking-widest text-[#a78bfa]/70 dark:text-[#a78bfa]/50 mb-2">{rotuloRecebimento}</p>
@@ -389,7 +389,7 @@ export default function RelatorioSpreadsheet({
               <tr style={{ borderBottom: "1px solid rgba(212,160,23,0.2)", background: "rgba(212,160,23,0.05)" }}>
                 <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 text-left">#</th>
                 {["Depósito", "ReDepósito", "Saque", "Baú", "Resultado"].map((h) => (
-                  <th key={h} className={thStyle}>{h}</th>
+                  <th key={h} className={thStyle}>{h === "ReDepósito" ? <>Re<wbr />Depósito</> : h}</th>
                 ))}
                 <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 text-center">Ação</th>
               </tr>
@@ -399,7 +399,7 @@ export default function RelatorioSpreadsheet({
                 !ocultarValores && editingId === row.numero ? (
                   <tr key={idx} style={{ background: "rgba(212,160,23,0.06)", borderBottom: "1px solid rgba(212,160,23,0.15)" }}>
                     <td className="px-4 py-2 text-[#d4a017] font-black text-sm">
-                      <div className="flex items-center gap-1.5"><Edit2 size={12} className="animate-pulse" />{row.numero}</div>
+                      <div className="flex items-center justify-center gap-1.5"><Edit2 size={12} className="animate-pulse" />{row.numero}</div>
                     </td>
                     {camposValores.map((f) => (
                       <td key={f} className="px-2 py-2">
@@ -521,7 +521,7 @@ export default function RelatorioSpreadsheet({
         </div>
 
         {/* Painel Lateral */}
-        <div className="min-w-0 space-y-3">
+        <div className="planilha-resumo min-w-0 space-y-3">
           {[
             { label: "TOTAL DEPÓSITO", value: totals.deposito, color: "#60a5fa" },
             { label: "TOTAL REDEPÓSITO", value: totals.redeposito, color: "#94a3b8" },

@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.30.7] - 2026-11-18
+
+### Corrigido
+- Centraliza cabeçalhos, valores, campos e ações da tabela, além do conteúdo dos cartões. Padroniza rótulos e detalhes em 14 px, nomes em 20 px e métricas superiores em 32 px, mantendo valores laterais grandes, cores e botões de ação acessíveis.
+
 ## [1.30.6] - 2026-11-18
 
 ### Corrigido

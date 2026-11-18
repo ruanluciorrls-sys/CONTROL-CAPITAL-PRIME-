@@ -29,6 +29,10 @@ describe("leitura e acoes da planilha", () => {
     expect(screen.getByRole("table", { name: "Lançamentos do relatório" })).toHaveClass("planilha-tabela");
     expect(screen.getByText("Ana")).toHaveClass("planilha-titulo-agente");
     expect(screen.getByText("Rede teste")).toHaveClass("planilha-titulo-casa");
+    expect(screen.getByText("Ana").closest(".planilha-cartao")).toBeInTheDocument();
+    expect(container.querySelectorAll(".planilha-cabecalho .planilha-cartao")).toHaveLength(2);
+    expect(container.querySelectorAll(".planilha-metricas .planilha-cartao")).toHaveLength(3);
+    expect(container.querySelector(".planilha-resumo")).toBeInTheDocument();
     const editar = screen.getByRole("button", { name: "Editar linha 1" });
     const excluir = screen.getByRole("button", { name: "Excluir linha 1" });
     expect(editar).toHaveClass("planilha-acao-editar");
