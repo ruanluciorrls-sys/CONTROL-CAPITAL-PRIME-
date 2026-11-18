@@ -377,10 +377,10 @@ export default function RelatorioSpreadsheet({
       </div>
 
       {/* Layout: Tabela + Painel */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
+      <div className="planilha-layout">
 
         {/* Tabela */}
-        <div className="min-w-0 lg:col-span-3 rounded-2xl border overflow-hidden"
+        <div className="min-w-0 rounded-2xl border overflow-hidden"
           style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)" }}
         >
           <div className="overflow-x-auto">

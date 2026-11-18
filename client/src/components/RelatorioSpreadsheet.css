@@ -1,6 +1,7 @@
 /* Apenas a planilha aberta, sem alterar tipografia das outras paginas. */
 .operacoes-planilha.planilha-fonte-ampliada {
   min-width: 0;
+  container-type: inline-size;
   --planilha-neon: 0 0 7px color-mix(in srgb, currentColor 25%, transparent);
 }
 
@@ -60,25 +61,41 @@
 }
 
 .operacoes-planilha.planilha-fonte-ampliada .planilha-tabela {
-  min-width: 70rem;
+  width: 100%;
+  min-width: 40rem;
+  table-layout: fixed;
 }
 
 .operacoes-planilha.planilha-fonte-ampliada .planilha-tabela :is(th, td) {
-  padding-inline: 0.75rem;
+  padding: 0.5rem 0.375rem;
+  overflow-wrap: anywhere;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-tabela :is(th, td):first-child {
+  width: 8.5%;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-tabela :is(th, td):last-child {
+  width: 20.5%;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-tabela th {
+  font-size: 0.8125rem;
+  letter-spacing: 0.025em;
 }
 
 .operacoes-planilha.planilha-fonte-ampliada .planilha-tabela td {
-  font-size: 1.125rem;
+  font-size: 0.875rem;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
 }
 
 .operacoes-planilha.planilha-fonte-ampliada .planilha-tabela td[class*="font-mono"] {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 0.875rem;
+  font-weight: 600;
   line-height: 1.45;
-  white-space: nowrap;
-  text-shadow: 0 0 3px color-mix(in srgb, currentColor 8%, transparent);
+  white-space: normal;
+  text-shadow: none;
 }
 
 .operacoes-planilha.planilha-fonte-ampliada .planilha-linha-dados > td {
@@ -96,8 +113,14 @@
 }
 
 .operacoes-planilha.planilha-fonte-ampliada .planilha-linha-totais td[class*="font-mono"] {
-  font-size: 1.625rem;
+  font-size: 0.875rem;
   font-weight: 800;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-linha-totais td:first-child {
+  font-size: 0.75rem;
+  letter-spacing: 0.025em;
+  white-space: nowrap;
 }
 
 .operacoes-planilha.planilha-fonte-ampliada :is(input, button, a) {
@@ -113,7 +136,33 @@
 }
 
 .operacoes-planilha.planilha-fonte-ampliada .planilha-tabela input {
-  min-width: 8rem;
+  width: 100%;
+  min-width: 0;
+  font-size: 1rem !important;
+  padding-inline: 0.25rem;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-tabela button[class] {
+  min-height: 2.75rem;
+  font-size: 0.8125rem;
+  padding-inline: 0.375rem;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-tabela .planilha-acao-icone {
+  width: 2.75rem;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+}
+
+/* Considera a largura disponivel depois do menu lateral, nao a janela inteira. */
+@container (min-width: 58rem) {
+  .operacoes-planilha.planilha-fonte-ampliada .planilha-layout {
+    grid-template-columns: minmax(0, 3fr) minmax(13rem, 1fr);
+  }
 }
 
 .operacoes-planilha.planilha-fonte-ampliada :is(button, a)[class*="text-"] {
@@ -158,8 +207,7 @@
 }
 
 @media (min-width: 48rem) {
-  .operacoes-planilha.planilha-fonte-ampliada :is(p, span)[class~="uppercase"][class*="tracking-"],
-  .operacoes-planilha.planilha-fonte-ampliada .planilha-tabela th {
+  .operacoes-planilha.planilha-fonte-ampliada :is(p, span)[class~="uppercase"][class*="tracking-"] {
     font-size: 0.9375rem;
   }
 }

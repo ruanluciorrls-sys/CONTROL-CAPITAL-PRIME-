@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.30.6] - 2026-11-18
+
+### Corrigido
+- Reduz os valores das linhas e totais da tabela para 14 px e os campos da tabela para 16 px, sem diminuir os valores dos cartões laterais nem os títulos. Reorganiza as colunas e adapta o painel à largura disponível para evitar rolagem horizontal desnecessária no computador.
+
 ## [1.30.5] - 2026-11-18
 
 ### Alterado
