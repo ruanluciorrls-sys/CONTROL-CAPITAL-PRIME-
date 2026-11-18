@@ -5,6 +5,7 @@ import CasasFinalizadas from "./CasasFinalizadas";
 import GerenciarCasas from "./GerenciarCasas";
 import { FileText, CheckCircle, Home, List } from "lucide-react";
 import { usePageTransition } from "@/hooks/usePageTransition";
+import "./MinhasOperacoes.css";
 
 export default function MinhasOperacoes() {
   const [activeSubTab, setActiveSubTab] = useState<string>("operacao-cpa");
@@ -18,12 +19,13 @@ export default function MinhasOperacoes() {
   ];
 
   return (
-    <div className="flex flex-col h-full space-y-4">
+    <div className="operacoes-legiveis flex flex-col h-full min-w-0 space-y-4">
       {/* Abas Superiores */}
-      <div className="flex gap-2 overflow-x-auto pb-2 border-b border-border hide-scrollbar">
+      <div className="operacoes-abas flex gap-2 overflow-x-auto pb-2 border-b border-border hide-scrollbar">
         {subTabs.map((tab) => (
           <button
             key={tab.id}
+            data-ativa={activeSubTab === tab.id}
             onClick={() => setActiveSubTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-xs uppercase tracking-wider transition-all whitespace-nowrap shrink-0 ${
               activeSubTab === tab.id

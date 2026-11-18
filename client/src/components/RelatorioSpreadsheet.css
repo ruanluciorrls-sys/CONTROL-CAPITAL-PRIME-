@@ -1,0 +1,175 @@
+/* Apenas a planilha aberta, sem alterar tipografia das outras paginas. */
+.operacoes-planilha.planilha-fonte-ampliada {
+  min-width: 0;
+  --planilha-neon: 0 0 7px color-mix(in srgb, currentColor 25%, transparent);
+}
+
+.operacoes-planilha.planilha-fonte-ampliada :is([class~="text-[9px]"], [class~="text-[10px]"], [class~="text-[11px]"]) {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada :is(p, span)[class~="uppercase"][class*="tracking-"],
+.operacoes-planilha.planilha-fonte-ampliada .planilha-tabela th {
+  letter-spacing: 0.07em;
+  text-shadow: var(--planilha-neon);
+}
+
+.operacoes-planilha.planilha-fonte-ampliada :is(p, span, th):is(
+  [class~="text-white/30"], [class~="text-white/40"],
+  [class~="text-white/45"], [class~="text-white/60"]
+) {
+  color: rgb(255 255 255 / 0.8);
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-titulo-agente {
+  font-size: 1.5rem;
+  line-height: 1.4;
+  text-shadow: var(--planilha-neon);
+}
+
+.operacoes-planilha.planilha-fonte-ampliada :is(p, span)[class*="text-emerald-400/"] {
+  color: rgb(52 211 153 / 0.9);
+}
+
+.operacoes-planilha.planilha-fonte-ampliada p[class*="text-[#a78bfa]/"] {
+  color: rgb(167 139 250 / 0.9);
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-titulo-casa {
+  overflow-wrap: anywhere;
+  font-size: clamp(1.75rem, 2.6vw, 2rem);
+  line-height: 1.3;
+  text-shadow: 0 0 9px rgb(74 222 128 / 0.28);
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-metrica {
+  font-size: clamp(2.5rem, 3.8vw, 3rem);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 4px color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-total.operacoes-valor-neon,
+.operacoes-planilha.planilha-fonte-ampliada .planilha-total.operacoes-valor-neon.destaque {
+  font-size: clamp(2.25rem, 3.2vw, 2.5rem);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  text-shadow: 0 0 4px color-mix(in srgb, var(--operacoes-cor-valor, currentColor) 12%, transparent);
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-tabela {
+  min-width: 70rem;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-tabela :is(th, td) {
+  padding-inline: 0.75rem;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-tabela td {
+  font-size: 1.125rem;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-tabela td[class*="font-mono"] {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.45;
+  white-space: nowrap;
+  text-shadow: 0 0 3px color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-linha-dados > td {
+  transition: background-color 120ms ease;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-linha-dados:focus-within > td {
+  background-color: rgb(255 255 255 / 0.045);
+}
+
+@media (hover: hover) {
+  .operacoes-planilha.planilha-fonte-ampliada .planilha-linha-dados:hover > td {
+    background-color: rgb(255 255 255 / 0.045);
+  }
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-linha-totais td[class*="font-mono"] {
+  font-size: 1.625rem;
+  font-weight: 800;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada :is(input, button, a) {
+  min-height: 3rem;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada input {
+  min-width: 0;
+  /* Supera o tamanho global de 16 px no celular e continua evitando zoom do iOS. */
+  font-size: 1.375rem !important;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-tabela input {
+  min-width: 8rem;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada :is(button, a)[class*="text-"] {
+  font-size: 0.9375rem;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-acao-icone {
+  width: 3rem;
+  flex-shrink: 0;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-acoes-linha {
+  opacity: 1;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-acao-editar {
+  color: #d4a017;
+  border-color: rgb(212 160 23 / 0.5);
+  background-color: rgb(212 160 23 / 0.12);
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-acao-excluir {
+  color: #f87171;
+  border-color: rgb(248 113 113 / 0.45);
+  background-color: rgb(248 113 113 / 0.1);
+}
+
+.operacoes-planilha.planilha-fonte-ampliada :is(.planilha-acao-editar, .planilha-acao-excluir):is(:hover, :focus-visible) {
+  border-color: currentColor;
+  background-color: color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.operacoes-planilha.planilha-fonte-ampliada :is(.planilha-acao-editar, .planilha-acao-excluir):focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .operacoes-planilha.planilha-fonte-ampliada .planilha-linha-dados > td {
+    transition: none;
+  }
+}
+
+@media (min-width: 48rem) {
+  .operacoes-planilha.planilha-fonte-ampliada :is(p, span)[class~="uppercase"][class*="tracking-"],
+  .operacoes-planilha.planilha-fonte-ampliada .planilha-tabela th {
+    font-size: 0.9375rem;
+  }
+}
+
+@media (forced-colors: active) {
+  .operacoes-planilha.planilha-fonte-ampliada {
+    --planilha-neon: none;
+  }
+  .operacoes-planilha.planilha-fonte-ampliada :is(.planilha-titulo-casa, .planilha-metrica, .planilha-total),
+  .operacoes-planilha.planilha-fonte-ampliada .planilha-tabela td[class*="font-mono"] {
+    text-shadow: none;
+  }
+}

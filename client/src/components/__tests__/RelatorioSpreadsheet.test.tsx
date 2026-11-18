@@ -21,6 +21,45 @@ function propriedades() {
 
 afterEach(() => vi.useRealTimers());
 
+describe("leitura e acoes da planilha", () => {
+  it("mantem os alvos de tipografia e a edicao das linhas com os mesmos calculos", () => {
+    const props = propriedades();
+    const { container } = render(<RelatorioSpreadsheet {...props} />);
+    expect(container.querySelector(".operacoes-planilha")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Lançamentos do relatório" })).toHaveClass("planilha-tabela");
+    expect(screen.getByText("Ana")).toHaveClass("planilha-titulo-agente");
+    expect(screen.getByText("Rede teste")).toHaveClass("planilha-titulo-casa");
+    const editar = screen.getByRole("button", { name: "Editar linha 1" });
+    const excluir = screen.getByRole("button", { name: "Excluir linha 1" });
+    expect(editar).toHaveClass("planilha-acao-editar");
+    expect(excluir).toHaveClass("planilha-acao-excluir");
+    expect(editar.querySelector("svg")).toHaveAttribute("width", "18");
+    expect(excluir.querySelector("svg")).toHaveAttribute("width", "18");
+    expect(editar.closest("tr")).toHaveClass("planilha-linha-dados");
+    fireEvent.click(screen.getByRole("button", { name: "Editar linha 1" }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Editar deposito da linha 1" }), { target: { value: "200" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+    expect(props.onUpdateRow).toHaveBeenCalledWith(1, expect.objectContaining({
+      deposito: 200, redeposito: 12.3, saque: 34.56, bau: 78.9,
+      resultado: 34.56 - 200 - 12.3 + 78.9,
+    }));
+  });
+
+  it("mantem a inclusao por teclado e a exclusao com os botoes maiores", () => {
+    const props = propriedades();
+    const { rerender } = render(<RelatorioSpreadsheet {...props} />);
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Novo deposito" }), { target: { value: "100" } });
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Novo saque" }), { target: { value: "135" } });
+    fireEvent.keyDown(screen.getByRole("spinbutton", { name: "Novo saque" }), { key: "Enter" });
+    expect(props.onAddRow).toHaveBeenCalledWith(expect.objectContaining({ numero: 2, deposito: 100, saque: 135, resultado: 35 }));
+    fireEvent.click(screen.getByRole("button", { name: "Excluir linha 1" }));
+    expect(props.onDeleteRow).toHaveBeenCalledWith(1);
+    expect(screen.queryByRole("button", { name: "Cancelar edição" })).not.toBeInTheDocument();
+    rerender(<RelatorioSpreadsheet {...props} ocultarValores />);
+    expect(screen.queryByRole("button", { name: "Excluir linha 1" })).not.toBeInTheDocument();
+  });
+});
+
 describe("salvamento da planilha", () => {
   it("separa debounce local, envio, erro e horario confirmado", () => {
     vi.useFakeTimers();

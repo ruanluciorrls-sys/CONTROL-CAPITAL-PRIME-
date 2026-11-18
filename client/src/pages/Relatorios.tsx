@@ -349,7 +349,7 @@ function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
       {open && coords && createPortal(
         <div
           ref={panelRef}
-          className="rounded-2xl overflow-hidden shadow-2xl border border-white/12"
+          className="operacoes-legiveis rounded-2xl overflow-hidden shadow-2xl border border-white/12"
           style={{
             position: "fixed",
             top: coords.top,
@@ -1191,7 +1191,7 @@ export default function Relatorios() {
         )}
 
         <Dialog open={Boolean(resumo)} onOpenChange={open => { if (!open) setResumoId(null); }}>
-          <DialogContent className="max-w-sm border-white/15 bg-[#0c1524] text-white" showCloseButton={false}>
+          <DialogContent className="operacoes-legiveis max-w-sm border-white/15 bg-[#0c1524] text-white" showCloseButton={false}>
             <DialogHeader>
               <DialogTitle>{resumo ? getCasaNome(resumo.casaId) : "Resumo do relatório"}</DialogTitle>
               <DialogDescription>Resumo sem editar. {casaResumo?.metaRecarga != null ? "Recarga" : "CPA"}</DialogDescription>

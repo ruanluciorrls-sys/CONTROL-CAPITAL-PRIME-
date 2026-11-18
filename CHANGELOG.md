@@ -7,6 +7,31 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.30.5] - 2026-11-18
+
+### Alterado
+- Suaviza o neon dos valores sem reduzir os tamanhos, destaca a linha da planilha ao passar o mouse ou focar as ações pelo teclado e melhora o contraste e os ícones de editar e excluir. Mantém as cores e os cálculos existentes.
+
+## [1.30.4] - 2026-11-18
+
+### Alterado
+- Destaca os valores monetários com números de 24 px nas linhas, 26 px no total da tabela, 22 px nos campos e de 36 a 48 px nos cartões, mantendo as fórmulas e as cores.
+
+## [1.30.3] - 2026-11-18
+
+### Alterado
+- Aumenta novamente a tipografia da planilha: números das linhas em 18 px, rótulos em 14 a 15 px e totais em 30 a 34 px, com o mesmo neon suave.
+
+## [1.30.2] - 2026-11-18
+
+### Alterado
+- Amplia os textos, valores, campos e ações da planilha aberta com brilho discreto nas cores existentes. A tabela mantém rolagem horizontal no celular.
+
+## [1.30.1] - 2026-11-17
+
+### Alterado
+- Melhora a leitura nas abas de Minhas Operações, com letras pequenas maiores e brilho discreto nos títulos, rótulos e totais nas cores atuais.
+
 ## [1.30.0] - 2026-11-17
 
 ### Adicionado

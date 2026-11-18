@@ -5,6 +5,7 @@ import AvisoRede from "@/components/AvisoRede";
 import { montanteDaOperacao } from "@shared/recarga";
 import type { SalvamentoRelatorio } from "@/lib/salvamentoRelatorios";
 import { progressoRecarga } from "@/lib/visaoRelatorios";
+import "./RelatorioSpreadsheet.css";
 
 interface RelatorioRow {
   numero: number;
@@ -194,7 +195,7 @@ export default function RelatorioSpreadsheet({
   const tdBorder = "border-b border-white/5";
 
   return (
-    <div className="space-y-5"
+    <div className="operacoes-planilha planilha-fonte-ampliada space-y-5"
       onFocusCapture={() => setEditingActive(true)}
       onBlurCapture={() => setEditingActive(false)}
     >
@@ -245,7 +246,7 @@ export default function RelatorioSpreadsheet({
         >
           <div className="absolute left-0 top-0 h-full w-[3px] rounded-l-2xl" style={{ background: "#d4a017" }} />
           <p className="text-[9px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 mb-3">Agente & Prazo</p>
-          <p className="font-black text-lg text-white/90 dark:text-white truncate">{agente || "—"}</p>
+          <p className="planilha-titulo-agente font-black text-lg text-white/90 dark:text-white truncate">{agente || "—"}</p>
           {/* Login da conta */}
           {login && (
             <div className="flex items-center gap-1.5 mt-2">
@@ -254,7 +255,7 @@ export default function RelatorioSpreadsheet({
               <button
                 onClick={copyLogin}
                 title={loginCopiado ? "Copiado!" : "Copiar login"}
-                className="flex items-center justify-center w-5 h-5 rounded-md transition-all shrink-0"
+                className="planilha-acao-icone flex items-center justify-center w-5 h-5 rounded-md transition-all shrink-0"
                 style={{
                   background: loginCopiado ? "rgba(212,160,23,0.25)" : "rgba(212,160,23,0.1)",
                   border: "1px solid rgba(212,160,23,0.25)",
@@ -278,7 +279,7 @@ export default function RelatorioSpreadsheet({
           <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-emerald-400/10 blur-2xl pointer-events-none" />
           <div className="relative">
             <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400/70 dark:text-emerald-400/50 mb-1 text-center">{recarga ? "Meta - Recarga" : "Meta"}</p>
-            <p className="font-black text-2xl text-emerald-300 dark:text-emerald-200 text-center" style={{ textShadow: "0 0 24px rgba(74,222,128,0.3)" }}>{casaNomeLimpo}</p>
+            <p className="planilha-titulo-casa font-black text-2xl text-emerald-300 dark:text-emerald-200 text-center">{casaNomeLimpo}</p>
           </div>
         </div>
 
@@ -322,7 +323,7 @@ export default function RelatorioSpreadsheet({
           style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)", borderLeft: "3px solid #60a5fa" }}
         >
           <p className="text-[9px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 mb-2">Quantidade de DEP</p>
-          <p className="text-3xl font-black" style={{ color: "#60a5fa" }}>{ocultarValores ? valorOculto : meta}</p>
+          <p className="planilha-metrica text-3xl font-black" style={{ color: "#60a5fa" }}>{ocultarValores ? valorOculto : meta}</p>
           <p className="text-[10px] text-white/50 dark:text-white/40 mt-1">DEPs necessários</p>
         </div>}
 
@@ -331,7 +332,7 @@ export default function RelatorioSpreadsheet({
           style={{ background: "linear-gradient(145deg, rgba(7, 26, 18, 0.75), rgba(12, 42, 30, 0.5))", borderLeft: "3px solid #4ade80" }}
         >
           <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400/70 dark:text-emerald-400/50 mb-2">Montante a Atingir</p>
-          <p className={`${recarga ? "text-4xl" : "text-3xl"} font-black text-emerald-300 dark:text-emerald-200`}>
+          <p className={`planilha-metrica ${recarga ? "text-4xl" : "text-3xl"} font-black text-emerald-300 dark:text-emerald-200`}>
             {exibirValor(isNaN(montante) ? 0 : montante)}
           </p>
           {progressoDaRecarga && (
@@ -363,15 +364,15 @@ export default function RelatorioSpreadsheet({
               inputMode="decimal"
               value={cooperacaoInput === "0" ? "" : cooperacaoInput}
               onChange={(e) => setCooperacaoRascunho(e.target.value || "0")}
-              className="flex-1 px-3 py-1.5 rounded-xl text-sm text-white font-mono bg-transparent border border-white/15 focus:outline-none focus:border-[#a78bfa]"
+              className="min-w-0 flex-1 px-3 py-1.5 rounded-xl text-sm text-white font-mono bg-transparent border border-white/15 focus:outline-none focus:border-[#a78bfa]"
               placeholder=""
             />
             <button onClick={() => { if (cooperacaoPendente) confirmarCooperacao(valorCooperacao); }}
-              className="px-3 py-1.5 rounded-xl text-xs font-black text-[#050b18]"
+              className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-black text-[#050b18]"
               style={{ background: "linear-gradient(135deg, #a78bfa, #7c3aed)" }}
             >OK</button>
           </div>}
-          <p className="text-2xl font-black text-[#a78bfa]">{exibirValor(cooperacao)}</p>
+          <p className="planilha-metrica text-2xl font-black text-[#a78bfa]">{exibirValor(cooperacao)}</p>
         </div>
       </div>
 
@@ -379,11 +380,11 @@ export default function RelatorioSpreadsheet({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
 
         {/* Tabela */}
-        <div className="lg:col-span-3 rounded-2xl border overflow-hidden"
+        <div className="min-w-0 lg:col-span-3 rounded-2xl border overflow-hidden"
           style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)" }}
         >
           <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="planilha-tabela w-full" aria-label="Lançamentos do relatório">
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(212,160,23,0.2)", background: "rgba(212,160,23,0.05)" }}>
                 <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 text-left">#</th>
@@ -403,6 +404,7 @@ export default function RelatorioSpreadsheet({
                     {camposValores.map((f) => (
                       <td key={f} className="px-2 py-2">
                         <input type="number"
+                          aria-label={`Editar ${f} da linha ${row.numero}`}
                           value={editRow?.[f] === 0 ? "" : editRow?.[f] || 0}
                           onChange={(e) => setEditRow({ ...editRow!, [f]: parseFloat(e.target.value) || 0 })}
                           onKeyDown={(e) => handleKeyDown(e, f, row.numero)}
@@ -421,14 +423,14 @@ export default function RelatorioSpreadsheet({
                           className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black text-[#050b18]"
                           style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
                         ><Check size={11} /> Salvar</button>
-                        <button onClick={() => { setEditingId(null); setEditRow(null); }}
+                        <button aria-label="Cancelar edição" onClick={() => { setEditingId(null); setEditRow(null); }}
                           className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-white/40 border border-white/12 hover:bg-white/5"
                         ><X size={11} /></button>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  <tr key={idx} className={tdBorder}
+                  <tr key={idx} className={`planilha-linha-dados ${tdBorder}`}
                     style={{
                       background: ocultarValores ? "transparent" : row.resultado < 0 ? "rgba(248,113,113,0.04)" : row.resultado > 0 ? "rgba(74,222,128,0.04)" : "transparent",
                       cursor: ocultarValores ? undefined : "pointer",
@@ -445,17 +447,13 @@ export default function RelatorioSpreadsheet({
                       {exibirValor(row.resultado)}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {!ocultarValores && <div className="flex gap-1.5 justify-center opacity-0 hover:opacity-100 transition-opacity"
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
-                      >
-                        <button onClick={() => { setEditingId(row.numero); setEditRow({ ...row }); }}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center border border-[#d4a017]/20 text-[#d4a017]/50 hover:text-[#d4a017] hover:border-[#d4a017]/40 transition-colors"
-                          style={{ background: "rgba(212,160,23,0.06)" }}
-                        ><Edit2 size={12} /></button>
-                        <button onClick={() => onDeleteRow(row.numero)}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center border border-red-500/15 text-red-400/40 hover:text-red-400 hover:border-red-500/30 transition-colors"
-                          style={{ background: "rgba(239,68,68,0.04)" }}
-                        ><Trash2 size={12} /></button>
+                      {!ocultarValores && <div className="planilha-acoes-linha flex gap-1.5 justify-center">
+                        <button aria-label={`Editar linha ${row.numero}`} onClick={() => { setEditingId(row.numero); setEditRow({ ...row }); }}
+                          className="planilha-acao-icone planilha-acao-editar w-7 h-7 rounded-lg flex items-center justify-center border transition-colors"
+                        ><Edit2 size={18} /></button>
+                        <button aria-label={`Excluir linha ${row.numero}`} onClick={e => { e.stopPropagation(); onDeleteRow(row.numero); }}
+                          className="planilha-acao-icone planilha-acao-excluir w-7 h-7 rounded-lg flex items-center justify-center border transition-colors"
+                        ><Trash2 size={18} /></button>
                       </div>}
                     </td>
                   </tr>
@@ -468,6 +466,7 @@ export default function RelatorioSpreadsheet({
                 {camposValores.map((f) => (
                   <td key={f} className="px-2 py-2">
                     <input type="number"
+                      aria-label={`Novo ${f}`}
                       value={newRow[f] || ""}
                       onChange={(e) => setNewRow({ ...newRow, [f]: parseFloat(e.target.value) || 0 })}
                       onBlur={(e) => { if (!e.target.value) setNewRow({ ...newRow, [f]: 0 }); }}
@@ -488,7 +487,7 @@ export default function RelatorioSpreadsheet({
               </tr>}
 
               {/* Totais */}
-              <tr style={{ background: "rgba(255,255,255,0.04)", borderTop: "2px solid rgba(255,255,255,0.1)" }}>
+              <tr className="planilha-linha-totais" style={{ background: "rgba(255,255,255,0.04)", borderTop: "2px solid rgba(255,255,255,0.1)" }}>
                 <td className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-white/40">TOTAL</td>
                 {[totals.deposito, totals.redeposito, totals.saque, totals.bau].map((v, i) => (
                   <td key={i} className="px-4 py-3 text-right font-mono text-sm font-black text-white/60">{exibirValor(v)}</td>
@@ -522,7 +521,7 @@ export default function RelatorioSpreadsheet({
         </div>
 
         {/* Painel Lateral */}
-        <div className="space-y-3">
+        <div className="min-w-0 space-y-3">
           {[
             { label: "TOTAL DEPÓSITO", value: totals.deposito, color: "#60a5fa" },
             { label: "TOTAL REDEPÓSITO", value: totals.redeposito, color: "#94a3b8" },
@@ -539,10 +538,10 @@ export default function RelatorioSpreadsheet({
             >
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
-                <p className="text-[9px] font-black uppercase tracking-widest text-white/30">{label}</p>
+                <p className="operacoes-neon text-[9px] font-black uppercase tracking-widest text-white/30">{label}</p>
               </div>
-              <p className="text-xl font-black"
-                style={{ background: `linear-gradient(135deg, #ffffff 30%, ${color})`, WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}
+              <p className="planilha-total operacoes-valor-neon text-xl font-black"
+                style={ocultarValores ? undefined : { "--operacoes-cor-valor": color, background: `linear-gradient(135deg, #ffffff 30%, ${color})`, WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" } as React.CSSProperties}
               >
                 {ocultarValores ? valorOculto : isText ? value : fmt(value as number)}
               </p>
@@ -566,7 +565,7 @@ export default function RelatorioSpreadsheet({
                 RESULTADO
               </p>
             </div>
-            <p className="text-2xl font-black" style={{ color: ocultarValores ? undefined : resultadoPositivo ? "#4ade80" : "#f87171" }}>
+            <p className="planilha-total operacoes-valor-neon destaque text-2xl font-black" style={{ color: ocultarValores ? undefined : resultadoPositivo ? "#4ade80" : "#f87171" }}>
               {exibirValor(totals.resultado)}
             </p>
           </div>
@@ -583,7 +582,7 @@ export default function RelatorioSpreadsheet({
               <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full blur-2xl pointer-events-none" style={{ background: resultadoFinalPositivo ? "rgba(212,160,23,0.12)" : "rgba(248,113,113,0.1)" }} />
             </>}
             <p className="relative text-[9px] font-black uppercase tracking-widest text-white/40 mb-2">{recarga ? "RESULTADO + SALÁRIO" : "RESULTADO + COOP."}</p>
-            <p className="relative text-2xl font-black" style={ocultarValores ? undefined : { color: resultadoFinalPositivo ? "#d4a017" : "#f87171", textShadow: resultadoFinalPositivo ? "0 0 22px rgba(212,160,23,0.35)" : "0 0 22px rgba(248,113,113,0.3)" }}>
+            <p className="planilha-total operacoes-valor-neon destaque relative text-2xl font-black" style={ocultarValores ? undefined : { color: resultadoFinalPositivo ? "#d4a017" : "#f87171" }}>
               {exibirValor(resultadoFinal)}
             </p>
           </div>

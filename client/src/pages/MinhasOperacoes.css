@@ -1,0 +1,67 @@
+/* A escala e o brilho ficam restritos as paginas internas de Minhas Operacoes. */
+.operacoes-legiveis {
+  --operacoes-brilho: 0 0 7px color-mix(in srgb, currentColor 30%, transparent);
+}
+
+.operacoes-legiveis [class~="text-[8px]"],
+.operacoes-legiveis [class~="text-[9px]"] {
+  font-size: 0.6875rem;
+  line-height: 1.4;
+}
+
+.operacoes-legiveis [class~="text-[10px]"] {
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.operacoes-legiveis [class~="text-[11px]"],
+.operacoes-legiveis :is(button, label, th)[class~="text-xs"],
+.operacoes-legiveis :is(p, span)[class~="text-xs"][class~="uppercase"],
+.operacoes-legiveis .operacoes-abas button {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.operacoes-legiveis :is(h2, h3)[class~="text-sm"] {
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.operacoes-legiveis :is(h2, h3)[class~="text-base"] {
+  font-size: 1.0625rem;
+  line-height: 1.35;
+}
+
+.operacoes-legiveis :is(h2, h3, th, .operacoes-neon),
+.operacoes-legiveis :is(p, label, span)[class~="uppercase"][class*="tracking-"],
+.operacoes-legiveis .operacoes-abas button:not([data-ativa="true"]) {
+  text-shadow: var(--operacoes-brilho);
+}
+
+.operacoes-legiveis :is(label, th, .operacoes-neon, [class~="uppercase"]):is(
+  [class~="text-white/25"], [class~="text-white/30"], [class~="text-white/35"],
+  [class~="text-white/38"], [class~="text-white/40"], [class~="text-white/45"]
+) {
+  color: rgb(255 255 255 / 0.72);
+}
+
+.operacoes-legiveis .operacoes-valor-neon {
+  overflow-wrap: anywhere;
+  font-size: 1.375rem;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--operacoes-cor-valor, currentColor) 32%, transparent);
+}
+
+.operacoes-legiveis .operacoes-valor-neon.destaque {
+  font-size: clamp(1.5rem, 2.2vw, 1.75rem);
+}
+
+@media (forced-colors: active) {
+  .operacoes-legiveis {
+    --operacoes-brilho: none;
+  }
+  .operacoes-legiveis .operacoes-valor-neon {
+    text-shadow: none;
+  }
+}

@@ -2,7 +2,7 @@
 
 > **Leia este arquivo inteiro antes de mexer no código.** Ele existe para que qualquer IA (Claude, GPT, Gemini, etc.) consiga continuar o trabalho sem quebrar nada e sem precisar redescobrir tudo. Mantenha-o atualizado quando fizer mudanças estruturais.
 
-Última atualização: **2026-11-17** · Versão do app: **1.30.0** (ver [`CHANGELOG.md`](CHANGELOG.md)).
+Última atualização: **2026-11-18** · Versão do app: **1.30.5** (ver [`CHANGELOG.md`](CHANGELOG.md)).
 
 ---
 
