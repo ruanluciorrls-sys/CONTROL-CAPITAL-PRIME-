@@ -43,6 +43,7 @@ export interface RelatorioData {
   finalizadoEm?: string;
   etiqueta?: string;
   jogos?: string;
+  valorReembolso?: number | null;
   reembolso?: string | null; // null | 'pendente' | 'concluido'
   reembolsadoEm?: string | null;
 }

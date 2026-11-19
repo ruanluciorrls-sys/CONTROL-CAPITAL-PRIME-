@@ -7,6 +7,22 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.31.0] - 2026-11-19
+
+### Adicionado
+- Edição direta em Reembolso, com valor recebido, prévia do resultado e conclusão da meta vinculada na mesma transação.
+- Feed de avisos e jogos por plataforma entre contas, identificando autor pelo nome e data. Histórico privado não é republicado.
+- Busca e paginação em Relatórios Finalizados; edição do link da conta-filha em Casas Finalizadas.
+
+### Alterado
+- Reutilização fica em Relatórios Finalizados. Casas Finalizadas mantém editar e apagar.
+- Seletor de jogos exibe busca e inclusão manual antes das capas, com confirmação do baú preservada.
+- Operação CPA retira a aba Progresso e o cartão lateral de porcentagem. Separa Agente / Blogueira do prazo e destaca a meta, inclusive Recarga.
+- Menu lateral maior, logo no perfil e ação de recarregar dados no menu discreto do desktop. Criação de Meta e Recarga preservadas.
+
+### Reversão
+- Referência anterior: versão 1.30.7, commit `2d3ce82`. O esquema novo é aditivo; voltar o código não exige apagar colunas ou publicações. Versões antigas não incluem o valor de reembolso no resultado.
+
 ## [1.30.7] - 2026-11-18
 
 ### Corrigido

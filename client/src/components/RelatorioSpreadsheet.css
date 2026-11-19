@@ -61,6 +61,14 @@
   justify-content: center;
 }
 
+.operacoes-planilha.planilha-fonte-ampliada .planilha-cabecalho .planilha-cartao p.text-base {
+  font-size: 1rem;
+}
+
+.operacoes-planilha.planilha-fonte-ampliada .planilha-titulo-casa {
+  font-size: clamp(1.375rem, 2vw, 1.625rem);
+}
+
 .operacoes-planilha.planilha-fonte-ampliada .planilha-cartao input {
   text-align: center;
 }

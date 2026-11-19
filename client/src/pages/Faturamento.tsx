@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { valorRecebidoDoReembolso } from "@shared/reembolso";
 import { trpc } from "@/lib/trpc";
 import { celebrar } from "@/lib/celebrar";
 import {
@@ -128,7 +129,7 @@ export default function Faturamento() {
   const calcLucro = (relatorios: typeof relatoriosFinalizados) =>
     relatorios.reduce((total, rel) => {
       const resultado = rel.rows.reduce((s, r) => s + (Number(r.resultado) || 0), 0);
-      return total + resultado + (Number(rel.cooperacao) || 0);
+      return total + resultado + (Number(rel.cooperacao) || 0) + valorRecebidoDoReembolso(rel);
     }, 0);
 
   const hoje = new Date();
@@ -431,7 +432,7 @@ export default function Faturamento() {
       const saque = rel.rows.reduce((s, r) => s + (Number(r.saque) || 0), 0);
       const bau = rel.rows.reduce((s, r) => s + (Number(r.bau) || 0), 0);
       const cooperacao = Number(rel.cooperacao) || 0;
-      const lucroReal = rel.rows.reduce((s, r) => s + (Number(r.resultado) || 0), 0) + cooperacao;
+      const lucroReal = rel.rows.reduce((s, r) => s + (Number(r.resultado) || 0), 0) + cooperacao + valorRecebidoDoReembolso(rel);
       return {
         id: rel.id,
         nome: `${casaNome.replace(/[\s-]+$/, "").trim()}${rel.agente ? `-${rel.agente}` : ""}`,
@@ -1114,7 +1115,7 @@ export default function Faturamento() {
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <div>
                 <h2 className="text-xl font-black text-white/95">Histórico das casas</h2>
-                <p className="text-xs text-white/30">Cada casa finalizada com o lucro real (ciclos + cooperação)</p>
+                <p className="text-xs text-white/30">Resultado dos ciclos, cooperação e reembolsos concluídos.</p>
               </div>
               <span className="w-fit rounded-full border border-[#d4a017]/25 bg-[#d4a017]/10 px-3 py-1 text-[10px] font-black text-[#d4a017]">
                 {casasResumo.length} casa(s)

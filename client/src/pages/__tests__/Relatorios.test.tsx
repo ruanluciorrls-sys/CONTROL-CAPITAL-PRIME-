@@ -1,31 +1,40 @@
 import React from "react";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { aplicarOrdemRelatorios, moverRelatorio } from "@/lib/ordemRelatorios";
 import { prazoDeRelatorio, progressoRecarga } from "@/lib/visaoRelatorios";
 import Relatorios from "../Relatorios";
 
-const preferencias = vi.hoisted(() => ({ ordem: [] as string[], salvar: vi.fn() }));
+const preferencias = vi.hoisted(() => ({
+  ordem: [] as string[], salvar: vi.fn(), comReembolso: false, registrar: vi.fn(), finalizar: vi.fn(),
+}));
 
 vi.mock("@/components/RelatorioSpreadsheet", () => ({
   default: ({ agente, ocultarValores }: { agente: string; ocultarValores?: boolean }) =>
     <div data-testid="planilha">{agente}: {ocultarValores ? "Valores ocultos" : "Planilha aberta"}</div>,
+}));
+vi.mock("@/components/SeletorJogos", () => ({
+  default: ({ onChange }: { onChange: (jogos: string) => void }) =>
+    <button type="button" onClick={() => onChange("Jogo de exemplo")}>Escolher jogo de exemplo</button>,
 }));
 
 vi.mock("@/contexts/AppContext", () => ({
   useApp: () => ({
     state: {
       casas: [
-        { id: "casa", nome: "Rede", status: "ativa", meta: 10, media: 100 },
+        { id: "casa", nome: "Rede", redeNome: "REDE", status: "ativa", meta: 10, media: 100 },
         { id: "recarga", nome: "Rede", status: "ativa", metaRecarga: 2000 },
       ],
       relatorios: ["Ana", "Bia", "Cris"].map((agente, index) => ({
         id: agente, agente, casaId: agente === "Bia" ? "recarga" : "casa",
         rows: agente === "Bia" ? [{ numero: 1, deposito: 1000, redeposito: 250, saque: 0, bau: 0, resultado: 0 }] : [],
         cooperacao: 0, status: "ativo",
+        reembolso: preferencias.comReembolso && agente === "Ana" ? "pendente" : null,
         criadoEm: `2026-11-0${index + 1}T00:00:00Z`,
       })),
     },
+    registrarReembolso: preferencias.registrar,
+    finalizarRelatorioComJogos: preferencias.finalizar,
     ordemRelatorios: preferencias.ordem,
     salvandoOrdemRelatorios: false,
     reordenarRelatorios: preferencias.salvar,
@@ -36,6 +45,44 @@ beforeEach(() => {
   sessionStorage.clear();
   preferencias.ordem = [];
   preferencias.salvar.mockClear();
+  preferencias.registrar.mockReset();
+  preferencias.finalizar.mockReset();
+  preferencias.comReembolso = false;
+});
+
+it("mantém a confirmação do baú e envia só o jogo e a observação marcados para compartilhar", async () => {
+  preferencias.finalizar.mockResolvedValue(true);
+  render(<Relatorios />);
+  fireEvent.click(screen.getByRole("button", { name: "Abrir Rede-Ana" }));
+  fireEvent.click(screen.getByRole("button", { name: /Finalizar Relatório/ }));
+  const finalizar = screen.getByRole("button", { name: /só o relatório/i });
+  expect(finalizar).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Escolher jogo de exemplo" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Observação pública da plataforma" }), { target: { value: "Bom hoje" } });
+  fireEvent.click(screen.getByRole("button", { name: /já sacou o baú/i }));
+  fireEvent.click(finalizar);
+  await waitFor(() => expect(preferencias.finalizar).toHaveBeenCalledWith("Ana", "Jogo de exemplo", { texto: "Bom hoje" }));
+});
+
+it("edita e finaliza na aba de reembolso, com resultado previsto e confirmação", async () => {
+  preferencias.comReembolso = true;
+  preferencias.registrar.mockResolvedValue(true);
+  render(<Relatorios />);
+  expect(screen.queryByRole("button", { name: /Progresso|Processo/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Reembolso \(1\)/ }));
+  fireEvent.click(await screen.findByRole("button", { name: "Editar reembolso" }));
+  expect(screen.getByTestId("planilha")).toHaveTextContent("Ana: Planilha aberta");
+  const editor = screen.getByRole("region", { name: "Editar reembolso" });
+  fireEvent.change(within(editor).getByRole("textbox", { name: "Valor recebido (R$)" }), { target: { value: "100,25" } });
+  expect(within(editor).getByText(/R\$\s*100,25/)).toBeInTheDocument();
+  fireEvent.click(within(editor).getByRole("button", { name: "Salvar reembolso" }));
+  await waitFor(() => expect(preferencias.registrar).toHaveBeenCalledWith("Ana", 100.25, false));
+  await waitFor(() => expect(within(editor).getByRole("button", { name: "Finalizar reembolso e meta" })).toBeEnabled());
+  fireEvent.click(within(editor).getByRole("button", { name: "Finalizar reembolso e meta" }));
+  expect(preferencias.registrar).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole("button", { name: "Finalizar", exact: true }));
+  await waitFor(() => expect(preferencias.registrar).toHaveBeenCalledWith("Ana", 100.25, true));
+  expect(await screen.findByText("Nenhum reembolso concluído ainda.")).toBeInTheDocument();
 });
 
 it("muda o cartao de posicao e le a ordem salva ao reabrir a tela", () => {

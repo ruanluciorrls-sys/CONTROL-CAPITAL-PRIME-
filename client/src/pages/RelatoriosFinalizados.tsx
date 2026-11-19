@@ -2,35 +2,58 @@ import { useApp } from "@/contexts/AppContext";
 import {
   CalendarDays,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   Edit2,
   FileText,
   ListFilter,
   ReceiptText,
+  Search,
   Trash2,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import type { RelatorioData, RelatorioRow } from "@/lib/types";
+import { valorRecebidoDoReembolso } from "@shared/reembolso";
 import { toast } from "sonner";
 
+const RELATORIOS_POR_PAGINA = 6;
+const MESES_LBL = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const normalizarBusca = (texto: string) => texto.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+const formatarValor = (valor: number) => valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function getMesKey(relatorio: RelatorioData) {
+  const data = new Date(relatorio.finalizadoEm || relatorio.criadoEm);
+  return isNaN(data.getTime()) ? "" : `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function mesLabel(key: string) {
+  const [ano, mes] = key.split("-");
+  return `${MESES_LBL[Number(mes) - 1]}/${ano}`;
+}
+
+const calculateTotalResultado = (rows: RelatorioRow[]) => rows.reduce((sum, row) => sum + row.resultado, 0);
+const getRelatorioTotal = (relatorio: RelatorioData) =>
+  calculateTotalResultado(relatorio.rows || []) + (relatorio.cooperacao || 0) + valorRecebidoDoReembolso(relatorio);
+const temReembolsoRecebido = (relatorio: RelatorioData) =>
+  relatorio.reembolso === "concluido" && relatorio.valorReembolso != null;
+
 export default function RelatoriosFinalizados() {
-  const { state, deleteRelatorio, reutilizarRelatorio, restaurarCasa, updateRelatorio } = useApp();
+  const { state, deleteRelatorio, reutilizarRelatorio, restaurarCasa, updateCasa, updateRelatorio } = useApp();
   const [selectedRelatorioId, setSelectedRelatorioId] = useState<string | null>(null);
   const [reutilizarDialogId, setReutilizarDialogId] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingData, setEditingData] = useState<any>(null);
+  const [editingData, setEditingData] = useState<RelatorioData | null>(null);
+  const isEditing = editingData !== null;
   const [filtroNomeInicial, setFiltroNomeInicial] = useState("");
-  const [filtroMes, setFiltroMes] = useState(""); // "" = todos os meses
+  const [filtroMes, setFiltroMes] = useState("");
+  const [busca, setBusca] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const detalhesRef = useRef<HTMLDivElement>(null);
+  const detalhesId = useId();
 
   const relatoriosFinalizadosTodos = state.relatorios.filter((relatorio) => relatorio.status === "finalizado");
 
-  // ── Filtro por mês (usa finalizadoEm; cai para criadoEm se faltar) ──
-  const MESES_LBL = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-  const getMesKey = (rel: any): string => {
-    const d = new Date(rel.finalizadoEm || rel.criadoEm);
-    return isNaN(d.getTime()) ? "" : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  };
-  const mesLabel = (key: string) => { const [a, m] = key.split("-"); return `${MESES_LBL[parseInt(m) - 1]}/${a}`; };
   const mesesDisponiveis = Array.from(new Set(relatoriosFinalizadosTodos.map(getMesKey).filter(Boolean))).sort().reverse();
 
   const relatoriosFinalizados = filtroMes
@@ -52,85 +75,98 @@ export default function RelatoriosFinalizados() {
     border: "1px solid rgba(255,255,255,0.10)",
   };
 
-  const getCasaNome = (casaId: string) => {
-    return state.casas.find((casa) => casa.id === casaId)?.nome || "Casa nao encontrada";
-  };
+  const nomesCasas = new Map(state.casas.map((casa) => [casa.id, casa.nome.replace(/[\s-]+$/, "").trim()]));
+  const getCasaNome = (casaId: string) => nomesCasas.get(casaId) || "Casa não encontrada";
+  const getNomeInicial = (casaId: string) => getCasaNome(casaId).split(/\s+/)[0].toUpperCase();
+  const grupos = new Map<string, number>();
+  for (const relatorio of relatoriosFinalizados) {
+    const nome = getNomeInicial(relatorio.casaId);
+    grupos.set(nome, (grupos.get(nome) || 0) + 1);
+  }
+  const nomesIniciais = [...grupos.keys()].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const termos = normalizarBusca(busca.trim()).split(/\s+/).filter(Boolean);
+  const relatoriosFiltrados = relatoriosFinalizados.filter((relatorio) => {
+    if (filtroNomeInicial && getNomeInicial(relatorio.casaId) !== filtroNomeInicial) return false;
+    const texto = normalizarBusca(`${getCasaNome(relatorio.casaId)} ${relatorio.agente || ""}`);
+    return termos.every((termo) => texto.includes(termo));
+  }).sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime());
 
-  const getNomeInicial = (nome: string) => nome.trim().split(/\s+/)[0].toUpperCase();
+  const totalPaginas = Math.max(1, Math.ceil(relatoriosFiltrados.length / RELATORIOS_POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const inicioPagina = (paginaAtual - 1) * RELATORIOS_POR_PAGINA;
+  const relatoriosDaPagina = relatoriosFiltrados.slice(inicioPagina, inicioPagina + RELATORIOS_POR_PAGINA);
+  const selectedRelatorio = relatoriosDaPagina.find((relatorio) => relatorio.id === selectedRelatorioId);
+  const relatorioExibido = editingData || selectedRelatorio;
+  const totalSelecionado = relatorioExibido ? getRelatorioTotal(relatorioExibido) : 0;
+  const temFiltros = Boolean(filtroMes || filtroNomeInicial || busca);
 
-  const relatoriosAgrupados = () => {
-    const grupos: { [key: string]: any[] } = {};
-    relatoriosFinalizados.forEach((relatorio) => {
-      const nomeInicial = getNomeInicial(getCasaNome(relatorio.casaId));
-      if (!grupos[nomeInicial]) grupos[nomeInicial] = [];
-      grupos[nomeInicial].push(relatorio);
-    });
-    Object.keys(grupos).forEach((key) => {
-      grupos[key].sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime());
-    });
-    return grupos;
-  };
+  useEffect(() => {
+    if (pagina !== paginaAtual) setPagina(paginaAtual);
+  }, [pagina, paginaAtual]);
 
-  const grupos = relatoriosAgrupados();
-  const nomesIniciais = Object.keys(grupos).sort();
-  const relatoriosFiltrados =
-    filtroNomeInicial === ""
-      ? [...relatoriosFinalizados].sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime())
-      : grupos[filtroNomeInicial] || [];
-
-  const selectedRelatorio = selectedRelatorioId
-    ? relatoriosFiltrados.find((relatorio) => relatorio.id === selectedRelatorioId)
-    : null;
-
-  const calculateTotalResultado = (rows: any[]) => rows.reduce((sum, row) => sum + row.resultado, 0);
-
-  const getRelatorioTotal = (relatorio: any) => {
-    return calculateTotalResultado(relatorio.rows || []) + (relatorio.cooperacao || 0);
-  };
+  useEffect(() => {
+    if (selectedRelatorioId && window.matchMedia?.("(width < 64rem)").matches) {
+      detalhesRef.current?.scrollIntoView?.({ block: "start" });
+    }
+  }, [selectedRelatorioId]);
 
   const totalFinalizado = relatoriosFinalizados.reduce((total, relatorio) => total + getRelatorioTotal(relatorio), 0);
+
+  const mudarPagina = (proximaPagina: number) => {
+    setPagina(proximaPagina);
+    setSelectedRelatorioId(null);
+    setEditingData(null);
+  };
 
   const handleReutilizar = (relatorioId: string) => {
     setReutilizarDialogId(relatorioId);
   };
 
-  const executarReutilizar = (comCasa: boolean) => {
+  const executarReutilizar = async (comCasa: boolean) => {
     const id = reutilizarDialogId;
     if (!id) return;
     const rel = relatoriosFinalizadosTodos.find((r) => r.id === id);
-    reutilizarRelatorio(id);
-    if (comCasa && rel) {
-      const casa = state.casas.find((c) => c.id === rel.casaId);
-      if (casa && casa.status === "finalizada") restaurarCasa(casa.id);
+    const casa = rel ? state.casas.find((c) => c.id === rel.casaId) : undefined;
+    const reativarCasa = comCasa && casa?.status === "finalizada";
+    if (reativarCasa && casa.reembolso === "concluido") {
+      if (!(await updateCasa(casa.id, { status: "ativa", reembolso: null, reembolsadoEm: null }))) {
+        toast.error("Não foi possível reativar a meta.");
+        return;
+      }
+    } else if (reativarCasa) {
+      restaurarCasa(casa.id);
     }
+    reutilizarRelatorio(id);
     setReutilizarDialogId(null);
     setSelectedRelatorioId(null);
-    toast.success(comCasa ? "Relatório e meta reativados!" : "Relatório reativado em Operação CPA.");
+    if (rel?.reembolso === "concluido") {
+      toast.success(reativarCasa ? "Relatório reaberto em Reembolso e meta reativada." : "Relatório reaberto em Reembolso.");
+    } else {
+      toast.success(reativarCasa ? "Relatório e meta reativados!" : "Relatório reativado em Operação CPA.");
+    }
   };
 
   const handleEditClick = () => {
     if (!selectedRelatorio) return;
-    setEditingData(JSON.parse(JSON.stringify(selectedRelatorio)));
-    setIsEditing(true);
+    setEditingData(selectedRelatorio);
   };
 
   const handleSaveEdit = () => {
     if (!editingData || !selectedRelatorio) return;
-    updateRelatorio(selectedRelatorio.id, editingData);
-    setIsEditing(false);
+    const { agente, prazo, cooperacao, rows } = editingData;
+    updateRelatorio(selectedRelatorio.id, { agente, prazo, cooperacao, rows });
     setEditingData(null);
-    toast.success("Relatorio atualizado com sucesso!");
+    toast.success("Relatório atualizado com sucesso!");
   };
 
   const handleCancelEdit = () => {
-    setIsEditing(false);
     setEditingData(null);
   };
 
-  const handleRowChange = (numero: number, field: string, value: string) => {
-    setEditingData((prev: any) => ({
+  const handleRowChange = (numero: number, field: "deposito" | "saque" | "bau" | "resultado", value: string) => {
+    setEditingData((prev) => prev && ({
       ...prev,
-      rows: prev.rows.map((row: any) => {
+      rows: prev.rows.map((row) => {
         if (row.numero === numero) {
           const updatedRow = {
             ...row,
@@ -150,17 +186,17 @@ export default function RelatoriosFinalizados() {
     }));
   };
 
-  const handleFieldChange = (field: string, value: string) => {
-    setEditingData((prev: any) => ({
+  const handleFieldChange = (field: "agente" | "prazo" | "cooperacao", value: string) => {
+    setEditingData((prev) => prev && ({
       ...prev,
       [field]: field === "cooperacao" ? parseFloat(value) || 0 : value,
     }));
   };
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-5">
       <div
-        className="relative overflow-hidden rounded-3xl border border-[#d4a017]/18 p-7 shadow-[0_22px_74px_rgba(0,0,0,0.3)]"
+        className="relative overflow-hidden rounded-3xl border border-[#d4a017]/18 p-4 shadow-[0_22px_74px_rgba(0,0,0,0.3)] sm:p-7"
         style={{ background: "linear-gradient(135deg, rgba(7,14,32,0.94), rgba(15,30,69,0.9))" }}
       >
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/50 to-transparent" />
@@ -168,22 +204,22 @@ export default function RelatoriosFinalizados() {
         <div className="relative grid gap-6 sm:grid-cols-[1fr_auto] sm:items-center">
           <div>
             <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-white/38">
-              Relatorios Finalizados
+              Relatórios Finalizados
             </p>
             <div className="flex flex-wrap items-end gap-5">
               <p className="font-mono text-5xl font-black tracking-tighter text-[#d4a017]">
                 {relatoriosFinalizados.length}
               </p>
               <div className="pb-1">
-                <p className="text-xs font-bold uppercase tracking-widest text-white/35">Resultado arquivado</p>
-                <p className="mt-1 font-mono text-xl font-black text-emerald-300">
-                  R$ {totalFinalizado.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <p className="text-xs font-bold uppercase tracking-widest text-white/35">Resultado do período</p>
+                <p className={`mt-1 font-mono text-xl font-black ${totalFinalizado < 0 ? "text-red-300" : "text-emerald-300"}`}>
+                  R$ {formatarValor(totalFinalizado)}
                 </p>
               </div>
             </div>
             <p className="mt-4 flex items-center gap-2 text-xs text-white/35">
               <span className="h-1.5 w-1.5 rounded-full bg-[#d4a017] animate-pulse" />
-              Total de relatorios finalizados
+              {filtroMes ? `Relatórios finalizados em ${mesLabel(filtroMes)}` : "Total de relatórios finalizados"}
             </p>
           </div>
           <div className="hidden h-14 w-14 items-center justify-center rounded-2xl border border-[#d4a017]/20 bg-[#d4a017]/10 text-[#f6c64a] sm:flex">
@@ -192,158 +228,149 @@ export default function RelatoriosFinalizados() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <div className={`${panelClass} p-5`}>
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/30 to-transparent" />
-            {/* Filtro por MÊS */}
-            {mesesDisponiveis.length > 0 && (
-              <div className="mb-4">
-                <div className="mb-2 flex items-center gap-2">
-                  <CalendarDays size={15} className="text-[#d4a017]" />
-                  <h3 className="text-sm font-black uppercase tracking-wider text-white/80">Mês</h3>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => { setFiltroMes(""); setFiltroNomeInicial(""); }}
-                    className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
-                    style={filtroMes === "" ? goldButtonStyle : ghostButtonStyle}
-                  >Todos</button>
-                  {mesesDisponiveis.map((mk) => (
-                    <button
-                      key={mk}
-                      onClick={() => { setFiltroMes(mk); setFiltroNomeInicial(""); }}
-                      className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
-                      style={filtroMes === mk ? goldButtonStyle : ghostButtonStyle}
-                    >{mesLabel(mk)}</button>
-                  ))}
-                </div>
-                <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-              </div>
-            )}
-
-            <div className="mb-4 flex items-center gap-2">
-              <ListFilter size={16} className="text-[#d4a017]" />
-              <h3 className="text-lg font-bold text-white">Filtrar por Nomenclatura</h3>
-            </div>
-
-            <div className="mb-5 max-h-64 space-y-2 overflow-y-auto pr-1">
-              <button
-                onClick={() => setFiltroNomeInicial("")}
-                className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-bold transition-all"
-                style={filtroNomeInicial === "" ? goldButtonStyle : ghostButtonStyle}
-              >
-                Todos ({relatoriosFinalizados.length})
-              </button>
-              {nomesIniciais.map((nome) => (
-                <button
-                  key={nome}
-                  onClick={() => setFiltroNomeInicial(nome)}
-                  className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-bold transition-all"
-                  style={filtroNomeInicial === nome ? goldButtonStyle : ghostButtonStyle}
-                >
-                  {nome} ({grupos[nome].length})
-                </button>
-              ))}
-            </div>
-
-            <div className="my-5 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-
-            <div className="mb-4 flex items-center gap-2">
-              <ReceiptText size={16} className="text-[#d4a017]" />
-              <h3 className="text-lg font-bold text-white">Relatorios</h3>
-            </div>
-
-            {relatoriosFiltrados.length === 0 ? (
-              <p className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm text-white/45">
-                Nenhum relatorio finalizado ainda
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {relatoriosFiltrados.map((relatorio) => {
-                  const isSelected = selectedRelatorioId === relatorio.id;
-                  const relatorioTotal = getRelatorioTotal(relatorio);
-                  return (
-                    <button
-                      key={relatorio.id}
-                      onClick={() => {
-                        setSelectedRelatorioId(relatorio.id);
-                        setIsEditing(false);
-                      }}
-                      className="group w-full rounded-2xl border p-4 text-left text-sm transition-all hover:-translate-y-0.5"
-                      style={
-                        isSelected
-                          ? {
-                              background: "linear-gradient(135deg, rgba(212,160,23,0.16), rgba(212,160,23,0.07))",
-                              borderColor: "rgba(212,160,23,0.42)",
-                              boxShadow: "0 12px 30px rgba(212,160,23,0.1)",
-                            }
-                          : {
-                              background: "rgba(255,255,255,0.035)",
-                              borderColor: "rgba(255,255,255,0.09)",
-                            }
-                      }
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black transition-transform group-hover:scale-105"
-                          style={
-                            isSelected
-                              ? { background: "linear-gradient(135deg, #f3d078, #d4a017)", color: "#050b18", boxShadow: "0 4px 12px rgba(212,160,23,0.4)" }
-                              : { background: "rgba(212,160,23,0.12)", color: "#f3d078", border: "1px solid rgba(212,160,23,0.25)" }
-                          }
-                        >
-                          {getCasaNome(relatorio.casaId).replace(/[\s-]+$/, "").trim()[0]?.toUpperCase() || "?"}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-black text-white/88">
-                            {getCasaNome(relatorio.casaId).replace(/[\s-]+$/, "").trim()}
-                            {relatorio.agente ? ` - ${relatorio.agente}` : ""}
-                          </p>
-                          <p className="mt-0.5 text-xs text-white/38">
-                            {relatorio.agente || "Sem agente"} · {new Date(relatorio.criadoEm).toLocaleDateString("pt-BR")}
-                          </p>
-                        </div>
-                        <span className="shrink-0 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 font-mono text-[11px] font-black text-emerald-300">
-                          R$ {relatorioTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+      <div className={`${panelClass} p-4 sm:p-5`}>
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/30 to-transparent" />
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4">
+          <h3 className="flex items-center gap-2 text-base font-bold text-white">
+            <ListFilter size={16} className="text-[#d4a017]" /> Filtros do arquivo
+          </h3>
+          {temFiltros && (
+            <button type="button" className="min-h-11 text-sm font-semibold text-[#f3d078] hover:underline" onClick={() => {
+              setBusca("");
+              setFiltroMes("");
+              setFiltroNomeInicial("");
+              mudarPagina(1);
+            }}>Limpar filtros</button>
+          )}
         </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <label className="min-w-0 text-sm font-semibold text-white/65 sm:col-span-2 lg:col-span-1">
+            Buscar relatórios
+            <span className="relative mt-1.5 block">
+              <Search size={16} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#d4a017]" />
+              <input type="search" value={busca} placeholder="Nome da casa ou agente"
+                onChange={(e) => { setBusca(e.target.value); mudarPagina(1); }}
+                className="min-h-11 w-full min-w-0 rounded-xl border border-white/15 bg-[#0d1c3c] py-2 pl-9 pr-3 text-base text-white outline-none placeholder:text-white/45 focus:border-[#d4a017]"
+              />
+            </span>
+          </label>
+          <label className="min-w-0 text-sm font-semibold text-white/65">
+            <span className="flex items-center gap-1.5"><CalendarDays size={14} aria-hidden="true" className="text-[#d4a017]" /> Mês</span>
+            <select value={filtroMes} onChange={(e) => {
+              setFiltroMes(e.target.value);
+              setFiltroNomeInicial("");
+              mudarPagina(1);
+            }} className="mt-1.5 min-h-11 w-full rounded-xl border border-white/15 bg-[#0d1c3c] px-3 py-2 text-base text-white outline-none focus:border-[#d4a017]">
+              <option value="">Todos os meses</option>
+              {filtroMes && !mesesDisponiveis.includes(filtroMes) && <option value={filtroMes}>{mesLabel(filtroMes)}</option>}
+              {mesesDisponiveis.map((mes) => <option key={mes} value={mes}>{mesLabel(mes)}</option>)}
+            </select>
+          </label>
+          <label className="min-w-0 text-sm font-semibold text-white/65">
+            Nomenclatura da casa
+            <select value={filtroNomeInicial}
+              onChange={(e) => { setFiltroNomeInicial(e.target.value); mudarPagina(1); }}
+              className="mt-1.5 min-h-11 w-full rounded-xl border border-white/15 bg-[#0d1c3c] px-3 py-2 text-base text-white outline-none focus:border-[#d4a017]">
+              <option value="">Todas as casas</option>
+              {filtroNomeInicial && !grupos.has(filtroNomeInicial) && <option value={filtroNomeInicial}>{filtroNomeInicial} (0)</option>}
+              {nomesIniciais.map((nome) => <option key={nome} value={nome}>{nome} ({grupos.get(nome)})</option>)}
+            </select>
+          </label>
+        </div>
+      </div>
 
-        <div className="lg:col-span-2">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <section className={`${panelClass} min-w-0 p-4 sm:p-5`} aria-label="Lista de relatórios finalizados">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/30 to-transparent" />
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="flex items-center gap-2 text-lg font-bold text-white">
+              <ReceiptText size={16} className="text-[#d4a017]" /> Relatórios
+            </h3>
+            <p role="status" className="text-xs text-white/60">
+              {relatoriosFiltrados.length > 0
+                ? `${inicioPagina + 1} a ${inicioPagina + relatoriosDaPagina.length} de ${relatoriosFiltrados.length}`
+                : "0 resultados"}
+            </p>
+          </div>
+
+          {relatoriosDaPagina.length === 0 ? (
+            <p className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm text-white/55">
+              {temFiltros ? "Nenhum relatório encontrado com esses filtros." : "Nenhum relatório finalizado ainda."}
+            </p>
+          ) : (
+            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
+              {relatoriosDaPagina.map((relatorio) => {
+                const isSelected = selectedRelatorio?.id === relatorio.id;
+                const nomeCasa = getCasaNome(relatorio.casaId);
+                const total = getRelatorioTotal(relatorio);
+                return (
+                  <li key={relatorio.id} className="min-w-0">
+                    <button type="button" aria-pressed={isSelected} aria-controls={detalhesId}
+                      onClick={() => {
+                        if (isSelected) return;
+                        setSelectedRelatorioId(relatorio.id);
+                        setEditingData(null);
+                      }}
+                      className={`group flex h-full w-full flex-col gap-3 rounded-2xl border p-3.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-[#d4a017] ${isSelected
+                        ? "border-[#d4a017]/55 bg-gradient-to-br from-[#d4a017]/20 to-[#d4a017]/5"
+                        : "border-white/10 bg-white/[0.035] hover:border-[#d4a017]/35"}`}
+                    >
+                      <span className="flex items-start gap-2.5">
+                        <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#d4a017]/15 text-sm font-black text-[#f3d078]">
+                          {nomeCasa[0]?.toUpperCase() || "?"}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block break-words text-sm font-black text-white">{nomeCasa}</span>
+                          <span className="block break-words text-xs text-white/55">{relatorio.agente || "Sem agente"}</span>
+                        </span>
+                      </span>
+                      <span className="mt-auto flex w-full flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2.5">
+                        <span className="text-xs text-white/55">{new Date(relatorio.finalizadoEm || relatorio.criadoEm).toLocaleDateString("pt-BR")}</span>
+                        <span className={`rounded-lg px-2 py-1 font-mono text-xs font-black ${total < 0 ? "bg-red-300/10 text-red-300" : "bg-emerald-300/10 text-emerald-300"}`}>
+                          R$ {formatarValor(total)}
+                        </span>
+                      </span>
+                      {temReembolsoRecebido(relatorio) && (
+                        <span className="text-xs text-blue-200">Reembolso recebido: R$ {formatarValor(valorRecebidoDoReembolso(relatorio))}</span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {totalPaginas > 1 && (
+            <nav aria-label="Paginação dos relatórios" className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3">
+              <button type="button" onClick={() => mudarPagina(paginaAtual - 1)} disabled={paginaAtual === 1}
+                className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-white/15 px-2 text-sm font-bold text-white/85 hover:bg-white/10 disabled:opacity-40 sm:px-3"
+              ><ChevronLeft size={16} aria-hidden="true" /> Anterior</button>
+              <span className="grow text-center text-xs text-white/65">Página {paginaAtual} de {totalPaginas}</span>
+              <button type="button" onClick={() => mudarPagina(paginaAtual + 1)} disabled={paginaAtual === totalPaginas}
+                className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-white/15 px-2 text-sm font-bold text-white/85 hover:bg-white/10 disabled:opacity-40 sm:px-3"
+              >Próxima <ChevronRight size={16} aria-hidden="true" /></button>
+            </nav>
+          )}
+        </section>
+
+        <div ref={detalhesRef} id={detalhesId} className="min-w-0 scroll-mt-3">
           {selectedRelatorio ? (
             <div className="space-y-4">
-              <div className={`${panelClass} p-6`}>
+              <div className={`${panelClass} p-4 sm:p-6`}>
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/30 to-transparent" />
                 <div className="relative mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">Relatorio selecionado</p>
-                    <h3 className="mt-1 text-2xl font-black text-white">
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editingData?.agente || ""}
-                          onChange={(e) => handleFieldChange("agente", e.target.value)}
-                          className="w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-white outline-none focus:border-[#d4a017]/60"
-                        />
-                      ) : (
-                        getCasaNome(selectedRelatorio.casaId).replace(/[\s-]+$/, "").trim()
-                      )}
-                    </h3>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">Relatório selecionado</p>
+                    <h3 className="mt-1 break-words text-2xl font-black text-white">{getCasaNome(selectedRelatorio.casaId)}</h3>
                     <p className="mt-2 text-sm text-white/50">
                       Agente:{" "}
                       {isEditing ? (
                         <input
                           type="text"
+                          aria-label="Agente"
                           value={editingData?.agente || ""}
                           onChange={(e) => handleFieldChange("agente", e.target.value)}
-                          className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-1.5 text-white outline-none focus:border-[#d4a017]/60"
+                          className="min-h-11 max-w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-1.5 text-base text-white outline-none focus:border-[#d4a017]/60"
                         />
                       ) : (
                         selectedRelatorio.agente || "-"
@@ -370,9 +397,10 @@ export default function RelatoriosFinalizados() {
                       {isEditing ? (
                         <input
                           type="date"
+                          aria-label="Prazo"
                           value={editingData?.prazo?.split("T")[0] || ""}
                           onChange={(e) => handleFieldChange("prazo", e.target.value)}
-                          className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-1.5 text-white outline-none focus:border-[#d4a017]/60"
+                          className="min-h-11 max-w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-1.5 text-base text-white outline-none focus:border-[#d4a017]/60"
                         />
                       ) : (
                         new Date(selectedRelatorio.prazo).toLocaleDateString("pt-BR")
@@ -383,52 +411,54 @@ export default function RelatoriosFinalizados() {
 
                 <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="rounded-2xl border border-blue-300/15 bg-blue-300/[0.055] p-4">
-                    <p className="text-xs font-bold uppercase tracking-widest text-blue-200/45">Cooperacao</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-blue-200/45">Cooperação</p>
                     {isEditing ? (
                       <input
                         type="number"
+                        aria-label="Cooperação"
                         step="0.01"
                         value={editingData?.cooperacao || 0}
                         onChange={(e) => handleFieldChange("cooperacao", e.target.value)}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-white outline-none focus:border-[#d4a017]/60"
+                        className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-base text-white outline-none focus:border-[#d4a017]/60"
                       />
                     ) : (
                       <p className="mt-2 font-mono text-xl font-black text-blue-300">
-                        R$ {(selectedRelatorio.cooperacao || 0).toFixed(2)}
+                        R$ {formatarValor(selectedRelatorio.cooperacao || 0)}
                       </p>
                     )}
                   </div>
                   <div className="rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.055] p-4">
                     <p className="text-xs font-bold uppercase tracking-widest text-emerald-200/45">Resultado Total</p>
-                    <p className="mt-2 font-mono text-xl font-black text-emerald-300">
-                      R${" "}
-                      {(
-                        calculateTotalResultado(isEditing ? editingData?.rows || [] : selectedRelatorio.rows) +
-                        (isEditing ? editingData?.cooperacao || 0 : selectedRelatorio.cooperacao || 0)
-                      ).toFixed(2)}
+                    <p className={`mt-2 font-mono text-xl font-black ${totalSelecionado < 0 ? "text-red-300" : "text-emerald-300"}`}>
+                      R$ {formatarValor(totalSelecionado)}
                     </p>
                   </div>
+                  {temReembolsoRecebido(selectedRelatorio) && (
+                    <p className="rounded-xl border border-blue-300/15 bg-blue-300/[0.055] px-4 py-3 text-sm text-blue-200 sm:col-span-2">
+                      Reembolso recebido: R$ {formatarValor(valorRecebidoDoReembolso(selectedRelatorio))}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div className={`${subtlePanelClass} overflow-x-auto p-6`}>
+              <div className={`${subtlePanelClass} overflow-x-auto p-4 sm:p-6`}>
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
-                <h4 className="mb-4 font-bold text-white">Dados do Relatorio</h4>
+                <h4 className="mb-4 font-bold text-white">Dados do relatório</h4>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-white/10">
                       <th className="px-2 py-3 text-left font-bold text-white/55">#</th>
-                      <th className="px-2 py-3 text-left font-bold text-white/55">Deposito</th>
+                      <th className="px-2 py-3 text-left font-bold text-white/55">Depósito</th>
                       <th className="px-2 py-3 text-left font-bold text-white/55">Saque</th>
-                      <th className="px-2 py-3 text-left font-bold text-white/55">Bau</th>
+                      <th className="px-2 py-3 text-left font-bold text-white/55">Baú</th>
                       <th className="px-2 py-3 text-left font-bold text-white/55">Resultado</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {(isEditing ? editingData?.rows || [] : selectedRelatorio.rows).map((row: any) => (
+                    {(editingData?.rows || selectedRelatorio.rows).map((row) => (
                       <tr key={row.numero} className="border-b border-white/8 transition-colors hover:bg-white/[0.035]">
                         <td className="px-2 py-3 text-white/70">{row.numero}</td>
-                        {["deposito", "saque", "bau"].map((field) => (
+                        {(["deposito", "saque", "bau"] as const).map((field) => (
                           <td key={field} className="px-2 py-3 text-white/70">
                             {isEditing ? (
                               <input
@@ -483,11 +513,11 @@ export default function RelatoriosFinalizados() {
                       onClick={() => {
                         deleteRelatorio(selectedRelatorio.id);
                         setSelectedRelatorioId(null);
-                        toast.success("Relatorio excluido");
+                        toast.success("Relatório excluído");
                       }}
-                      className="rounded-xl border border-red-400/25 bg-red-400/10 px-4 py-3 text-red-300 transition-colors hover:bg-red-400/18"
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm font-bold text-red-300 transition-colors hover:bg-red-400/18"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={16} /> Excluir
                     </button>
                   </>
                 ) : (
@@ -511,7 +541,7 @@ export default function RelatoriosFinalizados() {
               </div>
             </div>
           ) : (
-            <div className={`${subtlePanelClass} flex min-h-[320px] flex-col items-center justify-center p-12 text-center`}>
+            <div className={`${subtlePanelClass} hidden min-h-[320px] flex-col items-center justify-center p-12 text-center lg:flex`}>
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/30 to-transparent" />
               <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-[#d4a017]/20"
                 style={{ background: "radial-gradient(circle at 50% 30%, rgba(212,160,23,0.18), rgba(212,160,23,0.04))" }}
@@ -519,7 +549,7 @@ export default function RelatoriosFinalizados() {
                 <FileText size={34} className="text-[#d4a017]/75" />
               </div>
               <p className="text-base font-bold text-white/55">Nenhum relatório selecionado</p>
-              <p className="mt-1 text-sm text-white/30">Clique em um relatório à esquerda para ver os detalhes</p>
+              <p className="mt-1 text-sm text-white/45">Escolha um cartão para ver os detalhes</p>
             </div>
           )}
         </div>
@@ -536,7 +566,7 @@ export default function RelatoriosFinalizados() {
             style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
             onMouseDown={(e) => { if (e.target === e.currentTarget) setReutilizarDialogId(null); }}
           >
-            <div className="w-full max-w-md rounded-2xl p-6 space-y-5"
+            <div role="dialog" aria-modal="true" aria-label="Reutilizar relatório" className="w-full max-w-md rounded-2xl p-6 space-y-5"
               style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)", border: "1px solid rgba(212,160,23,0.25)" }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -546,6 +576,9 @@ export default function RelatoriosFinalizados() {
                 ><Copy size={16} /></div>
                 <h3 className="text-base font-black text-white">Reutilizar Relatório</h3>
               </div>
+              {rel?.reembolso === "concluido" && (
+                <p className="text-sm text-blue-200">O relatório voltará para Reembolso como pendente. O valor só volta a contar quando o reembolso for concluído de novo.</p>
+              )}
               <p className="text-sm text-white/70">
                 Deseja reativar <b className="text-white">também a meta</b> vinculada
                 (<span className="font-bold text-[#d4a017]">{nomeCasa}</span>)?

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { valorRecebidoDoReembolso } from "@shared/reembolso";
 import { createPortal } from "react-dom";
 import { Bell, Clock, AlertTriangle, CheckCircle2, X, Trophy, Smartphone, BellRing, Coins } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
@@ -144,7 +145,7 @@ export default function NotificationCenter() {
     for (const rel of state.relatorios.filter((r) => r.status === "finalizado")) {
       const fimMs = rel.finalizadoEm ? new Date(rel.finalizadoEm).getTime() : 0;
       if (!fimMs || (Date.now() - fimMs) > SETE_DIAS) continue; // só recentes
-      const lucro = (Array.isArray(rel.rows) ? rel.rows.reduce((s, row) => s + (Number(row.resultado) || 0), 0) : 0) + (Number(rel.cooperacao) || 0);
+      const lucro = (Array.isArray(rel.rows) ? rel.rows.reduce((s, row) => s + (Number(row.resultado) || 0), 0) : 0) + (Number(rel.cooperacao) || 0) + valorRecebidoDoReembolso(rel);
       const nome = `${getCasaNome(rel.casaId)}${rel.agente ? `-${rel.agente}` : ""}`;
       finalizadas.push({
         id: `meta-fim-${rel.id}`,

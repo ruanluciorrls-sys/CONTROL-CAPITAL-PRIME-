@@ -33,6 +33,7 @@ interface RelatorioSpreadsheetProps {
   metaRecarga?: number | null;
   /** Jogos da última vez nesta rede — lembrete fixo enquanto faz o relatório */
   jogosUltimaVez?: string;
+  onRascunhoPendente?: (pendente: boolean) => void;
   /** Rede da casa (VOY, EK...) — para o aviso compartilhado */
   rede?: string;
   rows: RelatorioRow[];
@@ -53,7 +54,7 @@ const inputStyle = "w-full px-2 py-1.5 rounded-lg text-right text-sm text-white 
 
 export default function RelatorioSpreadsheet({
   casaNome, agente, prazo, login, cooperacao, onCooperacaoChange,
-  linkContaFilha, media = 0, meta = 0, metaRecarga, jogosUltimaVez = "", rede = "", rows, onAddRow, onDeleteRow, onUpdateRow, onRestoreRows,
+  linkContaFilha, media = 0, meta = 0, metaRecarga, jogosUltimaVez = "", rede = "", rows, onAddRow, onDeleteRow, onUpdateRow, onRestoreRows, onRascunhoPendente,
   salvamento, ocultarValores = false,
 }: RelatorioSpreadsheetProps) {
   const [newRow, setNewRow] = useState<RelatorioRow>({ numero: rows.length + 1, deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 });
@@ -176,6 +177,10 @@ export default function RelatorioSpreadsheet({
     newRow[campo] !== 0 || (linhaEmEdicao && editRow && linhaEmEdicao[campo] !== editRow[campo]),
   );
   const edicaoLocal = cooperacaoPendente || linhaPendente;
+  useEffect(() => {
+    onRascunhoPendente?.(edicaoLocal);
+    return () => onRascunhoPendente?.(false);
+  }, [edicaoLocal, onRascunhoPendente]);
   const rotuloEdicaoLocal = ocultarValores ? "Edição local pausada" :
     cooperacaoPendente ? "Aguardando envio..." : "Alterações locais não enviadas";
   const prazoFmt = prazo ? new Date(prazo + "T00:00:00").toLocaleDateString("pt-BR") : null;
@@ -245,8 +250,8 @@ export default function RelatorioSpreadsheet({
           style={{ background: "var(--card-bg-gradient)", borderColor: "var(--card-border-highlight)" }}
         >
           <div className="absolute left-0 top-0 h-full w-[3px] rounded-l-2xl" style={{ background: "#d4a017" }} />
-          <p className="text-[9px] font-black uppercase tracking-widest text-white/60 dark:text-white/45 mb-3">Agente & Prazo</p>
-          <p className="planilha-titulo-agente font-black text-lg text-white/90 dark:text-white truncate">{agente || "—"}</p>
+          <p className="text-base font-black uppercase tracking-wider text-white/80 mb-2">Agente / Blogueira</p>
+          <p className="planilha-titulo-agente font-black text-white/90 dark:text-white">{agente.trim() || "Não informado"}</p>
           {/* Login da conta */}
           {login && (
             <div className="planilha-login flex items-center gap-1.5 mt-2">
@@ -267,7 +272,7 @@ export default function RelatorioSpreadsheet({
             </div>
           )}
           {prazoFmt && (
-            <p className="text-sm font-bold mt-2" style={{ color: "#d4a017" }}>{prazoFmt}</p>
+            <p className="text-sm font-bold mt-2" style={{ color: "#d4a017" }}>Prazo: {prazoFmt}</p>
           )}
         </div>
 
@@ -278,7 +283,7 @@ export default function RelatorioSpreadsheet({
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
           <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-emerald-400/10 blur-2xl pointer-events-none" />
           <div className="relative">
-            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400/70 dark:text-emerald-400/50 mb-1 text-center">{recarga ? "Meta - Recarga" : "Meta"}</p>
+            <p className="text-base font-black uppercase tracking-wider text-emerald-400/70 dark:text-emerald-400/50 mb-1 text-center">{recarga ? "Meta - Recarga" : "Meta"}</p>
             <p className="planilha-titulo-casa font-black text-2xl text-emerald-300 dark:text-emerald-200 text-center">{casaNomeLimpo}</p>
           </div>
         </div>
@@ -527,12 +532,7 @@ export default function RelatorioSpreadsheet({
             { label: "TOTAL REDEPÓSITO", value: totals.redeposito, color: "#94a3b8" },
             { label: "TOTAL SAQUE", value: totals.saque, color: "#fb923c" },
             { label: "BAÚ", value: totals.bau, color: "#f59e0b" },
-            {
-              label: "%",
-              value: totals.deposito > 0 ? ((cooperacao / totals.deposito) * 100).toFixed(2) + "%" : "0.00%",
-              color: "#a78bfa", isText: true,
-            },
-          ].map(({ label, value, color, isText }) => (
+          ].map(({ label, value, color }) => (
             <div key={label} className="rounded-2xl p-4 border border-white/8 transition-all duration-300 hover:-translate-y-0.5 hover:border-white/15"
               style={{ background: "rgba(255,255,255,0.03)", borderLeft: `3px solid ${color}` }}
             >
@@ -543,7 +543,7 @@ export default function RelatorioSpreadsheet({
               <p className="planilha-total operacoes-valor-neon text-xl font-black"
                 style={ocultarValores ? undefined : { "--operacoes-cor-valor": color, background: `linear-gradient(135deg, #ffffff 30%, ${color})`, WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" } as React.CSSProperties}
               >
-                {ocultarValores ? valorOculto : isText ? value : fmt(value as number)}
+                {exibirValor(value)}
               </p>
             </div>
           ))}

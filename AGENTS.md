@@ -2,7 +2,7 @@
 
 > **Leia este arquivo inteiro antes de mexer no código.** Ele existe para que qualquer IA (Claude, GPT, Gemini, etc.) consiga continuar o trabalho sem quebrar nada e sem precisar redescobrir tudo. Mantenha-o atualizado quando fizer mudanças estruturais.
 
-Última atualização: **2026-11-18** · Versão do app: **1.30.7** (ver [`CHANGELOG.md`](CHANGELOG.md)).
+Última atualização: **2026-11-19** · Versão do app: **1.31.0** (ver [`CHANGELOG.md`](CHANGELOG.md)).
 
 ---
 
@@ -30,6 +30,7 @@ Painel full-stack que um operador CPA usa para controlar a operação:
 - **Ciclo** = **uma linha** da planilha do relatório. **Resultado do ciclo = `saque − depósito − redepósito + baú`** (no código: `calc = (d,r,s,b) => s - d - r + b`).
 - **Lucro total do relatório** = soma dos `resultado` de todos os ciclos **+ `cooperacao`**.
 - **Cooperação**: valor extra somado ao resultado final (acordo/bônus).
+- **Reembolso**: o valor recebido fica separado de cooperação e dos ciclos. Só entra no resultado depois de concluído; a conclusão atualiza o relatório e a meta vinculada numa transação da conta.
 - **Status de relatório**: `ativo` → `finalizado` → (pode `reutilizar` p/ voltar a `ativo`) · `lixeira`.
 - **Status de casa**: `ativa` → `finalizada` · `lixeira`.
 
@@ -66,6 +67,7 @@ todo.md          → histórico de tarefas (legado, quase tudo concluído)
 3. O servidor (`routers.ts`) valida com **Zod**, chama o **`db.ts`**, retorna.
 4. Dados financeiros são **privados por usuário** (`ctx.user.id`). O calendário combina as plataformas compartilhadas do administrador principal com as plataformas privadas de cada usuário. Slots e aparência são compartilhados.
 5. A ordem dos cartões de relatórios ativos é uma preferência privada da conta (tabela `ordemRelatorios`), não parte da aparência compartilhada.
+6. O feed por plataforma só expõe publicações conscientes dos operadores: avisos, jogos, observação, nome público e data. Não consulta relatórios de outras contas no cliente nem republica histórico privado.
 
 ## 4. Convenções (siga para manter consistência)
 

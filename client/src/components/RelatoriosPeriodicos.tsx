@@ -1,4 +1,5 @@
 import { RelatorioData } from "@/lib/types";
+import { valorRecebidoDoReembolso } from "@shared/reembolso";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import TrendChart from "./TrendChart";
@@ -157,7 +158,7 @@ export default function RelatoriosPeriodicos({ relatorios }: RelatoriosPeriodosP
         let saques = 0;
         
         relatoriosMes.forEach((rel) => {
-          lucro += rel.rows.reduce((sum, row) => sum + row.resultado, 0) + rel.cooperacao;
+          lucro += rel.rows.reduce((sum, row) => sum + row.resultado, 0) + rel.cooperacao + valorRecebidoDoReembolso(rel);
           depositos += rel.rows.reduce((sum, row) => sum + (row.deposito || 0) + (row.redeposito || 0), 0);
           saques += rel.rows.reduce((sum, row) => sum + row.saque, 0);
         });
@@ -186,7 +187,7 @@ export default function RelatoriosPeriodicos({ relatorios }: RelatoriosPeriodosP
         let saques = 0;
         
         relatoriosAno.forEach((rel) => {
-          lucro += rel.rows.reduce((sum, row) => sum + row.resultado, 0) + rel.cooperacao;
+          lucro += rel.rows.reduce((sum, row) => sum + row.resultado, 0) + rel.cooperacao + valorRecebidoDoReembolso(rel);
           depositos += rel.rows.reduce((sum, row) => sum + (row.deposito || 0) + (row.redeposito || 0), 0);
           saques += rel.rows.reduce((sum, row) => sum + row.saque, 0);
         });

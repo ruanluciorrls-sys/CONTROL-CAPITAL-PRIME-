@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Pencil, Check, X } from "lucide-react";
+import { Check, Plus } from "lucide-react";
+import { AutorDataFeedRede, JogosCompartilhadosRede } from "./JogosCompartilhadosRede";
 
 const TONS = {
   bom: { label: "Bom", cor: "#4ade80", emoji: "🟢" },
@@ -11,75 +12,136 @@ const TONS = {
 
 type Tom = keyof typeof TONS;
 
-/** Aviso/observação COMPARTILHADO de uma rede (todos os operadores veem e podem editar). */
 export default function AvisoRede({ rede }: { rede?: string }) {
-  const key = (rede || "").trim().toUpperCase();
-  const utils = trpc.useUtils();
-  const { data: notas = [] } = trpc.notasRede.list.useQuery(undefined, { enabled: !!key });
-  const nota = (notas as any[]).find((n) => (n.rede || "").toUpperCase() === key);
-  const upsert = trpc.notasRede.upsert.useMutation({ onSuccess: () => utils.notasRede.list.invalidate() });
+  const chave = rede?.trim().toUpperCase();
+  if (!chave || chave.length > 80 || chave.includes("@")) return null;
+  return <FeedRede key={chave} rede={chave} />;
+}
 
+function FeedRede({ rede }: { rede: string }) {
+  const utils = trpc.useUtils();
+  const avisos = trpc.notasRede.avisos.useQuery({ rede });
+  const publicar = trpc.notasRede.upsert.useMutation({
+    onSuccess: (_, input) => {
+      void utils.notasRede.avisos.invalidate({ rede: input.rede });
+      void utils.notasRede.list.invalidate();
+    },
+  });
   const [editing, setEditing] = useState(false);
   const [texto, setTexto] = useState("");
   const [tom, setTom] = useState<Tom>("neutro");
 
-  if (!key) return null;
+  const fechar = () => {
+    setEditing(false);
+    setTexto("");
+    setTom("neutro");
+  };
 
-  const abrir = () => { setTexto(nota?.texto || ""); setTom((nota?.tom as Tom) || "neutro"); setEditing(true); };
   const salvar = () => {
-    upsert.mutate({ rede: key, texto: texto.trim(), tom }, {
-      onSuccess: () => { setEditing(false); toast.success("Aviso da rede salvo — todos os operadores veem!"); },
-      onError: () => toast.error("Erro ao salvar o aviso"),
+    if (!texto.trim() || publicar.isPending) return;
+    publicar.mutate({ rede, texto: texto.trim(), tom }, {
+      onSuccess: () => {
+        fechar();
+        toast.success("Aviso publicado para todos os operadores.");
+      },
+      onError: () => toast.error("Não foi possível publicar o aviso."),
     });
   };
 
-  if (editing) {
-    return (
-      <div className="rounded-xl p-3 border border-white/12" style={{ background: "rgba(255,255,255,0.03)" }}>
-        <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5">✍️ Aviso compartilhado — {key} (todos veem)</p>
-        <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={2} autoFocus
-          placeholder="Ex.: Look tá bom · Gates rendeu · terça ruim, cuidado..."
-          className="w-full rounded-lg p-2 text-sm bg-transparent text-white border border-white/15 focus:outline-none focus:border-[#d4a017] resize-none"
-        />
-        <div className="flex items-center justify-between mt-2 gap-2 flex-wrap">
-          <div className="flex gap-1">
+  const [ultimo, ...anteriores] = avisos.data ?? [];
+  return (
+    <section className="min-w-0 space-y-2" aria-label={`Compartilhado na rede ${rede}`}>
+      <div className="flex flex-wrap items-center justify-between gap-x-2">
+        <p className="min-w-0 text-[10px] font-black uppercase tracking-wider text-[#d4a017] [overflow-wrap:anywhere]">
+          Avisos da {rede}
+        </p>
+        {!editing && (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="flex min-h-11 items-center gap-1.5 text-xs font-bold text-white/65 hover:text-[#d4a017]"
+          >
+            <Plus size={14} aria-hidden /> Novo aviso
+          </button>
+        )}
+      </div>
+
+      {editing && (
+        <div className="rounded-xl border border-white/15 bg-white/[0.03] p-3">
+          <label className="block text-xs font-semibold text-white/75">
+            Seu aviso
+            <textarea
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+              rows={3}
+              maxLength={2000}
+              autoFocus
+              placeholder="O que os outros operadores precisam saber?"
+              className="mt-1 w-full resize-y rounded-lg border border-white/15 bg-transparent p-2 text-base text-white focus:outline-none focus:border-[#d4a017]"
+            />
+          </label>
+          <p className="mt-1 text-[11px] text-white/55">Visível a todos os operadores. Não inclua dados de operação ou de contato.</p>
+          <div className="mt-2 flex flex-wrap items-center gap-1" role="group" aria-label="Tom do aviso">
             {(["bom", "neutro", "ruim"] as const).map((t) => (
-              <button key={t} type="button" onClick={() => setTom(t)}
-                className="px-2 py-1 rounded-lg text-[10px] font-bold transition-all"
-                style={tom === t ? { background: TONS[t].cor, color: "#050b18" } : { color: TONS[t].cor, background: `${TONS[t].cor}1a`, border: `1px solid ${TONS[t].cor}40` }}
-              >{TONS[t].emoji} {TONS[t].label}</button>
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTom(t)}
+                aria-pressed={tom === t}
+                className="min-h-11 rounded-lg px-2.5 text-xs font-bold"
+                style={tom === t
+                  ? { background: TONS[t].cor, color: "#050b18" }
+                  : { color: TONS[t].cor, background: `${TONS[t].cor}1a`, border: `1px solid ${TONS[t].cor}40` }}
+              >
+                {TONS[t].label}
+              </button>
             ))}
           </div>
-          <div className="flex gap-1">
-            <button type="button" onClick={salvar} disabled={upsert.isPending}
-              className="px-2.5 py-1 rounded-lg text-[10px] font-black text-[#050b18] flex items-center gap-1 disabled:opacity-60"
-              style={{ background: "linear-gradient(135deg,#d4a017,#f59e0b)" }}
-            ><Check size={11} /> Salvar</button>
-            <button type="button" onClick={() => setEditing(false)} className="px-2 py-1 rounded-lg text-[10px] text-white/40 border border-white/10"><X size={11} /></button>
+          <div className="mt-2 flex flex-wrap justify-end gap-2">
+            <button type="button" onClick={fechar} disabled={publicar.isPending}
+              className="min-h-11 rounded-lg border border-white/15 px-3 text-xs text-white/75 disabled:opacity-50">
+              Cancelar
+            </button>
+            <button type="button" onClick={salvar} disabled={publicar.isPending || !texto.trim()}
+              className="flex min-h-11 items-center gap-1.5 rounded-lg bg-gradient-to-br from-[#d4a017] to-[#f59e0b] px-3 text-xs font-black text-[#050b18] disabled:opacity-50">
+              <Check size={14} aria-hidden /> {publicar.isPending ? "Publicando..." : "Publicar aviso"}
+            </button>
           </div>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  if (!nota || !nota.texto) {
-    return (
-      <button type="button" onClick={abrir} className="text-[10px] font-bold text-white/35 hover:text-[#d4a017] transition-colors flex items-center gap-1">
-        <Pencil size={10} /> Adicionar aviso compartilhado da {key}
-      </button>
-    );
-  }
+      {avisos.isPending && <p className="text-xs text-white/55" role="status">Carregando avisos...</p>}
+      {avisos.isError && (
+        <button type="button" className="min-h-11 text-left text-xs text-[#d4a017]" onClick={() => void avisos.refetch()}>
+          Não foi possível carregar os avisos. Tentar novamente.
+        </button>
+      )}
+      {ultimo && <CartaoAviso nota={ultimo} />}
+      {anteriores.length > 0 && (
+        <details>
+          <summary className="min-h-11 cursor-pointer content-center text-xs font-semibold text-white/65 hover:text-[#d4a017]">
+            {anteriores.length === 1 ? "Ver aviso anterior" : `Ver ${anteriores.length} avisos anteriores`}
+          </summary>
+          <div className="space-y-2">
+            {anteriores.map(nota => <CartaoAviso key={nota.id} nota={nota} />)}
+          </div>
+        </details>
+      )}
+      <JogosCompartilhadosRede rede={rede} />
+    </section>
+  );
+}
 
-  const tinfo = TONS[(nota.tom as Tom) || "neutro"] || TONS.neutro;
+function CartaoAviso({ nota }: { nota: { texto: string; tom: string; atualizadoPor: string; atualizadoEm: Date } }) {
+  const tinfo = nota.tom === "bom" || nota.tom === "ruim" ? TONS[nota.tom] : TONS.neutro;
   return (
-    <div className="rounded-xl p-2.5 border flex items-start gap-2" style={{ borderColor: `${tinfo.cor}40`, background: `${tinfo.cor}12` }}>
-      <span className="text-sm leading-none mt-0.5">{tinfo.emoji}</span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: tinfo.cor }}>Aviso da {key} · todos veem</p>
-        <p className="text-[12px] text-white/85 whitespace-pre-wrap break-words">{nota.texto}</p>
-        {nota.atualizadoPor && <p className="text-[9px] text-white/25 mt-1">por {nota.atualizadoPor}</p>}
+    <div className="flex min-w-0 items-start gap-2 rounded-xl border p-2.5"
+      style={{ borderColor: `${tinfo.cor}40`, background: `${tinfo.cor}12` }}>
+      <span className="mt-0.5 shrink-0 text-sm leading-none" role="img" aria-label={tinfo.label}>{tinfo.emoji}</span>
+      <div className="min-w-0">
+        <p className="whitespace-pre-wrap text-xs text-white/85 [overflow-wrap:anywhere]">{nota.texto}</p>
+        <AutorDataFeedRede autor={nota.atualizadoPor} criadoEm={nota.atualizadoEm} />
       </div>
-      <button type="button" onClick={abrir} className="text-white/30 hover:text-[#d4a017] shrink-0" title="Editar aviso"><Pencil size={12} /></button>
     </div>
   );
 }

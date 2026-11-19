@@ -1,5 +1,6 @@
 import { integer, pgEnum, pgTable, serial, text, timestamp, varchar, decimal, jsonb, date, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import { index } from "drizzle-orm/pg-core";
 
 // Enums PostgreSQL
 export const roleEnum = pgEnum("role", ["user", "admin"]);
@@ -72,6 +73,7 @@ export const relatorios = pgTable("relatorios", {
   finalizadoEm: timestamp("finalizadoEm"), // quando foi finalizado (ALTER automático)
   etiqueta: text("etiqueta"), // etiquetas (separadas por vírgula) exibidas no card (ALTER automático)
   jogos: text("jogos"), // jogos feitos na cooperação, anotados ao finalizar (ALTER automático)
+  valorReembolso: decimal("valorReembolso", { precision: 10, scale: 2 }),
   reembolso: text("reembolso"), // null | 'pendente' | 'concluido' (ALTER automático)
   reembolsadoEm: timestamp("reembolsadoEm"),
   rows: jsonb("rows").$type<Array<Record<string, unknown>>>().notNull(),
@@ -259,16 +261,35 @@ export const chavesPix = pgTable("chaves_pix", {
 export type ChavePix = typeof chavesPix.$inferSelect;
 export type InsertChavePix = typeof chavesPix.$inferInsert;
 
-// Avisos/observações COMPARTILHADOS por rede (todos os operadores veem e editam)
+// Avisos legados por rede: mantidos para leitura, sem novas escritas.
 export const redeNotas = pgTable("rede_notas", {
   rede: varchar("rede", { length: 80 }).primaryKey(),
   texto: text("texto"),
   tom: text("tom").default("neutro").notNull(), // 'bom' | 'ruim' | 'neutro'
   atualizadoPor: text("atualizadoPor"),
   atualizadoEm: timestamp("atualizadoEm").defaultNow().notNull(),
-});
+}).enableRLS();
 export type RedeNota = typeof redeNotas.$inferSelect;
 export type InsertRedeNota = typeof redeNotas.$inferInsert;
+
+export const redeAvisos = pgTable("rede_avisos", {
+  id: serial("id").primaryKey(),
+  rede: varchar("rede", { length: 80 }).notNull(),
+  texto: text("texto").notNull(),
+  tom: text("tom", { enum: ["bom", "ruim", "neutro"] }).notNull(),
+  autor: text("autor").notNull(),
+  criadoEm: timestamp("criadoEm", { withTimezone: true }).defaultNow().notNull(),
+}, t => [index("rede_avisos_feed_idx").on(t.rede, t.criadoEm.desc(), t.id.desc())]).enableRLS();
+
+// Apenas publicações explícitas; sem vínculo com o histórico operacional privado.
+export const redeJogos = pgTable("rede_jogos", {
+  id: serial("id").primaryKey(),
+  rede: varchar("rede", { length: 80 }).notNull(),
+  jogos: text("jogos").notNull(),
+  texto: text("texto"),
+  autor: text("autor").notNull(),
+  criadoEm: timestamp("criadoEm", { withTimezone: true }).defaultNow().notNull(),
+}, t => [index("rede_jogos_feed_idx").on(t.rede, t.criadoEm.desc(), t.id.desc())]).enableRLS();
 
 // Config de push (chaves VAPID) — uma linha global
 export const pushConfig = pgTable("push_config", {

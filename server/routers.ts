@@ -1,10 +1,13 @@
 import { COOKIE_NAME } from "@shared/const";
+import { concluirReembolsoRelatorio, salvarValorReembolso } from "./db";
 import { META_RECARGA_DECIMAL } from "@shared/recarga";
+import { valorRecebidoDoReembolso } from "@shared/reembolso";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, getRelatorioById, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getPrimaryAdminId, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, updateSlot, deleteSlot, hideSlotByName, getPixTags, createPixTag, deletePixTag, getChavesPix, createChavesPix, deleteChavesPix, setTagChaves, getRedeNotas, upsertRedeNota, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma } from "./db";
+import { getCasasByUserId, createCasa, updateCasa, deleteCasa, getRelatoriosByUserId, getRelatorioById, createRelatorio, updateRelatorio, deleteRelatorio, getContasByUserId, createConta, updateConta, deleteConta, getUserSettings, getPrimaryAdminId, updateUserSettings, getGastosProxyByUserId, createGastoProxy, updateGastoProxy, deleteGastoProxy, getTotalGastosProxy, verifyUserPassword, createUserWithPassword, listAllUsers, updateUserSubscription, toggleUserActive, updateUserPassword, getUserById, getSlots, createSlot, updateSlot, deleteSlot, hideSlotByName, getPixTags, createPixTag, deletePixTag, getChavesPix, createChavesPix, deleteChavesPix, setTagChaves, getPlataformas, createPlataforma, updatePlataforma, deletePlataforma } from "./db";
+import { getJogosDaRede, getRedeNotas, publicarAvisoDaRede } from "./db";
 import { savePushSubscription, deletePushSubscription, acumularCicloDia, getPushSoCelular, setPushSoCelular, logPush, getPushLog, getPlataformasPessoais, importarPlataformasCompartilhadas } from "./db";
 import { getReceitasByUserId, createReceita, updateReceita, deleteReceita } from "./db";
 import { getIdsRelatoriosReordenaveis, getOrdemRelatorios, salvarOrdemRelatorios } from "./db";
@@ -26,6 +29,8 @@ const plataformaInput = z.object({
   ),
 });
 const plataformaId = z.string().trim().min(1).max(128);
+const redeFeedInput = z.string().trim().toUpperCase().min(1).max(80)
+  .refine(rede => !rede.includes("@"), "Informe uma rede válida.");
 const metaRecargaInput = z.string().regex(META_RECARGA_DECIMAL)
   .refine(valor => Number(valor) > 0, "Informe um valor de recarga maior que zero.")
   .nullable().optional();
@@ -283,7 +288,10 @@ export const appRouter = router({
         prazo: z.string().optional(),
         etiqueta: z.string().optional(),
         jogos: z.string().optional(),
+        compartilharJogos: z.object({ texto: z.string().trim().max(500) }).optional(),
         finalizadoEm: z.string().optional(), // usado na migração do localStorage
+        valorReembolso: z.number().min(0).max(99999999.99).refine(n => n === Number(n.toFixed(2))).optional(),
+        concluirReembolso: z.boolean().optional(),
         rows: z.array(z.record(z.string(), z.any())).optional(),
         cooperacao: z.string().optional(),
         status: z.enum(["ativo", "finalizado", "lixeira"]).optional(),
@@ -293,6 +301,28 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const antes = await getRelatorioById(input.id, ctx.user.id);
         if (!antes) throw new TRPCError({ code: "NOT_FOUND", message: "Relatório não encontrado." });
+
+        if (input.valorReembolso !== undefined || input.concluirReembolso) {
+          const valor = input.valorReembolso;
+          if (valor === undefined || antes.status !== "ativo" || antes.reembolso !== "pendente") {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Informe um valor para um reembolso pendente." });
+          }
+          const concluido = input.concluirReembolso ? await concluirReembolsoRelatorio(input.id, ctx.user.id, valor) : null;
+          const ok = input.concluirReembolso ? Boolean(concluido) : await salvarValorReembolso(input.id, ctx.user.id, valor);
+          if (!ok) throw new TRPCError({ code: "CONFLICT", message: "O reembolso já mudou. Recarregue os dados." });
+          if (concluido) {
+            try {
+              const nome = await nomeDaMeta(concluido.userId, concluido.casaId, concluido.agente);
+              const lucro = concluido.rows.reduce((s, r) => s + (Number(r.resultado) || 0), 0)
+                + (Number(concluido.cooperacao) || 0) + valorRecebidoDoReembolso(concluido);
+              await sendPushToUser(concluido.userId, {
+                title: "Reembolso finalizado", body: `${nome} · Resultado: ${fmtBRL(lucro)}`,
+                tag: `meta-fim-${concluido.id}`, url: "/",
+              });
+            } catch (e) { console.error("[Push] finalização de reembolso:", e); }
+          }
+          return { success: true };
+        }
 
         const updateData: Partial<InsertRelatorio> = {};
         if (input.agente !== undefined) updateData.agente = input.agente;
@@ -312,7 +342,11 @@ export const appRouter = router({
         } else if (input.finalizadoEm !== undefined && !(antes as any)?.finalizadoEm) {
           (updateData as any).finalizadoEm = new Date(input.finalizadoEm);
         }
-        await updateRelatorio(input.id, ctx.user.id, updateData);
+        if (input.compartilharJogos) {
+          await updateRelatorio(input.id, ctx.user.id, updateData, { compartilharJogos: input.compartilharJogos });
+        } else {
+          await updateRelatorio(input.id, ctx.user.id, updateData);
+        }
 
         // Push (no servidor — confiável, independe do cache do celular)
         if (antes) {
@@ -656,14 +690,20 @@ export const appRouter = router({
       }),
   }),
 
-  // Avisos compartilhados por rede (todos os operadores veem/editam)
+  // Feed global por plataforma, acessível apenas a usuários autenticados.
   notasRede: router({
     list: protectedProcedure.query(() => getRedeNotas()),
+    avisos: protectedProcedure
+      .input(z.object({ rede: redeFeedInput }))
+      .query(({ input }) => getRedeNotas(input.rede)),
+    jogos: protectedProcedure
+      .input(z.object({ rede: redeFeedInput }))
+      .query(({ input }) => getJogosDaRede(input.rede)),
+    // O nome da rota é mantido para clientes antigos. Sempre cria um novo aviso.
     upsert: protectedProcedure
-      .input(z.object({ rede: z.string().min(1), texto: z.string(), tom: z.enum(["bom", "ruim", "neutro"]) }))
+      .input(z.object({ rede: redeFeedInput, texto: z.string().trim().min(1).max(2000), tom: z.enum(["bom", "ruim", "neutro"]) }))
       .mutation(async ({ ctx, input }) => {
-        const autor = ctx.user.name || "operador";
-        await upsertRedeNota(input.rede.trim().toUpperCase(), input.texto, input.tom, autor);
+        await publicarAvisoDaRede(input.rede, input.texto, input.tom, ctx.user.name);
         return { success: true };
       }),
   }),

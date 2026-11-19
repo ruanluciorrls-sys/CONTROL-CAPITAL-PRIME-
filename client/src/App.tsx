@@ -1,6 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import TabNavigation from "@/components/TabNavigation";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import MobileNav from "@/components/MobileNav";
 import PageFade from "@/components/PageFade";
 import { AppProvider, useApp } from "@/contexts/AppContext";
@@ -17,7 +17,7 @@ const Calendario = lazy(() => import("@/pages/Calendario"));
 const EditarDados = lazy(() => import("@/pages/EditarDados"));
 const Slots = lazy(() => import("@/pages/Slots"));
 const AdminPanel = lazy(() => import("@/pages/AdminPanel"));
-import { CheckCircle, Edit3, Home, FileText, Moon, Sun, LogOut, Zap, Shield, Crown, Wallet, Key, DollarSign, RefreshCw, CalendarDays, Flame, X } from "lucide-react";
+import { Ellipsis, Home, LayoutDashboard, Moon, Sun, LogOut, Zap, Shield, Crown, Wallet, Key, DollarSign, RefreshCw, CalendarDays, Flame, X } from "lucide-react";
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -30,7 +30,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 
 const publicTabs = [
-  { id: "dashboard", label: "Dashboard", icon: <Home size={20} /> },
+  { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} /> },
   { id: "faturamento", label: "Faturamento", icon: <DollarSign size={20} /> },
   { id: "gasto-proxy", label: "Gastos / Despesas", icon: <Zap size={20} /> },
   { id: "gerenciar-casas", label: "MINHAS OPERAÇÃO", icon: <Home size={20} /> },
@@ -231,14 +231,15 @@ function AppContent() {
 
         {/* Sidebar Scrollable Vertical Navigation Menu */}
         <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-1 custom-scrollbar">
-          <p className="px-3 mb-2 text-[9px] font-black uppercase tracking-[0.25em] text-white/25">Menu</p>
+          <p className="px-3 mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-white/25">Menu</p>
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`group relative w-full flex items-center gap-3 pl-3.5 pr-3 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-wider transition-all duration-300 text-left ${
+                aria-current={isActive ? "page" : undefined}
+                className={`group relative w-full flex items-center gap-3 pl-3.5 pr-3 py-2.5 rounded-xl font-bold text-[13px] uppercase tracking-wide transition-all duration-300 text-left ${
                   isActive ? "text-[#f3d078]" : "text-white/55 hover:text-white"
                 }`}
                 style={isActive ? {
@@ -254,7 +255,7 @@ function AppContent() {
                 }`} style={{ background: isActive ? "linear-gradient(180deg, #f3d078, #d4a017)" : "transparent" }} />
 
                 {/* Ícone em caixinha */}
-                <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300 ${
+                <span aria-hidden="true" className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300 [&>svg]:size-[22px] ${
                   isActive ? "text-[#050b18]" : "text-white/45 group-hover:text-white bg-white/[0.04] group-hover:bg-white/[0.09]"
                 }`}
                   style={isActive ? { background: "linear-gradient(135deg, #f3d078, #d4a017)", boxShadow: "0 3px 12px rgba(212,160,23,0.4)" } : undefined}
@@ -286,11 +287,12 @@ function AppContent() {
 
               {/* avatar com indicador online */}
               <div className="relative shrink-0">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-[#050b18]"
-                  style={{ background: "linear-gradient(135deg, #f3d078, #d4a017)", boxShadow: "0 4px 12px rgba(212,160,23,0.45)" }}
-                >
-                  {(user.email || user.name || "?")[0].toUpperCase()}
-                </div>
+                <img
+                  src="/icon.svg"
+                  alt="Capital Prime Control"
+                  className="w-9 h-9 rounded-xl"
+                  style={{ boxShadow: "0 4px 12px rgba(212,160,23,0.45)" }}
+                />
                 <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#070e20]"
                   style={{ background: "#22c55e", boxShadow: "0 0 6px rgba(34,197,94,0.9)" }} />
               </div>
@@ -313,17 +315,27 @@ function AppContent() {
           {/* Botão de instalar o app (aparece quando instalável) */}
           <InstallButton />
 
-          <div className="flex gap-2">
-            <button
-              onClick={handleRefreshSite}
-              disabled={isRefreshing}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-[0.15em] text-[#050b18] transition-all duration-300 hover:scale-[1.02] disabled:opacity-60"
-              style={{ background: "linear-gradient(135deg, #f3d078, #d4a017)", boxShadow: "0 4px 16px rgba(212,160,23,0.35)" }}
-              title="Atualizar dados"
-            >
-              <RefreshCw size={13} className={isRefreshing ? "animate-spin" : ""} />
-              Atualizar
-            </button>
+          <div className="flex justify-end gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                type="button"
+                className="size-11 shrink-0 flex items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/70 transition-colors hover:border-[#d4a017]/40 hover:text-[#f3d078] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d4a017]"
+                title="Mais ações"
+                aria-label="Mais ações"
+              >
+                <Ellipsis size={18} aria-hidden="true" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" sideOffset={8} className="rounded-xl border-[#d4a017]/25 bg-[#0f1e45] text-white/85 shadow-xl">
+                <DropdownMenuItem
+                  onSelect={handleRefreshSite}
+                  disabled={isRefreshing}
+                  className="min-h-11 px-3 focus:bg-[#d4a017]/15 focus:text-[#f3d078]"
+                >
+                  <RefreshCw className="text-[#d4a017]" aria-hidden="true" />
+                  Recarregar dados
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <NotificationCenter />
 

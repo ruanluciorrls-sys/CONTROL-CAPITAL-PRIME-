@@ -7,22 +7,33 @@ import {
   Edit2,
   Eye,
   EyeOff,
-  RotateCcw,
+  ExternalLink,
   Square,
   Trash2,
   Trophy,
 } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
 import { useConfirm } from "@/hooks/useConfirm";
+import type { CasaData } from "@/lib/types";
 import { META_RECARGA_MAXIMA, metaRecargaValida } from "@shared/recarga";
+import { valorRecebidoDoReembolso } from "@shared/reembolso";
+
+function getLinkContaFilha(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
 
 export default function CasasFinalizadas() {
   const { state, updateCasa, deletePermanentementeCasa, esvaziarLixeiraCasas } = useApp();
   const { confirm, confirmEl } = useConfirm();
   const { data: gastosProxyList = [] } = trpc.gastosProxy.list.useQuery();
-  const [editingCasa, setEditingCasa] = useState<any>(null);
-  const [editData, setEditData] = useState<any>(null);
+  const linkInputId = useId();
+  const [editData, setEditData] = useState<(CasaData & { agente: string }) | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<"finalizadas" | "lixeira">("finalizadas");
   const [filtroNomeInicial, setFiltroNomeInicial] = useState("");
@@ -84,24 +95,20 @@ export default function CasasFinalizadas() {
       ? casasFiltradas
       : casasFiltradas.filter((casa) => getNomeInicial(casa.nome) === filtroNomeInicial);
 
-  const calculateCasaLucros = (casaId: string) => {
-    const relatoriosCasa = state.relatorios.filter(
-      (relatorio) => relatorio.casaId === casaId && relatorio.status === "finalizado"
-    );
-    const totalResultado = relatoriosCasa.reduce(
-      (total, relatorio) =>
-        total + relatorio.rows.reduce((sum, row) => sum + row.resultado, 0),
-      0
-    );
-    const totalCooperacao = relatoriosCasa.reduce(
-      (total, relatorio) => total + relatorio.cooperacao,
-      0
-    );
-    return totalResultado + totalCooperacao;
-  };
+  const totaisPorCasa = new Map<string, { lucro: number; reembolso: number | null }>();
+  for (const relatorio of state.relatorios) {
+    if (relatorio.status !== "finalizado") continue;
+    const totais = totaisPorCasa.get(relatorio.casaId) || { lucro: 0, reembolso: null };
+    const reembolsoRecebido = valorRecebidoDoReembolso(relatorio);
+    totais.lucro += relatorio.rows.reduce((sum, row) => sum + row.resultado, 0) + relatorio.cooperacao + reembolsoRecebido;
+    if (relatorio.reembolso === "concluido" && relatorio.valorReembolso != null) {
+      totais.reembolso = (totais.reembolso ?? 0) + reembolsoRecebido;
+    }
+    totaisPorCasa.set(relatorio.casaId, totais);
+  }
 
   const totalLucrosTodosFiltrados = casasFiltroNome.reduce((total, casa) => {
-    return total + calculateCasaLucros(casa.id);
+    return total + (totaisPorCasa.get(casa.id)?.lucro ?? 0);
   }, 0);
 
   // Nomes só das casas do mês selecionado (não mostra casas que você não trabalhou naquele mês)
@@ -119,10 +126,9 @@ export default function CasasFinalizadas() {
     return sum + (parseFloat(g.valor?.toString() || "0") || 0);
   }, 0);
 
-  const handleEditClick = (casa: any) => {
-    setEditingCasa(casa);
-    // Pré-preenche o agente vindo do relatório vinculado (a casa não guarda agente)
-    setEditData({ ...casa, agente: casa.agente || getAgenteCasa(casa.id) });
+  const handleEditClick = (casa: CasaData) => {
+    setShowPassword(false);
+    setEditData({ ...casa, agente: getAgenteCasa(casa.id) });
   };
 
   const handleSaveEdit = async () => {
@@ -131,18 +137,24 @@ export default function CasasFinalizadas() {
       toast.error("Informe uma meta de recarga válida e maior que zero.");
       return;
     }
-    if (!await updateCasa(editData.id, editData)) {
+    const linkContaFilha = (editData.linkContaFilha || "").trim();
+    const linkAnterior = state.casas.find((casa) => casa.id === editData.id)?.linkContaFilha || "";
+    if (linkContaFilha && linkContaFilha !== linkAnterior.trim() && !getLinkContaFilha(linkContaFilha)) {
+      toast.error("Informe um link da conta-filha com http:// ou https://.");
+      return;
+    }
+    if (!await updateCasa(editData.id, {
+      nome: editData.nome,
+      login: editData.login,
+      senha: editData.senha,
+      linkContaFilha,
+      ...(editData.metaRecarga != null ? { metaRecarga: editData.metaRecarga } : { meta: editData.meta }),
+    })) {
       toast.error("Não foi possível salvar a casa.");
       return;
     }
-    setEditingCasa(null);
     setEditData(null);
     toast.success("Casa atualizada com sucesso!");
-  };
-
-  const handleReactivate = (casaId: string) => {
-    updateCasa(casaId, { status: "ativa" });
-    toast.success("Casa reativada com sucesso!");
   };
 
   const toggleSelectAll = () => {
@@ -174,16 +186,6 @@ export default function CasasFinalizadas() {
     if (await confirm({ mensagem: `Esvaziar lixeira? ${casasLixeira.length} casa(s) serão deletadas permanentemente.`, confirmar: "Esvaziar", perigo: true })) {
       esvaziarLixeiraCasas();
       toast.success("Lixeira esvaziada com sucesso!");
-    }
-  };
-
-  const handleRecoverMultiple = async () => {
-    if (selectedLixeira.size === 0) return;
-    if (await confirm({ mensagem: `Recuperar ${selectedLixeira.size} casa(s)? Serão movidas para Casas Ativas.`, confirmar: "Recuperar" })) {
-      const quantidade = selectedLixeira.size;
-      selectedLixeira.forEach((id) => updateCasa(id, { status: "ativa" }));
-      setSelectedLixeira(new Set());
-      toast.success(`${quantidade} casa(s) recuperada(s)!`);
     }
   };
 
@@ -343,8 +345,10 @@ export default function CasasFinalizadas() {
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {casasFiltroNome.map((casa) => {
-                  const lucrosCasa = calculateCasaLucros(casa.id);
+                  const totais = totaisPorCasa.get(casa.id);
+                  const lucrosCasa = totais?.lucro ?? 0;
                   const isLucro = lucrosCasa > 0;
+                  const linkContaFilha = getLinkContaFilha(casa.linkContaFilha);
 
                   return (
                     <div
@@ -388,6 +392,11 @@ export default function CasasFinalizadas() {
                               maximumFractionDigits: 2,
                             })}
                           </p>
+                          {totais?.reembolso != null && (
+                            <p className="mt-1 text-xs text-blue-200">
+                              Reembolso recebido: R$ {totais.reembolso.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </p>
+                          )}
                         </div>
 
                         <div className="mt-4 flex items-end justify-between gap-3">
@@ -406,17 +415,13 @@ export default function CasasFinalizadas() {
                               <Edit2 size={16} className="mx-auto" />
                             </button>
                             <button
-                              onClick={() => handleReactivate(casa.id)}
-                              className="h-9 w-9 rounded-xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-300 transition-colors hover:bg-emerald-400/18"
-                              title="Reativar casa"
-                            >
-                              <RotateCcw size={16} className="mx-auto" />
-                            </button>
-                            <button
                               onClick={async () => {
                                 if (await confirm({ mensagem: "Mover esta casa para a lixeira?", confirmar: "Mover", perigo: true })) {
-                                  updateCasa(casa.id, { status: "lixeira" });
-                                  toast.success("Casa movida para a lixeira");
+                                  if (await updateCasa(casa.id, { status: "lixeira" })) {
+                                    toast.success("Casa movida para a lixeira");
+                                  } else {
+                                    toast.error("Não foi possível mover a casa para a lixeira.");
+                                  }
                                 }
                               }}
                               className="h-9 w-9 rounded-xl border border-red-400/20 bg-red-400/10 text-red-300 transition-colors hover:bg-red-400/18"
@@ -426,6 +431,13 @@ export default function CasasFinalizadas() {
                             </button>
                           </div>
                         </div>
+                        {linkContaFilha && (
+                          <a href={linkContaFilha} target="_blank" rel="noopener noreferrer"
+                            className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#f3d078] underline-offset-4 hover:underline"
+                          >
+                            <ExternalLink size={14} aria-hidden="true" /> Abrir conta-filha
+                          </a>
+                        )}
                       </div>
                     </div>
                   );
@@ -446,20 +458,12 @@ export default function CasasFinalizadas() {
             {casasLixeira.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {selectedLixeira.size > 0 && (
-                  <>
-                    <button
-                      onClick={handleRecoverMultiple}
-                      className="rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-4 py-2 text-sm font-bold text-emerald-300 transition-colors hover:bg-emerald-400/18"
-                    >
-                      Recuperar {selectedLixeira.size}
-                    </button>
-                    <button
-                      onClick={handleDeleteMultiple}
-                      className="rounded-xl border border-red-400/25 bg-red-400/10 px-4 py-2 text-sm font-bold text-red-300 transition-colors hover:bg-red-400/18"
-                    >
-                      Deletar {selectedLixeira.size}
-                    </button>
-                  </>
+                  <button
+                    onClick={handleDeleteMultiple}
+                    className="rounded-xl border border-red-400/25 bg-red-400/10 px-4 py-2 text-sm font-bold text-red-300 transition-colors hover:bg-red-400/18"
+                  >
+                    Deletar {selectedLixeira.size}
+                  </button>
                 )}
                 <button
                   onClick={handleEsvaziarLixeira}
@@ -481,7 +485,7 @@ export default function CasasFinalizadas() {
                 <thead>
                   <tr className="border-b border-white/10 bg-white/[0.04]">
                     <th className="w-12 px-4 py-3 text-left font-semibold text-white/70">
-                      <button onClick={toggleSelectAll} className="rounded-lg p-1 text-white/60 transition-colors hover:bg-white/10">
+                      <button onClick={toggleSelectAll} aria-label="Selecionar todas as casas da lixeira" className="rounded-lg p-1 text-white/60 transition-colors hover:bg-white/10">
                         {selectedLixeira.size === casasLixeira.length && casasLixeira.length > 0 ? (
                           <CheckSquare2 size={18} className="text-[#d4a017]" />
                         ) : (
@@ -518,16 +522,6 @@ export default function CasasFinalizadas() {
                             <Edit2 size={18} />
                           </button>
                           <button
-                            onClick={() => {
-                              updateCasa(casa.id, { status: "ativa" });
-                              toast.success("Casa recuperada!");
-                            }}
-                            className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-2 text-emerald-300 transition-colors hover:bg-emerald-400/18"
-                            title="Recuperar casa"
-                          >
-                            <RotateCcw size={18} />
-                          </button>
-                          <button
                             onClick={async () => {
                               if (await confirm({ mensagem: "Deletar permanentemente esta casa?", confirmar: "Deletar", perigo: true })) {
                                 deletePermanentementeCasa(casa.id);
@@ -550,9 +544,9 @@ export default function CasasFinalizadas() {
         </div>
       )}
 
-      {editingCasa && editData && (
+      {editData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md space-y-4 rounded-2xl border border-white/10 bg-[#071226]/95 p-6 shadow-2xl">
+          <div className="max-h-full w-full max-w-md space-y-4 overflow-y-auto rounded-2xl border border-white/10 bg-[#071226]/95 p-6 shadow-2xl">
             <h3 className="text-xl font-bold text-white">Editar Casa</h3>
 
             <div className="space-y-3">
@@ -596,6 +590,18 @@ export default function CasasFinalizadas() {
               </div>
 
               <div>
+                <label htmlFor={linkInputId} className="mb-1 block text-sm font-medium text-white/70">Link da conta-filha</label>
+                <input
+                  id={linkInputId}
+                  type="url"
+                  value={editData.linkContaFilha || ""}
+                  onChange={(e) => setEditData({ ...editData, linkContaFilha: e.target.value })}
+                  placeholder="https://..."
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-base text-white outline-none transition focus:border-[#d4a017]/60 focus:ring-2 focus:ring-[#d4a017]/15"
+                />
+              </div>
+
+              <div>
                 <label className="mb-1 block text-sm font-medium text-white/70">Agente <span className="text-[10px] text-white/30">(do relatório vinculado)</span></label>
                 <input
                   type="text"
@@ -634,10 +640,7 @@ export default function CasasFinalizadas() {
                 Salvar
               </button>
               <button
-                onClick={() => {
-                  setEditingCasa(null);
-                  setEditData(null);
-                }}
+                onClick={() => setEditData(null)}
                 className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 font-bold text-white/65 transition-colors hover:bg-white/8"
               >
                 Cancelar

@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { celebrar } from "@/lib/celebrar";
 import { criarFilaSalvamentoRelatorios, type SalvamentoRelatorios } from "@/lib/salvamentoRelatorios";
 import { isEditingActive } from "@/lib/syncLock";
+import { valorRecebidoDoReembolso } from "@shared/reembolso";
 
 interface AppContextType {
   state: AppState;
@@ -16,9 +17,11 @@ interface AppContextType {
   deletePermanentementeCasa: (id: string) => void;
   addRelatorio: (relatorio: Omit<RelatorioData, "id" | "criadoEm">) => void;
   updateRelatorio: (id: string, relatorio: Partial<RelatorioData>) => void;
+  registrarReembolso: (id: string, valor: number, concluir: boolean) => Promise<boolean>;
   salvamentoRelatorios?: SalvamentoRelatorios;
   deleteRelatorio: (id: string) => void;
   finalizarRelatorio: (id: string) => void;
+  finalizarRelatorioComJogos: (id: string, jogos: string, compartilhamento?: { texto: string }) => Promise<boolean>;
   reutilizarRelatorio: (id: string) => void;
   duplicarRelatorio: (id: string) => void;
   ordemRelatorios: string[] | undefined;
@@ -161,6 +164,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const relatorios = (relatoriosQuery.data || []).map((rel: any) => ({
       ...rel,
       cooperacao: rel.cooperacao ? Number(rel.cooperacao) : 0,
+      valorReembolso: rel.valorReembolso == null ? null : Number(rel.valorReembolso),
       // Usa prazo do DB se existir, senão usa o salvo localmente
       prazo: rel.prazo || prazosLocais[rel.id] || "",
       finalizadoEm: (rel.finalizadoEm instanceof Date ? rel.finalizadoEm.toISOString() : rel.finalizadoEm)
@@ -492,6 +496,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const reutilizarRelatorio = async (id: string) => {
     const relatorioParaReutilizar = state.relatorios.find((r) => r.id === id);
     if (relatorioParaReutilizar) {
+      if (relatorioParaReutilizar.reembolso === "concluido") {
+        updateRelatorio(id, { status: "ativo", reembolso: "pendente", reembolsadoEm: null });
+        return;
+      }
       void utils.relatorios.list.cancel();
       // ATUALIZAÇÃO OTIMISTA: volta para "ativo" na hora
       setState((prev) => ({
@@ -595,7 +603,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }, 0);
         const cooperacaoTotal = Number(r.cooperacao || 0);
         const cooperacaoValid = isNaN(cooperacaoTotal) ? 0 : cooperacaoTotal;
-        return total + resultadosTotal + cooperacaoValid;
+        return total + resultadosTotal + cooperacaoValid + valorRecebidoDoReembolso(r);
       }, 0);
   };
 
@@ -612,9 +620,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         deletePermanentementeCasa,
         addRelatorio,
         updateRelatorio,
+        registrarReembolso: async (id, valorReembolso, concluir) => {
+          const salvo = await gravarRelatorio({ id, valorReembolso, concluirReembolso: concluir });
+          if (!salvo) return false;
+          await Promise.all([relatoriosQuery.refetch(), ...(concluir ? [casasQuery.refetch()] : [])]);
+          return true;
+        },
         salvamentoRelatorios,
         deleteRelatorio,
         finalizarRelatorio,
+        finalizarRelatorioComJogos: async (id, jogos, compartilharJogos) => {
+          const salvo = await gravarRelatorio({ id, status: "finalizado", jogos, compartilharJogos });
+          if (!salvo) return false;
+          await relatoriosQuery.refetch();
+          if (compartilharJogos) void utils.notasRede.invalidate();
+          const rel = state.relatorios.find(r => r.id === id);
+          if (rel) {
+            const lucro = rel.rows.reduce((s, row) => s + (Number(row.resultado) || 0), 0) + (Number(rel.cooperacao) || 0);
+            if (lucro > 0) celebrar({ valor: lucro });
+          }
+          return true;
+        },
         reutilizarRelatorio,
         duplicarRelatorio,
         ordemRelatorios: ordemRelatoriosQuery.data,

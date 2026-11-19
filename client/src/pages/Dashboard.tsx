@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { valorRecebidoDoReembolso } from "@shared/reembolso";
 import { useApp } from "@/contexts/AppContext";
 import { trpc } from "@/lib/trpc";
 import { Calendar, Home, FileText, DollarSign, Wallet, TrendingUp, Clock, Zap, ArrowRight } from "lucide-react";
@@ -43,7 +44,7 @@ export default function Dashboard() {
       if (!Array.isArray(rel.rows)) return total;
       const resultado = rel.rows.reduce((s, row) => s + (Number(row.resultado || 0) || 0), 0);
       const coop = Number(rel.cooperacao || 0);
-      return total + resultado + (isNaN(coop) ? 0 : coop);
+      return total + resultado + (isNaN(coop) ? 0 : coop) + valorRecebidoDoReembolso(rel);
     }, 0);
   // Receitas manuais (bônus, %, rebate...) deste mês
   const totalReceitas = (receitasList as any[])

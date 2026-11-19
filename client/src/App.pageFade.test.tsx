@@ -13,6 +13,7 @@ const fixtures = vi.hoisted(() => {
   return {
     saldo: 10,
     isPrimaryAdmin: false,
+    role: "user",
     faturamento: deferred(),
     chavesPix: deferred(),
   };
@@ -31,7 +32,7 @@ vi.mock("@/contexts/ThemeContext", () => ({
 }));
 vi.mock("@/_core/hooks/useAuth", () => ({
   useAuth: () => ({
-    user: { name: "Teste", isPrimaryAdmin: fixtures.isPrimaryAdmin },
+    user: { name: "Teste", role: fixtures.role, isPrimaryAdmin: fixtures.isPrimaryAdmin },
     loading: false,
     isAuthenticated: true,
     logout: vi.fn(),
@@ -69,6 +70,7 @@ describe("fade global de paginas", () => {
   beforeEach(() => {
     fixtures.saldo = 10;
     fixtures.isPrimaryAdmin = false;
+    fixtures.role = "user";
     localStorage.removeItem("lastActiveTab");
     motion = Object.assign(new EventTarget(), { matches: false });
     vi.stubGlobal("matchMedia", vi.fn(() => motion));
@@ -93,9 +95,11 @@ describe("fade global de paginas", () => {
     const menu = screen.getByRole("navigation");
     const mobileMenu = screen.getByRole("button", { name: "Abrir menu" });
     const logos = screen.getAllByRole("heading", { name: "CAPITAL PRIME" });
+    expect(within(menu).getByRole("button", { name: "Dashboard" })).toHaveAttribute("aria-current", "page");
     expect(animate).not.toHaveBeenCalled();
 
     fireEvent.click(within(menu).getByRole("button", { name: "Faturamento" }));
+    expect(within(menu).getByRole("button", { name: "Faturamento" })).toHaveAttribute("aria-current", "page");
     expect(animate).not.toHaveBeenCalled();
     expect(screen.queryByRole("heading", { name: "Tela de faturamento" })).toBeNull();
 
@@ -121,7 +125,7 @@ describe("fade global de paginas", () => {
     expect(screen.getByRole("button", { name: "Abrir menu" })).toBe(mobileMenu);
   });
 
-  it("nao anima render, dados atualizados, clique na mesma tela ou Atualizar", async () => {
+  it("recarrega pelo menu lateral com teclado sem animar a pagina", async () => {
     const view = render(<App />);
     const original = await screen.findByRole("heading", { name: "Saldo: 10" });
     const main = screen.getByRole("main");
@@ -131,12 +135,45 @@ describe("fade global de paginas", () => {
     expect(screen.getByRole("heading", { name: "Saldo: 25" })).toBe(original);
     fireEvent.click(screen.getByRole("button", { name: "Dashboard" }));
 
+    const sidebar = within(screen.getByRole("complementary"));
+    expect(sidebar.queryByRole("button", { name: "Atualizar" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Recarregar dados" })).toBeNull();
+    const trigger = sidebar.getByRole("button", { name: /^Mais a/ });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: "Enter" });
+    const reload = screen.getByRole("menuitem", { name: "Recarregar dados" });
+    expect(reload).toHaveFocus();
+
     vi.useFakeTimers();
-    fireEvent.click(within(screen.getByRole("complementary")).getByTitle("Atualizar dados"));
+    fireEvent.keyDown(reload, { key: "Enter" });
+    expect(screen.queryByRole("menuitem", { name: "Recarregar dados" })).toBeNull();
     expect(screen.getByRole("heading", { name: "Saldo: 25" })).not.toBe(original);
     expect(screen.getByRole("main")).toBe(main);
+    act(() => vi.advanceTimersByTime(0));
+    expect(trigger).toHaveFocus();
+
+    fireEvent.keyDown(trigger, { key: "Enter" });
+    expect(screen.getByRole("menuitem", { name: "Recarregar dados" })).toHaveAttribute("aria-disabled", "true");
     act(() => vi.advanceTimersByTime(800));
+    expect(screen.getByRole("menuitem", { name: "Recarregar dados" })).not.toHaveAttribute("aria-disabled");
     expect(animate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { role: "user", isPrimaryAdmin: false },
+    { role: "admin", isPrimaryAdmin: false },
+    { role: "admin", isPrimaryAdmin: true },
+  ])("usa a logo do app no perfil e preserva o acesso ao Painel Admin (%j)", async ({ role, isPrimaryAdmin }) => {
+    fixtures.role = role;
+    fixtures.isPrimaryAdmin = isPrimaryAdmin;
+    render(<App />);
+    await screen.findByRole("heading", { name: "Saldo: 10" });
+
+    const sidebar = within(screen.getByRole("complementary"));
+    expect(sidebar.getByRole("img", { name: "Capital Prime Control" })).toHaveAttribute("src", "/icon.svg");
+    expect(sidebar.getByText("Teste")).toBeInTheDocument();
+    expect(sidebar.queryByText("T", { exact: true })).toBeNull();
+    expect(Boolean(sidebar.queryByRole("button", { name: "Painel Admin" }))).toBe(isPrimaryAdmin);
   });
 
   it("ignora aliases da mesma tela e mudancas de permissao sem navegacao", async () => {

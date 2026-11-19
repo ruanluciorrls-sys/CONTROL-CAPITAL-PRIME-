@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Search, Check, Plus, X } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import slotsData from "../pages/slots_data.json";
+import { JogosCompartilhadosRede } from "@/components/JogosCompartilhadosRede";
 
 interface Jogo { name: string; image?: string; provider?: string }
 
@@ -11,10 +12,11 @@ interface Props {
   onChange: (v: string) => void;
   /** Jogos da última vez nesta rede (sugestões de 1 clique) */
   sugestoes?: string[];
+  rede?: string;
 }
 
 /** Seletor visual de jogos com capas dos slots premium (+ digitação manual). */
-export default function SeletorJogos({ value, onChange, sugestoes = [] }: Props) {
+export default function SeletorJogos({ value, onChange, sugestoes = [], rede }: Props) {
   const [busca, setBusca] = useState("");
   const [manual, setManual] = useState("");
   const slotsQuery = trpc.slots.list.useQuery();
@@ -44,7 +46,7 @@ export default function SeletorJogos({ value, onChange, sugestoes = [] }: Props)
     else emitir([...selecionados, name]);
   };
   const remover = (name: string) => emitir(selecionados.filter((s) => s.toLowerCase() !== name.toLowerCase()));
-  const addManual = () => { const n = manual.trim(); if (!n) return; emitir([...selecionados, n]); setManual(""); };
+  const addManual = () => { const n = (manual.trim() || busca.trim()).slice(0, 120); if (!n) return; emitir([...selecionados, n]); setManual(""); };
 
   const imgDe = (name: string) => catalogo.find((g) => g.name.toLowerCase() === name.toLowerCase())?.image;
 
@@ -96,17 +98,30 @@ export default function SeletorJogos({ value, onChange, sugestoes = [] }: Props)
       {/* Busca */}
       <div className="relative">
         <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30" />
-        <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar jogo pela capa..."
+        <input value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Pesquisar jogo" placeholder="Pesquisar pelo nome do jogo..."
           className="w-full pl-8 pr-3 py-2 rounded-lg text-sm bg-transparent text-white border border-white/15 focus:outline-none focus:border-[#d4a017]"
         />
       </div>
 
+      {/* Digitar manualmente */}
+      <div className="flex gap-2">
+        <input value={manual} onChange={(e) => setManual(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addManual(); } }}
+          placeholder="Ou digite um jogo manualmente..."
+          aria-label="Nome do jogo manual" maxLength={120} className="min-w-0 flex-1 px-3 py-2 rounded-lg text-sm bg-transparent text-white border border-white/15 focus:outline-none focus:border-[#d4a017]"
+        />
+        <button type="button" onClick={addManual}
+          className="px-3 py-2 rounded-lg text-xs font-black text-[#050b18]"
+          style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
+        >Adicionar manualmente</button>
+      </div>
+
       {/* Grade de capas */}
       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-[220px] overflow-y-auto pr-1">
-        {filtrados.map((g) => {
+        {filtrados.map((g, index) => {
           const sel = selSet.has(g.name.toLowerCase());
           return (
-            <button key={g.name} type="button" onClick={() => toggle(g.name)}
+            <button key={`${g.name}-${index}`} type="button" onClick={() => toggle(g.name)}
               className="relative rounded-lg overflow-hidden border transition-all hover:-translate-y-0.5"
               style={{ borderColor: sel ? "#d4a017" : "rgba(255,255,255,0.1)", boxShadow: sel ? "0 0 0 1px #d4a017" : "none" }}
             >
@@ -126,22 +141,12 @@ export default function SeletorJogos({ value, onChange, sugestoes = [] }: Props)
           );
         })}
         {filtrados.length === 0 && (
-          <p className="col-span-full text-center text-xs text-white/30 py-4">Nenhum jogo encontrado</p>
+          <p className="col-span-full text-center text-xs text-white/30 py-4">Nenhum jogo encontrado. Use Adicionar manualmente acima.</p>
         )}
       </div>
+      {rede && <JogosCompartilhadosRede rede={rede} />}
 
-      {/* Digitar manualmente */}
-      <div className="flex gap-2">
-        <input value={manual} onChange={(e) => setManual(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addManual(); } }}
-          placeholder="Ou digite um jogo manualmente..."
-          className="flex-1 px-3 py-2 rounded-lg text-sm bg-transparent text-white border border-white/15 focus:outline-none focus:border-[#d4a017]"
-        />
-        <button type="button" onClick={addManual}
-          className="px-3 py-2 rounded-lg text-xs font-black text-[#050b18]"
-          style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
-        >Add</button>
-      </div>
+
     </div>
   );
 }

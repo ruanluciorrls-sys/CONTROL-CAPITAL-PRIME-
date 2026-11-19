@@ -24,11 +24,13 @@ export function criarFilaSalvamentoRelatorios<Patch extends { id: string }>(
 
     // Serializa apenas o mesmo ID: rows e outros campos podem ser sobrescritos integralmente.
     const anterior = pendentes.get(id) ?? Promise.resolve();
+    let confirmado = false;
     const tarefa = anterior.then(async () => {
       const falhas = camposComErro.get(id) ?? new Set<string>();
       try {
         const resposta = await gravar(patch);
         if (resposta?.success !== true) throw new Error("Gravacao sem confirmacao");
+        confirmado = true;
         campos.forEach(campo => falhas.delete(campo));
       } catch {
         campos.forEach(campo => falhas.add(campo));
@@ -51,7 +53,7 @@ export function criarFilaSalvamentoRelatorios<Patch extends { id: string }>(
 
     pendentes.set(id, tarefa);
     publicar(id, { status: "salvando" });
-    return tarefa;
+    return tarefa.then(() => confirmado);
   };
 
   return { enfileirar, solicitarReconciliacao };

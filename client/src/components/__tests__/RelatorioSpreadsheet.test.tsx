@@ -28,6 +28,8 @@ describe("leitura e acoes da planilha", () => {
     expect(container.querySelector(".operacoes-planilha")).toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Lançamentos do relatório" })).toHaveClass("planilha-tabela");
     expect(screen.getByText("Ana")).toHaveClass("planilha-titulo-agente");
+    expect(screen.getByText("Agente / Blogueira")).toBeInTheDocument();
+    expect(screen.queryByText("%", { exact: true })).not.toBeInTheDocument();
     expect(screen.getByText("Rede teste")).toHaveClass("planilha-titulo-casa");
     expect(screen.getByText("Ana").closest(".planilha-cartao")).toBeInTheDocument();
     expect(container.querySelectorAll(".planilha-cabecalho .planilha-cartao")).toHaveLength(2);

@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import RelatorioSpreadsheet from "@/components/RelatorioSpreadsheet";
 import SeletorJogos from "@/components/SeletorJogos";
-import AbaProgresso from "@/components/AbaProgresso";
+import EditorReembolso from "@/components/EditorReembolso";
 import { usePageTransition } from "@/hooks/usePageTransition";
 import { useConfirm } from "@/hooks/useConfirm";
 import { aplicarOrdemRelatorios, moverRelatorio } from "@/lib/ordemRelatorios";
@@ -416,10 +416,13 @@ function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
 }
 
 export default function Relatorios() {
-  const { state, addRelatorio, updateRelatorio, deleteRelatorio, finalizarRelatorio, finalizarCasa, duplicarRelatorio, esvaziarLixeira, ordemRelatorios, salvandoOrdemRelatorios, reordenarRelatorios, salvamentoRelatorios } = useApp();
+  const { state, addRelatorio, updateRelatorio, registrarReembolso, deleteRelatorio, finalizarRelatorio, finalizarRelatorioComJogos, finalizarCasa, duplicarRelatorio, esvaziarLixeira, ordemRelatorios, salvandoOrdemRelatorios, reordenarRelatorios, salvamentoRelatorios } = useApp();
   const { confirm, confirmEl } = useConfirm();
   const [finalizarDialogId, setFinalizarDialogId] = useState<string | null>(null);
   const [jogosTexto, setJogosTexto] = useState("");
+  const [observacaoRede, setObservacaoRede] = useState("");
+  const [compartilharJogos, setCompartilharJogos] = useState(true);
+  const [finalizando, setFinalizando] = useState(false);
   const [bauSacado, setBauSacado] = useState(false); // confirmação de saque do baú antes de finalizar
   const [etiquetaDialogId, setEtiquetaDialogId] = useState<string | null>(null);
   const [etiquetaTexto, setEtiquetaTexto] = useState("");
@@ -434,7 +437,10 @@ export default function Relatorios() {
   const removerTag = (i: number) => setEtiquetaTexto(tagsEtiqueta.filter((_, idx) => idx !== i).join(", "));
   const [selectedRelatorioId, setSelectedRelatorioId] = useState<string>("");
   const [showNewForm, setShowNewForm] = useState(false);
-  const [activeTab, setActiveTab] = useState<"relatorio" | "progresso" | "lixeira" | "reembolso" | "reembolso-hist">("relatorio");
+  const [activeTab, setActiveTab] = useState<"relatorio" | "lixeira" | "reembolso" | "reembolso-hist">("relatorio");
+  const [reembolsoAberto, setReembolsoAberto] = useState<string | null>(null);
+  const [concluindoReembolso, setConcluindoReembolso] = useState(false);
+  const [rascunhoPendente, setRascunhoPendente] = useState(false);
   const { isVisible, renderedValue: renderedTab } = usePageTransition(activeTab);
   const [newRelatorioData, setNewRelatorioData] = useState({
     casaId: "",
@@ -554,7 +560,8 @@ export default function Relatorios() {
     }
   };
   const relatoriosReembolso = state.relatorios.filter((r) => r.status === "ativo" && r.reembolso === "pendente");
-  const relatoriosReembolsoHist = state.relatorios.filter((r) => r.reembolso === "concluido");
+  const relatoriosReembolsoHist = state.relatorios.filter((r) => r.status !== "lixeira" && r.reembolso === "concluido");
+  const reembolsoSelecionado = relatoriosReembolso.find(r => r.id === reembolsoAberto);
   const relatoriosLixeira = state.relatorios.filter((r) => r.status === "lixeira");
 
   const handleCreateRelatorio = () => {
@@ -576,7 +583,7 @@ export default function Relatorios() {
   };
 
   const handleAddRow = (relatorioId: string, row: any) => {
-    const relatorio = relatoriosAtivos.find((r) => r.id === relatorioId);
+    const relatorio = state.relatorios.find((r) => r.status === "ativo" && r.id === relatorioId);
     if (relatorio) {
       updateRelatorio(relatorioId, {
         rows: [...relatorio.rows, row],
@@ -585,7 +592,7 @@ export default function Relatorios() {
   };
 
   const handleDeleteRow = (relatorioId: string, numero: number) => {
-    const relatorio = relatoriosAtivos.find((r) => r.id === relatorioId);
+    const relatorio = state.relatorios.find((r) => r.status === "ativo" && r.id === relatorioId);
     if (relatorio) {
       // Filtrar a linha deletada e renumerar as restantes
       const filteredRows = relatorio.rows.filter((r) => r.numero !== numero);
@@ -600,7 +607,7 @@ export default function Relatorios() {
   };
 
   const handleUpdateRow = (relatorioId: string, numero: number, row: any) => {
-    const relatorio = relatoriosAtivos.find((r) => r.id === relatorioId);
+    const relatorio = state.relatorios.find((r) => r.status === "ativo" && r.id === relatorioId);
     if (relatorio) {
       updateRelatorio(relatorioId, {
         rows: relatorio.rows.map((r) => (r.numero === numero ? row : r)),
@@ -673,7 +680,6 @@ export default function Relatorios() {
   };
 
   const currentRelatorio = selectedRelatorioId ? relatoriosAtivos.find((r) => r.id === selectedRelatorioId) : null;
-  const casaDoRelatorio = state.casas.find(c => c.id === currentRelatorio?.casaId);
 
   // ── Memória de jogos por REDE (VOY, EK...) — usa a rede da casa, com fallback no nome ──
   const getNomeInicialR = (nome: string) => (nome || "").trim().split(/\s+/)[0].toUpperCase();
@@ -690,6 +696,35 @@ export default function Relatorios() {
     return (lista[0] as any)?.jogos || "";
   };
 
+  const renderPlanilha = (rel: RelatorioData) => {
+    const casaDoRelatorio = state.casas.find(c => c.id === rel.casaId);
+    return (
+      <RelatorioSpreadsheet
+        key={rel.id}
+        casaNome={getCasaNome(rel.casaId)}
+        agente={rel.agente || ""}
+        prazo={rel.prazo?.trim() || casaDoRelatorio?.prazo || ""}
+        login={getCasaLogin(rel.casaId)}
+        cooperacao={rel.cooperacao}
+        onCooperacaoChange={valor => handleCooperacaoChange(rel.id, valor)}
+        linkContaFilha={getCasaLinks(rel.casaId).linkContaFilha}
+        media={casaDoRelatorio?.media || 0}
+        meta={casaDoRelatorio?.meta || 0}
+        metaRecarga={casaDoRelatorio?.metaRecarga}
+        salvamento={salvamentoRelatorios?.[rel.id]}
+        ocultarValores={ocultarValores}
+        jogosUltimaVez={getJogosUltimaVez(rel.casaId, rel.id)}
+        rede={redeDaCasaR(rel.casaId)}
+        rows={rel.rows}
+        onRascunhoPendente={setRascunhoPendente}
+        onAddRow={row => handleAddRow(rel.id, row)}
+        onDeleteRow={numero => handleDeleteRow(rel.id, numero)}
+        onUpdateRow={(numero, row) => handleUpdateRow(rel.id, numero, row)}
+        onRestoreRows={rows => updateRelatorio(rel.id, { rows })}
+      />
+    );
+  };
+
   return (
     <div className="space-y-4 md:space-y-8">
       {/* Abas de Navegação */}
@@ -698,9 +733,8 @@ export default function Relatorios() {
       >
         {[
           { id: "relatorio", label: "Relatório" },
-          { id: "progresso", label: "Progresso" },
           { id: "reembolso", label: `💸 Reembolso (${relatoriosReembolso.length})` },
-          { id: "reembolso-hist", label: `Hist. Reemb. (${relatoriosReembolsoHist.length})` },
+          { id: "reembolso-hist", label: `Histórico de Reembolso (${relatoriosReembolsoHist.length})` },
           { id: "lixeira", label: `Lixeira (${relatoriosLixeira.length})` },
         ].map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
@@ -990,43 +1024,20 @@ export default function Relatorios() {
             {/* Planilha de Relatório Selecionado */}
             {currentRelatorio && (
               <>
-                <RelatorioSpreadsheet
-                  key={`${selectedRelatorioId}-${currentRelatorio.id}`}
-                  casaNome={getCasaNome(currentRelatorio.casaId)}
-                  agente={currentRelatorio.agente}
-                  prazo={currentRelatorio.prazo || ""}
-                  login={getCasaLogin(currentRelatorio.casaId)}
-
-                  cooperacao={currentRelatorio.cooperacao}
-                  onCooperacaoChange={(valor) =>
-                    handleCooperacaoChange(selectedRelatorioId, valor)
-                  }
-                  linkContaFilha={getCasaLinks(currentRelatorio.casaId).linkContaFilha}
-                  media={casaDoRelatorio?.media || 0}
-                  meta={casaDoRelatorio?.meta || 0}
-                  metaRecarga={casaDoRelatorio?.metaRecarga}
-                  salvamento={salvamentoRelatorios?.[currentRelatorio.id]}
-                  ocultarValores={ocultarValores}
-                  jogosUltimaVez={getJogosUltimaVez(currentRelatorio.casaId, currentRelatorio.id)}
-                  rede={redeDaCasaR(currentRelatorio.casaId)}
-                  rows={currentRelatorio.rows}
-                  onAddRow={(row) => handleAddRow(selectedRelatorioId, row)}
-                  onDeleteRow={(numero) => handleDeleteRow(selectedRelatorioId, numero)}
-                  onUpdateRow={(numero, row) =>
-                    handleUpdateRow(selectedRelatorioId, numero, row)
-                  }
-                  onRestoreRows={(rows) => updateRelatorio(selectedRelatorioId, { rows })}
-                />
+                {renderPlanilha(currentRelatorio)}
                 <button
+                  disabled={rascunhoPendente || salvamentoRelatorios?.[currentRelatorio.id]?.status === "salvando"}
                   onClick={() => {
                     if (selectedRelatorioId) {
                       const rel = relatoriosAtivos.find((r) => r.id === selectedRelatorioId);
                       setJogosTexto(rel?.jogos || "");
+                      setObservacaoRede("");
+                      setCompartilharJogos(!rel?.jogos);
                       setBauSacado(false);
                       setFinalizarDialogId(selectedRelatorioId);
                     }
                   }}
-                  className="mt-6 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                  className="mt-6 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
                 >
                   ✓ Finalizar Relatório
                 </button>
@@ -1044,21 +1055,6 @@ export default function Relatorios() {
           </>
         )}
 
-        {renderedTab === "progresso" && currentRelatorio && (ocultarValores ? (
-          <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">Os valores de progresso estão ocultos.</p>
-        ) : (
-          <AbaProgresso
-            meta={casaDoRelatorio?.meta || 0}
-            media={casaDoRelatorio?.media || 0}
-            metaRecarga={casaDoRelatorio?.metaRecarga}
-            totalDeposito={currentRelatorio.rows.reduce((sum, r) => sum + (r.deposito || 0) + (r.redeposito || 0), 0)}
-            totalSaque={currentRelatorio.rows.reduce((sum, r) => sum + r.saque, 0)}
-            totalBau={currentRelatorio.rows.reduce((sum, r) => sum + r.bau, 0)}
-            cooperacao={currentRelatorio.cooperacao}
-            rows={currentRelatorio.rows}
-          />
-        ))}
-
         {renderedTab === "reembolso" && (
           <div className="space-y-4">
             <div className="rounded-2xl p-4 border border-orange-400/20" style={{ background: "rgba(251,146,60,0.06)" }}>
@@ -1074,18 +1070,43 @@ export default function Relatorios() {
                   const lucro = calculateTotalResultado(rel.rows, rel.cooperacao);
                   return (
                     <div key={rel.id} className="rounded-2xl p-4 border border-orange-400/25 flex flex-col" style={{ background: "rgba(251,146,60,0.05)" }}>
-                      <p className="text-[10px] font-black uppercase tracking-wider text-orange-300/70">💸 Reembolso pendente</p>
+                      <p className="text-[10px] font-black uppercase tracking-wider text-orange-300/70">Atenção: reembolso pendente</p>
                       <h4 className="text-base font-black text-white mt-1 truncate">{nome}</h4>
                       <p className="text-xs mt-1" style={{ color: ocultarValores ? undefined : lucro >= 0 ? "#4ade80" : "#f87171" }}>Resultado: {ocultarValores ? "Valor oculto" : moedaRelatorio.format(lucro)}</p>
                       <div className="flex gap-2 mt-4">
                         <button onClick={() => { updateRelatorio(rel.id, { reembolso: null }); toast.success("Voltou pra ativo ↩️"); }}
                           className="flex-1 px-3 py-2 rounded-xl text-xs font-bold border border-white/12 text-white/70 hover:bg-white/5 transition-colors">↩️ Voltar</button>
-                        <button onClick={() => { updateRelatorio(rel.id, { reembolso: "concluido", reembolsadoEm: new Date().toISOString() }); toast.success("Reembolso concluído! ✅"); }}
-                          className="flex-1 px-3 py-2 rounded-xl text-xs font-black text-[#050b18] transition-all hover:scale-[1.02]" style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}>✅ Concluir</button>
+                        <button type="button" aria-expanded={reembolsoAberto === rel.id} onClick={() => setReembolsoAberto(atual => atual === rel.id ? null : rel.id)}
+                          className="flex-1 px-3 py-2 rounded-xl text-xs font-black text-[#050b18] transition-all hover:scale-[1.02]" style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}>{reembolsoAberto === rel.id ? "Fechar edição" : "Editar reembolso"}</button>
                       </div>
                     </div>
                   );
                 })}
+              </div>
+            )}
+            {reembolsoSelecionado && (
+              <div className="space-y-4">
+                <EditorReembolso key={`editor-${reembolsoSelecionado.id}`}
+                  valorInicial={reembolsoSelecionado.valorReembolso}
+                  resultado={calculateTotalResultado(reembolsoSelecionado.rows, reembolsoSelecionado.cooperacao)}
+                  ocultarValores={ocultarValores}
+                  ocupado={rascunhoPendente || salvamentoRelatorios?.[reembolsoSelecionado.id]?.status === "salvando"}
+                  gravar={async (valor, concluir) => {
+                    if (concluir && !(await confirm({ mensagem: "Finalizar este reembolso e a meta vinculada?", confirmar: "Finalizar" }))) return;
+                    setConcluindoReembolso(concluir);
+                    try {
+                      if (!(await registrarReembolso(reembolsoSelecionado.id, valor, concluir))) throw new Error();
+                      if (concluir) {
+                        setReembolsoAberto(null);
+                        setActiveTab("reembolso-hist");
+                      }
+                      toast.success(concluir ? "Reembolso e meta finalizados." : "Valor do reembolso salvo.");
+                    } catch {
+                      toast.error("Não foi possível confirmar o reembolso. Confira a meta vinculada e tente novamente.");
+                    } finally { setConcluindoReembolso(false); }
+                  }}
+                />
+                <div inert={concluindoReembolso}>{renderPlanilha(reembolsoSelecionado)}</div>
               </div>
             )}
           </div>
@@ -1107,8 +1128,9 @@ export default function Relatorios() {
                         <p className="text-[10px] font-black uppercase tracking-wider text-emerald-300/70">✅ Reembolso concluído</p>
                         <h4 className="text-base font-black text-white mt-1 truncate">{nome}</h4>
                         {(rel as any).reembolsadoEm && <p className="text-xs text-white/40 mt-0.5">em {new Date((rel as any).reembolsadoEm).toLocaleDateString("pt-BR")}</p>}
-                        <button onClick={() => { updateRelatorio(rel.id, { reembolso: null, reembolsadoEm: null }); toast.success("Reaberto ↩️"); }}
-                          className="mt-4 px-3 py-2 rounded-xl text-xs font-bold border border-white/12 text-white/70 hover:bg-white/5 transition-colors">↩️ Reabrir (voltar pra ativo)</button>
+                        {!ocultarValores && rel.valorReembolso != null && <p className="mt-2 text-sm text-emerald-200">Reembolso recebido: {moedaRelatorio.format(rel.valorReembolso)}</p>}
+                        <button onClick={() => { updateRelatorio(rel.id, { ...(rel.valorReembolso != null ? { status: "ativo" as const, reembolso: "pendente" } : { reembolso: null }), reembolsadoEm: null }); toast.success("Relatório reaberto."); }}
+                          className="mt-4 px-3 py-2 rounded-xl text-xs font-bold border border-white/12 text-white/70 hover:bg-white/5 transition-colors">{rel.valorReembolso != null ? "Reabrir em Reembolso" : "Reabrir (voltar para ativo)"}</button>
                       </div>
                     );
                   })}
@@ -1270,23 +1292,31 @@ export default function Relatorios() {
 
         {/* Diálogo: finalizar também a meta vinculada? */}
         {finalizarDialogId && (() => {
-          const rel = relatoriosAtivos.find((r) => r.id === finalizarDialogId);
+          const rel = relatoriosAtivosBase.find((r) => r.id === finalizarDialogId);
           const casa = rel ? state.casas.find((c) => c.id === rel.casaId) : null;
           const nomeCasa = (casa?.nome || "a meta").replace(/[\s-]+$/, "").trim();
           const casaJaFinalizada = casa?.status !== "ativa";
-          const finalizar = (comCasa: boolean) => {
-            if (jogosTexto.trim() !== (rel?.jogos || "")) updateRelatorio(finalizarDialogId, { jogos: jogosTexto.trim() });
-            finalizarRelatorio(finalizarDialogId);
-            if (comCasa && rel?.casaId) finalizarCasa(rel.casaId);
-            setSelectedRelatorioId("");
-            setFinalizarDialogId(null);
-            setJogosTexto("");
-            toast.success(comCasa ? "Relatório e meta finalizados!" : "Relatório finalizado!");
+          const rede = casa?.redeNome?.trim().toUpperCase() || "";
+          const finalizar = async (comCasa: boolean) => {
+            if (!rel || !bauSacado || finalizando) return;
+            setFinalizando(true);
+            try {
+              const jogos = jogosTexto.trim();
+              const publicar = compartilharJogos && rede && (jogos || observacaoRede.trim());
+              if (!(await finalizarRelatorioComJogos(rel.id, jogos, publicar ? { texto: observacaoRede.trim() } : undefined))) throw new Error();
+              if (comCasa && !casaJaFinalizada) finalizarCasa(rel.casaId);
+              setSelectedRelatorioId("");
+              setFinalizarDialogId(null);
+              setJogosTexto("");
+              toast.success("Relatório finalizado.");
+            } catch {
+              toast.error("Não foi possível confirmar a finalização. Tente novamente.");
+            } finally { setFinalizando(false); }
           };
           return (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
               style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
-              onMouseDown={(e) => { if (e.target === e.currentTarget) setFinalizarDialogId(null); }}
+              onMouseDown={(e) => { if (!finalizando && e.target === e.currentTarget) setFinalizarDialogId(null); }}
             >
               <div className="w-full max-w-lg max-h-[88vh] overflow-y-auto rounded-2xl p-6 space-y-5"
                 style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)", border: "1px solid rgba(212,160,23,0.25)" }}
@@ -1315,9 +1345,21 @@ export default function Relatorios() {
                   <SeletorJogos
                     value={jogosTexto}
                     onChange={setJogosTexto}
+                    rede={rede}
                     sugestoes={(rel ? getJogosUltimaVez(rel.casaId, rel.id) : "").split(",").map((s) => s.trim()).filter(Boolean)}
                   />
-                  <p className="text-[10px] text-white/30 mt-1">Fica salvo no relatório pra você consultar depois e ver os melhores jogos.</p>
+                  {!rede && <p className="mt-2 text-xs text-white/65">Jogos ficam privados até a meta ter uma plataforma vinculada no calendário.</p>}
+                  {rede && <div className="mt-3 space-y-2 rounded-lg border border-[#d4a017]/25 p-3">
+                    <label className="flex items-center gap-2 text-sm font-semibold">
+                      <input type="checkbox" checked={compartilharJogos} onChange={e => setCompartilharJogos(e.target.checked)} />
+                      Compartilhar com todas as contas em {rede}
+                    </label>
+                    {compartilharJogos && <>
+                      <textarea aria-label="Observação pública da plataforma" value={observacaoRede} onChange={e => setObservacaoRede(e.target.value)}
+                        maxLength={500} rows={2} placeholder="Ex.: Jogo bom hoje" className="w-full rounded-lg border border-white/15 bg-background p-2 text-sm" />
+                      <p className="text-xs text-white/65">Seu nome, os jogos selecionados e a observação ficam públicos para os usuários do painel. Não inclua dados pessoais ou financeiros.</p>
+                    </>}
+                  </div>}
                 </div>
 
                 {/* Lembrete: já sacou o baú? (trava o finalizar até confirmar) */}
@@ -1347,17 +1389,17 @@ export default function Relatorios() {
                 </button>
 
                 <div className="flex flex-col gap-2">
-                  <button onClick={() => finalizar(true)} disabled={!bauSacado}
+                  <button onClick={() => void finalizar(true)} disabled={!bauSacado || finalizando}
                     className="w-full py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                     style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
                   >Sim — finalizar relatório e meta</button>
-                  <button onClick={() => finalizar(false)} disabled={!bauSacado}
+                  <button onClick={() => void finalizar(false)} disabled={!bauSacado || finalizando}
                     className="w-full py-2.5 rounded-xl font-bold text-sm text-white/80 border border-white/15 hover:bg-white/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >Não — só o relatório</button>
                   {!bauSacado && (
                     <p className="text-center text-[10px] text-red-400/70 font-semibold">Confirme o baú acima pra liberar o finalizar 🎁</p>
                   )}
-                  <button onClick={() => setFinalizarDialogId(null)}
+                  <button onClick={() => setFinalizarDialogId(null)} disabled={finalizando}
                     className="w-full py-2 rounded-xl text-xs font-medium text-white/40 hover:text-white/60 transition-colors"
                   >Cancelar</button>
                 </div>

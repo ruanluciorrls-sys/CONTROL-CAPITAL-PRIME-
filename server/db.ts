@@ -1,11 +1,13 @@
 import { eq, desc, sql, inArray, and, asc, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, casas, relatorios, contas, userSettings, gastosProxy, Casa, Relatorio, InsertCasa, InsertRelatorio, Conta, InsertConta, UserSettings, GastoProxy, InsertGastoProxy, slots, Slot, InsertSlot, plataformas, PlataformaDb, InsertPlataforma, pushConfig, PushConfig, pushSubscriptions, PushSubscriptionRow, InsertPushSubscription, receitas, Receita, InsertReceita, pixTags, chavesPix, PixTag, ChavePix, InsertPixTag, InsertChavePix, redeNotas, RedeNota } from "../drizzle/schema";
+import { InsertUser, users, casas, relatorios, contas, userSettings, gastosProxy, Casa, Relatorio, InsertCasa, InsertRelatorio, Conta, InsertConta, UserSettings, GastoProxy, InsertGastoProxy, slots, Slot, InsertSlot, plataformas, PlataformaDb, InsertPlataforma, pushConfig, PushConfig, pushSubscriptions, PushSubscriptionRow, InsertPushSubscription, receitas, Receita, InsertReceita, pixTags, chavesPix, PixTag, ChavePix, InsertPixTag, InsertChavePix, redeNotas } from "../drizzle/schema";
 import bcrypt from "bcryptjs";
 import { ENV } from './_core/env';
 import { plataformasPadrao } from "./plataformas-padrao";
 import { ordemRelatorios, plataformasPessoais } from "../drizzle/schema";
+import { redeAvisos, redeJogos } from "../drizzle/schema";
+import { TRPCError } from "@trpc/server";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -337,6 +339,7 @@ export async function ensureRelatorioPrazo(): Promise<void> {
     await db.execute(sql`ALTER TABLE contas ADD COLUMN IF NOT EXISTS maquina text`);
     await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS reembolso text`);
     await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS "reembolsadoEm" timestamp`);
+    await db.execute(sql`ALTER TABLE relatorios ADD COLUMN IF NOT EXISTS "valorReembolso" numeric(10,2)`);
     await db.execute(sql`ALTER TABLE casas ADD COLUMN IF NOT EXISTS reembolso text`);
     await db.execute(sql`ALTER TABLE casas ADD COLUMN IF NOT EXISTS "reembolsadoEm" timestamp`);
     // Backfill: relatórios finalizados que ficaram sem data de finalização recebem a última atualização
@@ -361,16 +364,76 @@ export async function createRelatorio(relatorio: InsertRelatorio): Promise<Relat
   return db.select().from(relatorios).where(eq(relatorios.id, relatorio.id)).limit(1).then(r => r[0] || null);
 }
 
-export async function updateRelatorio(id: string, userId: number, data: Partial<InsertRelatorio>): Promise<void> {
+export async function updateRelatorio(
+  id: string,
+  userId: number,
+  data: Partial<InsertRelatorio>,
+  options?: { compartilharJogos?: { texto: string } },
+): Promise<void> {
+  const match = and(eq(relatorios.id, id), eq(relatorios.userId, userId));
+  const atualizacao = { ...data, atualizadoEm: new Date() };
+  const compartilhamento = options?.compartilharJogos;
+  if (compartilhamento) {
+    const jogos = data.jogos?.trim() ?? "";
+    if (data.status !== "finalizado" || data.jogos === undefined || (!jogos && !compartilhamento.texto.trim())) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Para compartilhar, finalize o relatório e informe jogos ou uma observação." });
+    }
+    const db = await ensureFeedRedeSchema();
+    await db.transaction(async tx => {
+      const [relatorio] = await tx.update(relatorios).set(atualizacao)
+        .where(and(match, eq(relatorios.status, "ativo")))
+        .returning({ id: relatorios.id });
+      if (!relatorio) {
+        const [existente] = await tx.select({ id: relatorios.id }).from(relatorios).where(match);
+        if (!existente) throw new TRPCError({ code: "NOT_FOUND", message: "Relatório não encontrado." });
+        throw new TRPCError({ code: "CONFLICT", message: "Só é possível compartilhar ao finalizar um relatório ativo." });
+      }
+      await registrarJogosDaRede(tx, relatorio.id, userId, { jogos, texto: compartilhamento.texto });
+    });
+    return;
+  }
   const db = await getDb();
   if (!db) return;
-  await db.update(relatorios).set({ ...data, atualizadoEm: new Date() }).where(and(eq(relatorios.id, id), eq(relatorios.userId, userId)));
+  await db.update(relatorios).set(atualizacao).where(match);
 }
 
 export async function deleteRelatorio(id: string, userId: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
   await db.delete(relatorios).where(and(eq(relatorios.id, id), eq(relatorios.userId, userId)));
+}
+
+export async function concluirReembolsoRelatorio(id: string, userId: number, valor: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco indisponível.");
+  const agora = new Date();
+  const dia = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo" }).format(agora);
+  return db.transaction(async tx => {
+    const [rel] = await tx.update(relatorios).set({
+      valorReembolso: valor.toFixed(2), reembolso: "concluido", status: "finalizado",
+      reembolsadoEm: agora, finalizadoEm: agora, atualizadoEm: agora,
+    }).where(and(eq(relatorios.id, id), eq(relatorios.userId, userId),
+      eq(relatorios.status, "ativo"), eq(relatorios.reembolso, "pendente"))).returning();
+    if (!rel) return null;
+    const [casa] = await tx.update(casas).set({
+      status: "finalizada", dataFim: sql`case when ${casas.status} = 'finalizada' then coalesce(${casas.dataFim}, ${dia}::date) else ${dia}::date end`,
+      reembolso: "concluido", reembolsadoEm: agora, atualizadoEm: agora,
+    }).where(and(eq(casas.id, rel.casaId), eq(casas.userId, userId),
+      inArray(casas.status, ["ativa", "finalizada"]))).returning({ id: casas.id });
+    if (!casa) throw new Error("A meta vinculada não está disponível para finalizar.");
+    return rel;
+  });
+}
+
+export async function salvarValorReembolso(id: string, userId: number, valor: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco indisponível.");
+  const [rel] = await db.update(relatorios)
+    .set({ valorReembolso: valor.toFixed(2), atualizadoEm: new Date() })
+    .where(and(eq(relatorios.id, id), eq(relatorios.userId, userId),
+      eq(relatorios.status, "ativo"), eq(relatorios.reembolso, "pendente")))
+    .returning({ id: relatorios.id });
+  return Boolean(rel);
 }
 
 // Contas queries
@@ -595,13 +658,7 @@ export async function ensureChavesPixTables(): Promise<void> {
       "tagId" varchar(64),
       "criadoEm" timestamp DEFAULT now() NOT NULL
     )`);
-    await db.execute(sql`CREATE TABLE IF NOT EXISTS rede_notas (
-      rede varchar(80) PRIMARY KEY,
-      texto text,
-      tom text DEFAULT 'neutro' NOT NULL,
-      "atualizadoPor" text,
-      "atualizadoEm" timestamp DEFAULT now() NOT NULL
-    )`);
+    await ensureFeedRedeSchema();
     console.log("[ChavesPix] Tabelas prontas.");
   } catch (e) {
     console.error("[ChavesPix] Falha ao criar tabelas:", e);
@@ -653,19 +710,118 @@ export async function setTagChaves(userId: number, ids: string[], tagId: string 
   await db.update(chavesPix).set({ tagId }).where(and(eq(chavesPix.userId, userId), inArray(chavesPix.id, ids)));
 }
 
-// ── Avisos compartilhados por rede ─────────────────────────────────────────
-export async function getRedeNotas(): Promise<RedeNota[]> {
+// ── Feed compartilhado por rede ────────────────────────────────────────────
+let feedRedeReady: Promise<void> | undefined;
+
+async function ensureFeedRedeSchema() {
   const db = await getDb();
-  if (!db) return [];
-  return db.select().from(redeNotas);
+  if (!db) throw new Error("Banco de dados indisponível.");
+  feedRedeReady ??= db.transaction(async tx => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('capital-prime:feed-rede'))`);
+    await tx.execute(sql`CREATE TABLE IF NOT EXISTS rede_notas (
+      rede varchar(80) PRIMARY KEY,
+      texto text,
+      tom text DEFAULT 'neutro' NOT NULL,
+      "atualizadoPor" text,
+      "atualizadoEm" timestamp DEFAULT now() NOT NULL
+    )`);
+    await tx.execute(sql`CREATE TABLE IF NOT EXISTS rede_avisos (
+      id serial PRIMARY KEY, rede varchar(80) NOT NULL, texto text NOT NULL,
+      tom text NOT NULL, autor text NOT NULL, "criadoEm" timestamptz DEFAULT now() NOT NULL
+    )`);
+    await tx.execute(sql`CREATE TABLE IF NOT EXISTS rede_jogos (
+      id serial PRIMARY KEY, rede varchar(80) NOT NULL, jogos text NOT NULL, texto text,
+      autor text NOT NULL, "criadoEm" timestamptz DEFAULT now() NOT NULL
+    )`);
+    await tx.execute(sql`CREATE INDEX IF NOT EXISTS rede_avisos_feed_idx ON rede_avisos (rede, "criadoEm" DESC, id DESC)`);
+    await tx.execute(sql`CREATE INDEX IF NOT EXISTS rede_jogos_feed_idx ON rede_jogos (rede, "criadoEm" DESC, id DESC)`);
+    await tx.execute(sql`ALTER TABLE rede_notas ENABLE ROW LEVEL SECURITY`);
+    await tx.execute(sql`ALTER TABLE rede_avisos ENABLE ROW LEVEL SECURITY`);
+    await tx.execute(sql`ALTER TABLE rede_jogos ENABLE ROW LEVEL SECURITY`);
+  }).catch(error => {
+    feedRedeReady = undefined;
+    throw error;
+  });
+  await feedRedeReady;
+  return db;
 }
 
-export async function upsertRedeNota(rede: string, texto: string, tom: string, autor: string): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  await db.insert(redeNotas)
-    .values({ rede, texto, tom, atualizadoPor: autor, atualizadoEm: new Date() })
-    .onConflictDoUpdate({ target: redeNotas.rede, set: { texto, tom, atualizadoPor: autor, atualizadoEm: new Date() } });
+const EMAIL_NO_FEED = /[\p{L}\p{N}.!#$%&'*+/=?^_`{|}~-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)*/gu;
+const textoDoFeed = (texto: string) => texto.trim().replace(EMAIL_NO_FEED, "[e-mail removido]");
+const nomeDoFeed = (nome: string | null) => (
+  nome?.replace(EMAIL_NO_FEED, "").replace(/<\s*>/g, "").trim() || "Operador"
+);
+const ordemAvisos = [desc(redeAvisos.criadoEm), desc(redeAvisos.id)];
+
+export async function getRedeNotas(rede?: string) {
+  const db = await ensureFeedRedeSchema();
+  const redeLegada = sql<string>`upper(btrim(${redeNotas.rede}))`;
+  const [legadas, novas] = await Promise.all([
+    db.select().from(redeNotas).where(rede === undefined ? undefined : eq(redeLegada, rede)),
+    rede === undefined
+      ? db.selectDistinctOn([redeAvisos.rede]).from(redeAvisos).orderBy(redeAvisos.rede, ...ordemAvisos)
+      : db.select().from(redeAvisos).where(eq(redeAvisos.rede, rede)).orderBy(...ordemAvisos),
+  ]);
+  const avisos = [
+    ...novas.map(nota => ({
+      id: `aviso:${nota.id}`, rede: nota.rede, texto: textoDoFeed(nota.texto),
+      tom: nota.tom, atualizadoPor: nomeDoFeed(nota.autor), atualizadoEm: nota.criadoEm,
+    })),
+    ...legadas.flatMap(nota => nota.texto?.trim() ? [{
+      id: `legado:${nota.rede}`, rede: nota.rede.trim().toUpperCase(), texto: textoDoFeed(nota.texto),
+      tom: nota.tom, atualizadoPor: nomeDoFeed(nota.atualizadoPor), atualizadoEm: nota.atualizadoEm,
+    }] : []),
+  ].sort((a, b) => b.atualizadoEm.getTime() - a.atualizadoEm.getTime());
+  if (rede !== undefined) return avisos;
+  // O Dashboard legado usa a rede como chave e exibe só a prévia mais recente.
+  const vistas = new Set<string>();
+  return avisos.filter(aviso => {
+    if (vistas.has(aviso.rede)) return false;
+    vistas.add(aviso.rede);
+    return true;
+  });
+}
+
+export async function publicarAvisoDaRede(
+  rede: string, texto: string, tom: typeof redeAvisos.$inferInsert.tom, nome: string | null,
+): Promise<void> {
+  const db = await ensureFeedRedeSchema();
+  await db.insert(redeAvisos).values({ rede, texto: textoDoFeed(texto), tom, autor: nomeDoFeed(nome) });
+}
+
+export async function getJogosDaRede(rede: string) {
+  const db = await ensureFeedRedeSchema();
+  const { jogos, autor, criadoEm, texto } = redeJogos;
+  const publicacoes = await db.select({ jogos, autor, criadoEm, texto }).from(redeJogos)
+    .where(eq(redeJogos.rede, rede)).orderBy(desc(criadoEm), desc(redeJogos.id));
+  return publicacoes.map(item => ({
+    jogos: textoDoFeed(item.jogos), autor: nomeDoFeed(item.autor), criadoEm: item.criadoEm,
+    texto: item.texto ? textoDoFeed(item.texto) || null : null,
+  }));
+}
+
+type TransacaoDb = Parameters<Parameters<NonNullable<Awaited<ReturnType<typeof getDb>>>["transaction"]>[0]>[0];
+
+export async function registrarJogosDaRede(
+  tx: TransacaoDb, relatorioId: string, userId: number, publicacao: { jogos: string; texto: string },
+): Promise<void> {
+  const jogos = publicacao.jogos.trim();
+  const texto = publicacao.texto.trim();
+  if ((!jogos && !texto) || jogos.length > 2000 || texto.length > 2000) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Informe jogos ou uma observação, com até 2.000 caracteres por campo." });
+  }
+  const [origem] = await tx.select({ rede: casas.redeNome, nome: users.name })
+    .from(relatorios)
+    .innerJoin(casas, and(eq(casas.id, relatorios.casaId), eq(casas.userId, relatorios.userId)))
+    .innerJoin(users, eq(users.id, relatorios.userId))
+    .where(and(eq(relatorios.id, relatorioId), eq(relatorios.userId, userId), eq(relatorios.status, "finalizado")));
+  const rede = origem?.rede?.trim().toUpperCase();
+  if (!origem || !rede || rede.length > 80 || rede.includes("@")) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Cadastre uma rede válida na meta antes de compartilhar os jogos." });
+  }
+  await tx.insert(redeJogos).values({
+    rede, jogos: textoDoFeed(jogos), texto: textoDoFeed(texto) || null, autor: nomeDoFeed(origem.nome),
+  });
 }
 
 let plataformasReady: Promise<void> | undefined;
@@ -843,7 +999,7 @@ export async function getResumoFinalizadosPeriodo(userId: number, ini: Date, fim
   if (!db) return { lucro: 0, metas: 0 };
   try {
     const res: any = await db.execute(sql`
-      SELECT rows, cooperacao FROM relatorios
+      SELECT rows, cooperacao, reembolso, "valorReembolso" FROM relatorios
       WHERE "userId" = ${userId} AND status = 'finalizado'
         AND "finalizadoEm" >= ${ini} AND "finalizadoEm" <= ${fim}
     `);
@@ -852,7 +1008,8 @@ export async function getResumoFinalizadosPeriodo(userId: number, ini: Date, fim
     for (const r of linhas) {
       const rows = Array.isArray(r.rows) ? r.rows : [];
       const soma = rows.reduce((s: number, row: any) => s + (Number(row?.resultado) || 0), 0);
-      lucro += soma + (Number(r.cooperacao) || 0);
+      lucro += soma + (Number(r.cooperacao) || 0)
+        + (r.reembolso === "concluido" ? Number(r.valorReembolso) || 0 : 0);
     }
     return { lucro, metas: linhas.length };
   } catch (e) { console.error("[Push] getResumoFinalizadosPeriodo:", e); return { lucro: 0, metas: 0 }; }
