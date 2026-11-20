@@ -189,10 +189,43 @@ describe.skipIf(!pglitePath)("feed de rede e reembolso em Postgres local", () =>
     const bruno = caller(2);
     await expect(bruno.relatorios.update({
       id: "b2-rota", status: "finalizado", jogos: "", compartilharJogos: { texto: "Somente via rota" },
-    })).resolves.toEqual({ success: true });
+    })).resolves.toMatchObject({ success: true, finalizacao: { casaId: "b", dataFimMeta: null, finalizadoEm: expect.any(Date) } });
     expect((await caller(1).notasRede.jogos({ rede: "EK" }))[0]).toEqual({
       jogos: "", autor: "Operador", criadoEm: expect.any(Date), texto: "Somente via rota",
     });
+  });
+
+  it("finaliza a meta junto com o relatorio somente quando solicitado", async () => {
+    await local.client!.exec(`
+      INSERT INTO casas (id, "userId", nome, status) VALUES ('meta-completa', 1, 'COMPLETA', 'ativa');
+      INSERT INTO relatorios (id, "userId", "casaId", status, rows) VALUES
+        ('so-relatorio', 1, 'meta-completa', 'ativo', '[]'),
+        ('com-meta', 1, 'meta-completa', 'ativo', '[]');
+    `);
+    const ana = caller(1);
+    await expect(ana.relatorios.update({ id: "so-relatorio", status: "finalizado", jogos: "" })).resolves.toMatchObject({
+      success: true, finalizacao: { dataFimMeta: null, finalizadoEm: expect.any(Date) },
+    });
+    const estadoDaMeta = () => local.client!.query<{ status: string }>("SELECT status FROM casas WHERE id = 'meta-completa'");
+    expect((await estadoDaMeta()).rows[0].status).toBe("ativa");
+    await expect(ana.relatorios.update({ id: "com-meta", status: "finalizado", jogos: "", finalizarMeta: true })).resolves.toMatchObject({
+      success: true, finalizacao: { casaId: "meta-completa", dataFimMeta: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
+    });
+    expect((await estadoDaMeta()).rows[0].status).toBe("finalizada");
+  });
+
+  it("reverte toda a finalizacao se a meta ou o compartilhamento nao puderem ser gravados", async () => {
+    await local.client!.exec(`
+      INSERT INTO relatorios (id, "userId", "casaId", status, rows) VALUES
+        ('falha-meta', 1, 'b', 'ativo', '[]'),
+        ('falha-feed', 1, 'sem-rede', 'ativo', '[]');
+    `);
+    const ana = caller(1);
+    await expect(ana.relatorios.update({ id: "falha-meta", status: "finalizado", finalizarMeta: true })).rejects.toMatchObject({ code: "CONFLICT" });
+    await expect(ana.relatorios.update({ id: "falha-feed", status: "finalizado", finalizarMeta: true, jogos: "Jogo", compartilharJogos: { texto: "" } })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    const { rows } = await local.client!.query("SELECT status FROM relatorios WHERE id IN ('falha-meta', 'falha-feed')");
+    expect(rows).toEqual([{ status: "ativo" }, { status: "ativo" }]);
+    expect((await local.client!.query("SELECT status FROM casas WHERE id IN ('b', 'sem-rede')")).rows).toEqual([{ status: "ativa" }, { status: "ativa" }]);
   });
 
   it("nao deixa o feed exposto pela API direta do banco", async () => {

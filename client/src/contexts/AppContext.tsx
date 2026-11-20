@@ -21,7 +21,7 @@ interface AppContextType {
   salvamentoRelatorios?: SalvamentoRelatorios;
   deleteRelatorio: (id: string) => void;
   finalizarRelatorio: (id: string) => void;
-  finalizarRelatorioComJogos: (id: string, jogos: string, compartilhamento?: { texto: string }) => Promise<boolean>;
+  finalizarRelatorioComJogos: (id: string, jogos: string, compartilhamento?: { texto: string }, finalizarMeta?: boolean) => Promise<boolean>;
   reutilizarRelatorio: (id: string) => void;
   duplicarRelatorio: (id: string) => void;
   ordemRelatorios: string[] | undefined;
@@ -170,6 +170,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       finalizadoEm: (rel.finalizadoEm instanceof Date ? rel.finalizadoEm.toISOString() : rel.finalizadoEm)
         || finalizadosEmLocais[rel.id] || undefined,
       rows: rel.rows || [],
+      jogos: rel.jogos || undefined,
       reembolso: rel.reembolso || null,
       reembolsadoEm: rel.reembolsadoEm instanceof Date ? rel.reembolsadoEm.toISOString() : rel.reembolsadoEm,
       criadoEm: rel.criadoEm instanceof Date ? rel.criadoEm.toISOString() : rel.criadoEm,
@@ -629,12 +630,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         salvamentoRelatorios,
         deleteRelatorio,
         finalizarRelatorio,
-        finalizarRelatorioComJogos: async (id, jogos, compartilharJogos) => {
-          const salvo = await gravarRelatorio({ id, status: "finalizado", jogos, compartilharJogos });
+        finalizarRelatorioComJogos: async (id, jogos, compartilharJogos, finalizarMeta) => {
+          type Resposta = Awaited<ReturnType<typeof updateRelatorioMutation.mutateAsync>>;
+          let finalizacao: Resposta["finalizacao"];
+          const salvo = await filaSalvamentoRelatorios.enfileirar({ id, status: "finalizado", jogos, compartilharJogos, finalizarMeta }, async patch => {
+            const resposta = await updateRelatorioMutation.mutateAsync(patch);
+            finalizacao = resposta.finalizacao;
+            return resposta;
+          });
           if (!salvo) return false;
-          await relatoriosQuery.refetch();
-          if (compartilharJogos) void utils.notasRede.invalidate();
           const rel = state.relatorios.find(r => r.id === id);
+          if (finalizacao) {
+            const patch = { status: "finalizado" as const, jogos: jogos || null, finalizadoEm: finalizacao.finalizadoEm, atualizadoEm: finalizacao.atualizadoEm };
+            void utils.relatorios.list.cancel();
+            patchRelCache(id, patch);
+            setState(prev => ({ ...prev, relatorios: prev.relatorios.map(r => r.id === id ? {
+              ...r, ...patch, jogos: jogos || undefined,
+              finalizadoEm: patch.finalizadoEm?.toISOString(), atualizadoEm: patch.atualizadoEm.toISOString(),
+            } : r) }));
+            if (finalizacao.dataFimMeta) {
+              void utils.casas.list.cancel();
+              setCasaStatusOtimista(finalizacao.casaId, "finalizada", { dataFim: finalizacao.dataFimMeta });
+            }
+          } else {
+            // Compatibilidade durante o deploy, enquanto uma instancia antiga ainda serve a API.
+            await relatoriosQuery.refetch();
+            if (finalizarMeta && rel) finalizarCasa(rel.casaId);
+          }
+          if (compartilharJogos) void utils.notasRede.invalidate();
           if (rel) {
             const lucro = rel.rows.reduce((s, row) => s + (Number(row.resultado) || 0), 0) + (Number(rel.cooperacao) || 0);
             if (lucro > 0) celebrar({ valor: lucro });

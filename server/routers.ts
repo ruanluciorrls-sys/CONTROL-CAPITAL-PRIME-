@@ -289,6 +289,7 @@ export const appRouter = router({
         etiqueta: z.string().optional(),
         jogos: z.string().optional(),
         compartilharJogos: z.object({ texto: z.string().trim().max(500) }).optional(),
+        finalizarMeta: z.boolean().optional(),
         finalizadoEm: z.string().optional(), // usado na migração do localStorage
         valorReembolso: z.number().min(0).max(99999999.99).refine(n => n === Number(n.toFixed(2))).optional(),
         concluirReembolso: z.boolean().optional(),
@@ -301,6 +302,9 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const antes = await getRelatorioById(input.id, ctx.user.id);
         if (!antes) throw new TRPCError({ code: "NOT_FOUND", message: "Relatório não encontrado." });
+        if (input.finalizarMeta && (input.status !== "finalizado" || input.valorReembolso !== undefined || input.concluirReembolso)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Finalize o relatório para encerrar a meta vinculada." });
+        }
 
         if (input.valorReembolso !== undefined || input.concluirReembolso) {
           const valor = input.valorReembolso;
@@ -342,11 +346,9 @@ export const appRouter = router({
         } else if (input.finalizadoEm !== undefined && !(antes as any)?.finalizadoEm) {
           (updateData as any).finalizadoEm = new Date(input.finalizadoEm);
         }
-        if (input.compartilharJogos) {
-          await updateRelatorio(input.id, ctx.user.id, updateData, { compartilharJogos: input.compartilharJogos });
-        } else {
-          await updateRelatorio(input.id, ctx.user.id, updateData);
-        }
+        const salvo = await updateRelatorio(input.id, ctx.user.id, updateData, {
+          compartilharJogos: input.compartilharJogos, finalizarMeta: input.finalizarMeta,
+        });
 
         // Push (no servidor — confiável, independe do cache do celular)
         if (antes) {
@@ -397,16 +399,18 @@ export const appRouter = router({
               const somaCiclos = rowsFinais.reduce((s, r) => s + (Number(r?.resultado) || 0), 0);
               const coop = Number(input.cooperacao ?? antes.cooperacao) || 0;
               const lucro = somaCiclos + coop;
-              await sendPushToUser(antes.userId, {
+              // A entrega ao dispositivo nao deve segurar a confirmacao da gravacao.
+              void buscarNome().then(nome => sendPushToUser(antes.userId, {
                 title: "🏁 Meta finalizada",
-                body: `${await buscarNome()} · Lucro total: ${fmtBRL(lucro)}`,
+                body: `${nome} · Lucro total: ${fmtBRL(lucro)}`,
                 tag: `meta-fim-${input.id}`,
                 url: "/",
-              });
+              })).catch(e => console.error("[Push] meta finalizada:", e));
             }
           } catch (e) { console.error("[Push] eventos de relatório:", e); }
         }
 
+        if (input.status === "finalizado") return { success: true, finalizacao: salvo };
         return { success: true };
       }),
     delete: protectedProcedure

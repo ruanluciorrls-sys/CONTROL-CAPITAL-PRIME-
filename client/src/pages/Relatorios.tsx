@@ -416,13 +416,14 @@ function RedesDropdown({ plataformas, onSelect }: RedesDropdownProps) {
 }
 
 export default function Relatorios() {
-  const { state, addRelatorio, updateRelatorio, registrarReembolso, deleteRelatorio, finalizarRelatorio, finalizarRelatorioComJogos, finalizarCasa, duplicarRelatorio, esvaziarLixeira, ordemRelatorios, salvandoOrdemRelatorios, reordenarRelatorios, salvamentoRelatorios } = useApp();
+  const { state, addRelatorio, updateRelatorio, registrarReembolso, deleteRelatorio, finalizarRelatorio, finalizarRelatorioComJogos, duplicarRelatorio, esvaziarLixeira, ordemRelatorios, salvandoOrdemRelatorios, reordenarRelatorios, salvamentoRelatorios } = useApp();
   const { confirm, confirmEl } = useConfirm();
   const [finalizarDialogId, setFinalizarDialogId] = useState<string | null>(null);
   const [jogosTexto, setJogosTexto] = useState("");
   const [observacaoRede, setObservacaoRede] = useState("");
   const [compartilharJogos, setCompartilharJogos] = useState(true);
   const [finalizando, setFinalizando] = useState(false);
+  const finalizacaoEmCurso = useRef(false);
   const [bauSacado, setBauSacado] = useState(false); // confirmação de saque do baú antes de finalizar
   const [etiquetaDialogId, setEtiquetaDialogId] = useState<string | null>(null);
   const [etiquetaTexto, setEtiquetaTexto] = useState("");
@@ -1298,20 +1299,23 @@ export default function Relatorios() {
           const casaJaFinalizada = casa?.status !== "ativa";
           const rede = casa?.redeNome?.trim().toUpperCase() || "";
           const finalizar = async (comCasa: boolean) => {
-            if (!rel || !bauSacado || finalizando) return;
+            if (!rel || !bauSacado || finalizacaoEmCurso.current) return;
+            finalizacaoEmCurso.current = true;
             setFinalizando(true);
             try {
               const jogos = jogosTexto.trim();
               const publicar = compartilharJogos && rede && (jogos || observacaoRede.trim());
-              if (!(await finalizarRelatorioComJogos(rel.id, jogos, publicar ? { texto: observacaoRede.trim() } : undefined))) throw new Error();
-              if (comCasa && !casaJaFinalizada) finalizarCasa(rel.casaId);
+              if (!(await finalizarRelatorioComJogos(rel.id, jogos, publicar ? { texto: observacaoRede.trim() } : undefined, comCasa && !casaJaFinalizada))) throw new Error();
               setSelectedRelatorioId("");
               setFinalizarDialogId(null);
               setJogosTexto("");
               toast.success("Relatório finalizado.");
             } catch {
               toast.error("Não foi possível confirmar a finalização. Tente novamente.");
-            } finally { setFinalizando(false); }
+            } finally {
+              finalizacaoEmCurso.current = false;
+              setFinalizando(false);
+            }
           };
           return (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -1319,6 +1323,7 @@ export default function Relatorios() {
               onMouseDown={(e) => { if (!finalizando && e.target === e.currentTarget) setFinalizarDialogId(null); }}
             >
               <div className="w-full max-w-lg max-h-[88vh] overflow-y-auto rounded-2xl p-6 space-y-5"
+                role="dialog" aria-modal="true" aria-labelledby="titulo-finalizar-relatorio"
                 style={{ background: "linear-gradient(145deg, #070e20, #0f1e45)", border: "1px solid rgba(212,160,23,0.25)" }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -1326,7 +1331,7 @@ export default function Relatorios() {
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-[#050b18]"
                     style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}
                   >✓</div>
-                  <h3 className="text-base font-black text-white">Finalizar Relatório</h3>
+                  <h3 id="titulo-finalizar-relatorio" className="text-base font-black text-white">Finalizar Relatório</h3>
                 </div>
                 <p className="text-sm text-white/70">
                   Deseja finalizar <b className="text-white">também a meta</b> vinculada
@@ -1340,7 +1345,7 @@ export default function Relatorios() {
                 </p>
 
                 {/* Quais jogos você fez nessa cooperação? */}
-                <div>
+                <fieldset disabled={finalizando} className="min-w-0">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-[#d4a017]/70 block mb-2">🎰 Quais jogos você fez?</label>
                   <SeletorJogos
                     value={jogosTexto}
@@ -1360,11 +1365,12 @@ export default function Relatorios() {
                       <p className="text-xs text-white/65">Seu nome, os jogos selecionados e a observação ficam públicos para os usuários do painel. Não inclua dados pessoais ou financeiros.</p>
                     </>}
                   </div>}
-                </div>
+                </fieldset>
 
                 {/* Lembrete: já sacou o baú? (trava o finalizar até confirmar) */}
                 <button
                   type="button"
+                  disabled={finalizando}
                   onClick={() => setBauSacado((v) => !v)}
                   className="w-full flex items-center gap-3 rounded-xl p-3 border transition-all text-left"
                   style={bauSacado
@@ -1389,6 +1395,9 @@ export default function Relatorios() {
                 </button>
 
                 <div className="flex flex-col gap-2">
+                  {finalizando && (
+                    <p role="status" className="text-center text-sm font-semibold text-[#d4a017]">Salvando finalização...</p>
+                  )}
                   <button onClick={() => void finalizar(true)} disabled={!bauSacado || finalizando}
                     className="w-full py-2.5 rounded-xl font-bold text-sm text-[#050b18] transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                     style={{ background: "linear-gradient(135deg, #d4a017, #f59e0b)" }}

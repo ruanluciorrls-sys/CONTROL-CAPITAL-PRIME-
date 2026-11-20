@@ -2,7 +2,7 @@
 
 > **Leia este arquivo inteiro antes de mexer no código.** Ele existe para que qualquer IA (Claude, GPT, Gemini, etc.) consiga continuar o trabalho sem quebrar nada e sem precisar redescobrir tudo. Mantenha-o atualizado quando fizer mudanças estruturais.
 
-Última atualização: **2026-11-20** · Versão do app: **1.31.2** (ver [`CHANGELOG.md`](CHANGELOG.md)).
+Última atualização: **2026-11-20** · Versão do app: **1.31.3** (ver [`CHANGELOG.md`](CHANGELOG.md)).
 
 ---
 
@@ -63,7 +63,7 @@ todo.md          → histórico de tarefas (legado, quase tudo concluído)
 
 ### Fluxo de dados (padrão a seguir)
 1. UI chama um método do **`AppContext`** (`addRelatorio`, `updateRelatorio`, `finalizarRelatorio`...).
-2. O context chama a **mutation tRPC** correspondente e depois faz `query.refetch()`.
+2. O context chama a **mutation tRPC** correspondente e reconcilia os dados. A finalização atualiza o cache com a confirmação do servidor sem baixar a lista inteira; se fechar a meta junto, ambas são gravadas na mesma transação.
 3. O servidor (`routers.ts`) valida com **Zod**, chama o **`db.ts`**, retorna.
 4. Dados financeiros são **privados por usuário** (`ctx.user.id`). O calendário combina as plataformas compartilhadas do administrador principal com as plataformas privadas de cada usuário. Slots e aparência são compartilhados.
 5. A ordem dos cartões de relatórios ativos é uma preferência privada da conta (tabela `ordemRelatorios`), não parte da aparência compartilhada.
@@ -80,7 +80,7 @@ todo.md          → histórico de tarefas (legado, quase tudo concluído)
 - **Push de eventos de operação é SERVER-SIDE** (em `server/routers.ts`, dentro das mutations `relatorios.create` e `relatorios.update`), **não no cliente**. Motivo: o PWA do celular guarda versão antiga em cache, e a lógica no cliente só rodaria a partir do aparelho que fez a ação. No servidor (Fly.io) sempre roda a versão nova e dispara para todos os aparelhos do usuário via `sendPushToUser`. Use **tag única** por evento. Helpers: `fmtBRL`, `nomeDaMeta` em `server/push.ts`.
   - **Meta iniciada** → em `relatorios.create`.
   - **Ciclo (lucro/prejuízo)** → em `relatorios.update`, quando uma linha passa a ter **saque** preenchido (o saque é o que gera o resultado). Dispara ao pôr o saque e **de novo se o resultado mudar** numa edição posterior (ex.: adicionou o baú depois). Não exige depósito. Não dispara em exclusão (renumera linhas).
-  - **Meta finalizada** (lucro total) → em `relatorios.update` quando `status` vira `finalizado`.
+  - **Meta finalizada** (lucro total) → em `relatorios.update` quando `status` vira `finalizado`. A entrega do push é iniciada após a gravação e não bloqueia a confirmação.
   - `trpc.push.notify`/`push.test` existem para testes manuais; o fluxo automático não depende deles.
 
 ## 5. Como rodar / construir

@@ -104,4 +104,25 @@ describe("notificações ao editar o relatório", () => {
     expect(db.acumularCicloDia.mock.calls).toEqual([[7, 10, 0], [7, 50, 1]]);
     expect(sendPushToUser).toHaveBeenLastCalledWith(7, expect.objectContaining({ tag: "meta-fim-r" }));
   });
+
+  it("confirma a gravacao mesmo com a entrega do push ainda pendente", async () => {
+    const instante = new Date();
+    const finalizacao = { casaId: "c", atualizadoEm: instante, finalizadoEm: instante, dataFimMeta: null };
+    db.updateRelatorio.mockResolvedValueOnce(finalizacao);
+    let entregar!: (resultado: Awaited<ReturnType<typeof sendPushToUser>>) => void;
+    vi.mocked(sendPushToUser).mockReturnValueOnce(new Promise(resolve => { entregar = resolve; }));
+
+    try {
+      await expect(caller.relatorios.update({ id: "r", status: "finalizado" })).resolves.toEqual({ success: true, finalizacao });
+      expect(sendPushToUser).toHaveBeenCalledWith(7, expect.objectContaining({ tag: "meta-fim-r" }));
+    } finally {
+      entregar({ total: 1, sent: 1, failed: 0, removed: 0 });
+    }
+  });
+
+  it("nao envia push se a gravacao da finalizacao falhar", async () => {
+    db.updateRelatorio.mockRejectedValueOnce(new Error("falha de gravacao"));
+    await expect(caller.relatorios.update({ id: "r", status: "finalizado" })).rejects.toThrow("falha de gravacao");
+    expect(sendPushToUser).not.toHaveBeenCalled();
+  });
 });

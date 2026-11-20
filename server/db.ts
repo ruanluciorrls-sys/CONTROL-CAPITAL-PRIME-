@@ -376,33 +376,49 @@ export async function updateRelatorio(
   id: string,
   userId: number,
   data: Partial<InsertRelatorio>,
-  options?: { compartilharJogos?: { texto: string } },
-): Promise<void> {
+  options?: { compartilharJogos?: { texto: string }; finalizarMeta?: boolean },
+) {
   const match = and(eq(relatorios.id, id), eq(relatorios.userId, userId));
-  const atualizacao = { ...data, atualizadoEm: new Date() };
+  const agora = new Date();
+  const atualizacao = { ...data, atualizadoEm: agora };
+  const campos = { casaId: relatorios.casaId, finalizadoEm: relatorios.finalizadoEm, atualizadoEm: relatorios.atualizadoEm };
   const compartilhamento = options?.compartilharJogos;
+  const jogos = data.jogos?.trim() ?? "";
   if (compartilhamento) {
-    const jogos = data.jogos?.trim() ?? "";
     if (data.status !== "finalizado" || data.jogos === undefined || (!jogos && !compartilhamento.texto.trim())) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "Para compartilhar, finalize o relatório e informe jogos ou uma observação." });
     }
-    const db = await ensureFeedRedeSchema();
-    await db.transaction(async tx => {
+  }
+  const db = compartilhamento ? await ensureFeedRedeSchema() : await getDb();
+  if (!db) throw new Error("Banco indisponível.");
+  if (compartilhamento || options?.finalizarMeta) {
+    return db.transaction(async tx => {
       const [relatorio] = await tx.update(relatorios).set(atualizacao)
         .where(and(match, eq(relatorios.status, "ativo")))
-        .returning({ id: relatorios.id });
+        .returning(campos);
       if (!relatorio) {
         const [existente] = await tx.select({ id: relatorios.id }).from(relatorios).where(match);
         if (!existente) throw new TRPCError({ code: "NOT_FOUND", message: "Relatório não encontrado." });
-        throw new TRPCError({ code: "CONFLICT", message: "Só é possível compartilhar ao finalizar um relatório ativo." });
+        throw new TRPCError({ code: "CONFLICT", message: "O relatório não está mais ativo." });
       }
-      await registrarJogosDaRede(tx, relatorio.id, userId, { jogos, texto: compartilhamento.texto });
+      let dataFimMeta: string | null = null;
+      if (options?.finalizarMeta) {
+        const dia = agora.toISOString().slice(0, 10);
+        const [casa] = await tx.update(casas).set({
+          status: "finalizada", atualizadoEm: agora,
+          dataFim: sql`case when ${casas.status} = 'finalizada' then coalesce(${casas.dataFim}, ${dia}::date) else ${dia}::date end`,
+        }).where(and(eq(casas.id, relatorio.casaId), eq(casas.userId, userId),
+          inArray(casas.status, ["ativa", "finalizada"]))).returning({ dataFim: sql<string>`${casas.dataFim}::text` });
+        if (!casa) throw new TRPCError({ code: "CONFLICT", message: "A meta vinculada não está disponível para finalizar." });
+        dataFimMeta = casa.dataFim;
+      }
+      if (compartilhamento) await registrarJogosDaRede(tx, id, userId, { jogos, texto: compartilhamento.texto });
+      return { ...relatorio, dataFimMeta };
     });
-    return;
   }
-  const db = await getDb();
-  if (!db) return;
-  await db.update(relatorios).set(atualizacao).where(match);
+  const [relatorio] = await db.update(relatorios).set(atualizacao).where(match).returning(campos);
+  if (!relatorio) throw new TRPCError({ code: "NOT_FOUND", message: "Relatório não encontrado." });
+  return { ...relatorio, dataFimMeta: null };
 }
 
 export async function deleteRelatorio(id: string, userId: number): Promise<void> {

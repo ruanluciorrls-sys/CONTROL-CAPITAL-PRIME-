@@ -61,7 +61,31 @@ it("mantém a confirmação do baú e envia só o jogo e a observação marcados
   fireEvent.change(screen.getByRole("textbox", { name: "Observação pública da plataforma" }), { target: { value: "Bom hoje" } });
   fireEvent.click(screen.getByRole("button", { name: /já sacou o baú/i }));
   fireEvent.click(finalizar);
-  await waitFor(() => expect(preferencias.finalizar).toHaveBeenCalledWith("Ana", "Jogo de exemplo", { texto: "Bom hoje" }));
+  await waitFor(() => expect(preferencias.finalizar).toHaveBeenCalledWith("Ana", "Jogo de exemplo", { texto: "Bom hoje" }, false));
+});
+
+it("exibe o salvamento, impede cliques repetidos e permite tentar de novo sem perder os jogos", async () => {
+  let responder!: (ok: boolean) => void;
+  preferencias.finalizar.mockReturnValueOnce(new Promise<boolean>(resolve => { responder = resolve; })).mockResolvedValueOnce(true);
+  render(<Relatorios />);
+  fireEvent.click(screen.getByRole("button", { name: "Abrir Rede-Ana" }));
+  fireEvent.click(screen.getByRole("button", { name: /Finalizar Relatório/ }));
+  const dialogo = within(screen.getByRole("dialog", { name: "Finalizar Relatório" }));
+  fireEvent.click(dialogo.getByRole("button", { name: "Escolher jogo de exemplo" }));
+  fireEvent.click(dialogo.getByRole("button", { name: /já sacou o baú/i }));
+  const finalizar = dialogo.getByRole("button", { name: /finalizar relatório e meta/i });
+  fireEvent.click(finalizar);
+  expect(dialogo.getByRole("status")).toHaveTextContent("Salvando finalização...");
+  expect(finalizar).toBeDisabled();
+  fireEvent.click(finalizar);
+  expect(preferencias.finalizar).toHaveBeenCalledTimes(1);
+  responder(false);
+  await waitFor(() => expect(finalizar).toBeEnabled());
+  fireEvent.click(finalizar);
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(preferencias.finalizar.mock.calls).toEqual([
+    ["Ana", "Jogo de exemplo", { texto: "" }, true], ["Ana", "Jogo de exemplo", { texto: "" }, true],
+  ]);
 });
 
 it("edita e finaliza na aba de reembolso, com resultado previsto e confirmação", async () => {
