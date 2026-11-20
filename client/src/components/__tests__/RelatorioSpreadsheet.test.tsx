@@ -64,6 +64,44 @@ describe("leitura e acoes da planilha", () => {
     rerender(<RelatorioSpreadsheet {...props} ocultarValores />);
     expect(screen.queryByRole("button", { name: "Excluir linha 1" })).not.toBeInTheDocument();
   });
+
+  it.each(["deposito", "redeposito", "saque", "bau"] as const)(
+    "salva e desce na mesma coluna de %s, inclusive para a linha nova",
+    campo => {
+      const props = propriedades();
+      const primeira = props.rows[0];
+      const segunda = { ...primeira, numero: 3 };
+      const { rerender } = render(<RelatorioSpreadsheet {...props} rows={[primeira, segunda]} />);
+      fireEvent.click(screen.getByRole("button", { name: "Editar linha 1" }));
+      expect(screen.getByRole("spinbutton", { name: "Editar deposito da linha 1" })).toHaveFocus();
+
+      const atual = screen.getByRole("spinbutton", { name: `Editar ${campo} da linha 1` });
+      atual.focus();
+      fireEvent.change(atual, { target: { value: "200" } });
+      fireEvent.keyDown(atual, { key: "Enter" });
+      expect(props.onUpdateRow).toHaveBeenCalledTimes(1);
+      const salvo = { ...primeira, [campo]: 200 };
+      expect(props.onUpdateRow).toHaveBeenCalledWith(1, {
+        ...salvo, resultado: salvo.saque - salvo.deposito - salvo.redeposito + salvo.bau,
+      });
+
+      const abaixo = screen.getByRole("spinbutton", { name: `Editar ${campo} da linha 3` });
+      expect(abaixo).toHaveFocus();
+      fireEvent.keyDown(abaixo, { key: "Enter" });
+      expect(props.onUpdateRow).toHaveBeenCalledTimes(2);
+      expect(props.onUpdateRow).toHaveBeenLastCalledWith(3, expect.objectContaining({ numero: 3 }));
+
+      const novoCampo = screen.getByRole("spinbutton", { name: `Novo ${campo}` });
+      expect(novoCampo).toHaveFocus();
+      fireEvent.change(novoCampo, { target: { value: "75" } });
+      fireEvent.keyDown(novoCampo, { key: "Enter" });
+      expect(props.onAddRow).toHaveBeenCalledTimes(1);
+      expect(props.onAddRow).toHaveBeenCalledWith(expect.objectContaining({ numero: 4, [campo]: 75 }));
+      rerender(<RelatorioSpreadsheet {...props} rows={[primeira, segunda, props.onAddRow.mock.calls[0][0]]} />);
+      expect(screen.getByRole("spinbutton", { name: `Novo ${campo}` })).toHaveFocus();
+      expect(screen.getByRole("spinbutton", { name: `Novo ${campo}` })).toHaveValue(null);
+    },
+  );
 });
 
 describe("salvamento da planilha", () => {

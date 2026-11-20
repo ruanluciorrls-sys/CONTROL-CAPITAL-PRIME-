@@ -49,6 +49,7 @@ const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 const valorOculto = "••••";
 const camposValores = ["deposito", "redeposito", "saque", "bau"] as const;
+type CampoValor = (typeof camposValores)[number];
 
 const inputStyle = "w-full px-2 py-1.5 rounded-lg text-right text-sm text-white font-mono bg-transparent border border-white/20 focus:outline-none focus:border-[#d4a017] focus:bg-white/5";
 
@@ -60,6 +61,8 @@ export default function RelatorioSpreadsheet({
   const [newRow, setNewRow] = useState<RelatorioRow>({ numero: rows.length + 1, deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editRow, setEditRow] = useState<RelatorioRow | null>(null);
+  const [campoFoco, setCampoFoco] = useState<CampoValor>("deposito");
+  const camposNovaLinha = useRef<Partial<Record<CampoValor, HTMLInputElement | null>>>({});
   const [cooperacaoRascunho, setCooperacaoRascunho] = useState<string | null>(null);
   const cooperacaoInput = cooperacaoRascunho ?? (isNaN(cooperacao) ? "0" : cooperacao.toString());
   const valorCooperacao = parseFloat(cooperacaoInput);
@@ -136,23 +139,31 @@ export default function RelatorioSpreadsheet({
     setNewRow({ numero: proximoNumero() + 1, deposito: 0, redeposito: 0, saque: 0, bau: 0, resultado: 0 });
   };
 
+  const iniciarEdicao = (row: RelatorioRow, campo: CampoValor = "deposito") => {
+    setCampoFoco(campo);
+    setEditingId(row.numero);
+    setEditRow({ ...row });
+  };
+
   const handleEditSave = () => {
-    if (ocultarValores || !editRow || editingId === null) return;
+    if (ocultarValores || !editRow || editingId === null) return false;
     const d = isNaN(editRow.deposito) ? 0 : editRow.deposito;
     const r = isNaN(editRow.redeposito) ? 0 : editRow.redeposito;
     const s = isNaN(editRow.saque) ? 0 : editRow.saque;
     const b = isNaN(editRow.bau) ? 0 : editRow.bau;
     onUpdateRow(editingId, { ...editRow, deposito: d, redeposito: r, saque: s, bau: b, resultado: calc(d, r, s, b) });
     setEditingId(null); setEditRow(null);
+    return true;
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent, _field: string, rowNumero: number) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleEditSave();
-      const idx = rows.findIndex((r) => r.numero === rowNumero);
-      if (idx < rows.length - 1) setTimeout(() => { setEditingId(rows[idx + 1].numero); setEditRow({ ...rows[idx + 1] }); }, 50);
-    }
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, campo: CampoValor, rowNumero: number) => {
+    if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+    e.preventDefault();
+    if (!handleEditSave()) return;
+    const idx = rows.findIndex(r => r.numero === rowNumero);
+    const proximaLinha = idx >= 0 ? rows[idx + 1] : undefined;
+    if (proximaLinha) iniciarEdicao(proximaLinha, campo);
+    else camposNovaLinha.current[campo]?.focus();
   };
 
   const totals = {
@@ -413,7 +424,7 @@ export default function RelatorioSpreadsheet({
                           value={editRow?.[f] === 0 ? "" : editRow?.[f] || 0}
                           onChange={(e) => setEditRow({ ...editRow!, [f]: parseFloat(e.target.value) || 0 })}
                           onKeyDown={(e) => handleKeyDown(e, f, row.numero)}
-                          className={inputStyle} autoFocus={f === "deposito"}
+                          className={inputStyle} autoFocus={f === campoFoco}
                         />
                       </td>
                     ))}
@@ -440,7 +451,7 @@ export default function RelatorioSpreadsheet({
                       background: ocultarValores ? "transparent" : row.resultado < 0 ? "rgba(248,113,113,0.04)" : row.resultado > 0 ? "rgba(74,222,128,0.04)" : "transparent",
                       cursor: ocultarValores ? undefined : "pointer",
                     }}
-                    onClick={ocultarValores ? undefined : () => { setEditingId(row.numero); setEditRow({ ...row }); }}
+                    onClick={ocultarValores ? undefined : () => iniciarEdicao(row)}
                   >
                     <td className="px-4 py-3 text-white/40 font-bold text-sm">{row.numero}</td>
                     {[row.deposito, row.redeposito, row.saque, row.bau].map((v, i) => (
@@ -453,7 +464,7 @@ export default function RelatorioSpreadsheet({
                     </td>
                     <td className="px-4 py-3 text-center">
                       {!ocultarValores && <div className="planilha-acoes-linha flex gap-1.5 justify-center">
-                        <button aria-label={`Editar linha ${row.numero}`} onClick={() => { setEditingId(row.numero); setEditRow({ ...row }); }}
+                        <button aria-label={`Editar linha ${row.numero}`} onClick={() => iniciarEdicao(row)}
                           className="planilha-acao-icone planilha-acao-editar w-7 h-7 rounded-lg flex items-center justify-center border transition-colors"
                         ><Edit2 size={18} /></button>
                         <button aria-label={`Excluir linha ${row.numero}`} onClick={e => { e.stopPropagation(); onDeleteRow(row.numero); }}
@@ -471,6 +482,7 @@ export default function RelatorioSpreadsheet({
                 {camposValores.map((f) => (
                   <td key={f} className="px-2 py-2">
                     <input type="number"
+                      ref={input => { camposNovaLinha.current[f] = input; }}
                       aria-label={`Novo ${f}`}
                       value={newRow[f] || ""}
                       onChange={(e) => setNewRow({ ...newRow, [f]: parseFloat(e.target.value) || 0 })}

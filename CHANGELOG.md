@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 > 🤖 **Para IAs**: antes de mexer no código, leia o [`AGENTS.md`](AGENTS.md) — ele tem a arquitetura, os conceitos do domínio (meta, ciclo, cooperação, prazo), os **bugs conhecidos / dívida técnica** e o **roadmap priorizado** de melhorias futuras.
 
+## [1.31.1] - 2026-11-20
+
+### Corrigido
+- Na planilha, Enter salva a edição e avança para a próxima linha na mesma coluna de Depósito, Redepósito, Saque ou Baú. Da última linha, o foco segue para o campo equivalente da linha nova, sem mudar os cálculos ou o salvamento.
+
 ## [1.31.0] - 2026-11-19
 
 ### Adicionado
