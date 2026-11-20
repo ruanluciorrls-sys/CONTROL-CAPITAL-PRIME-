@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { lazy, Suspense, useState, useEffect } from "react";
 import { valorRecebidoDoReembolso } from "@shared/reembolso";
 import { trpc } from "@/lib/trpc";
 import { celebrar } from "@/lib/celebrar";
@@ -22,7 +22,13 @@ import {
   Percent,
 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+const GraficoResultado = lazy(() => import("./FaturamentoGraficos").then(mod => ({ default: mod.GraficoResultado })));
+const GraficoComparativo = lazy(() => import("./FaturamentoGraficos").then(mod => ({ default: mod.GraficoComparativo })));
+const GraficoLucroHistorico = lazy(() => import("./FaturamentoGraficos").then(mod => ({ default: mod.GraficoLucroHistorico })));
+
+function CarregandoGrafico({ altura }: { altura: number }) {
+  return <p role="status" className="grid place-items-center text-sm text-white/65" style={{ minHeight: altura }}>Carregando gráfico...</p>;
+}
 
 const HISTORICO_KEY = "faturamento-historico-v1";
 const META_KEY = "faturamento-meta-v1";
@@ -370,7 +376,7 @@ export default function Faturamento() {
     return date ? date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : key;
   };
 
-  const evolutionData = Object.values(
+  const evolutionData = activeTab === "evolucao" ? Object.values(
     filteredFinancialEntries.reduce<Record<string, { key: string; label: string; lucro: number; prejuizo: number; resultado: number }>>(
       (acc, entry) => {
         if (!entry.data) return acc;
@@ -383,7 +389,7 @@ export default function Faturamento() {
       },
       {}
     )
-  ).sort((a, b) => a.key.localeCompare(b.key));
+  ).sort((a, b) => a.key.localeCompare(b.key)) : [];
 
   const monthlySummary = Object.values(
     filteredFinancialEntries.reduce<Record<string, { key: string; label: string; lucro: number; prejuizo: number; resultado: number; operacoes: number; deposito: number; saque: number; acertos: number }>>(
@@ -918,26 +924,9 @@ export default function Faturamento() {
               style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
             >
               {evolutionData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={320}>
-                  <AreaChart data={evolutionData} margin={{ top: 18, right: 20, left: 0, bottom: 8 }}>
-                    <defs>
-                      <linearGradient id="faturamentoResultado" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#d4a017" stopOpacity={0.45} />
-                        <stop offset="95%" stopColor="#d4a017" stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" />
-                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: "rgba(168,188,232,0.55)" }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: "rgba(168,188,232,0.55)" }} axisLine={false} tickLine={false}
-                      tickFormatter={(value) => `R$${Number(value).toLocaleString("pt-BR", { notation: "compact" })}`}
-                    />
-                    <Tooltip
-                      contentStyle={{ background: "#070e20", border: "1px solid rgba(212,160,23,0.35)", borderRadius: 12, color: "#fff", fontSize: 12 }}
-                      formatter={(value: any) => [formatCurrency(Number(value)), "Resultado"]}
-                    />
-                    <Area type="monotone" dataKey="resultado" stroke="#d4a017" strokeWidth={2} fill="url(#faturamentoResultado)" dot={{ r: 3, fill: "#d4a017" }} />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<CarregandoGrafico altura={320} />}>
+                  <GraficoResultado data={evolutionData} />
+                </Suspense>
               ) : (
                 <EmptyFinanceState icon={<BarChart3 size={38} />} title="Nenhum dado para evolucao" subtitle="Ajuste os filtros ou finalize um relatorio." />
               )}
@@ -948,19 +937,9 @@ export default function Faturamento() {
             >
               <h3 className="mb-4 text-sm font-black text-white/90">Comparativo lucro vs prejuizo</h3>
               {evolutionData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={evolutionData} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" />
-                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: "rgba(168,188,232,0.55)" }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: "rgba(168,188,232,0.55)" }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ background: "#070e20", border: "1px solid rgba(212,160,23,0.35)", borderRadius: 12, color: "#fff", fontSize: 12 }}
-                      formatter={(value: any, name: any) => [formatCurrency(Number(value)), name === "lucro" ? "Lucro" : "Prejuizo"]}
-                    />
-                    <Bar dataKey="lucro" radius={[6, 6, 0, 0]} fill="#4ade80" />
-                    <Bar dataKey="prejuizo" radius={[6, 6, 0, 0]} fill="#f87171" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<CarregandoGrafico altura={260} />}>
+                  <GraficoComparativo data={evolutionData} />
+                </Suspense>
               ) : (
                 <EmptyFinanceState icon={<TrendingUp size={38} />} title="Sem comparativo ainda" subtitle="Nao ha operacoes no periodo selecionado." />
               )}
@@ -1056,26 +1035,9 @@ export default function Faturamento() {
               <div className="rounded-3xl p-5 border border-white/8"
                 style={{ background: "linear-gradient(145deg, #070e20, #0c1524)" }}
               >
-                <ResponsiveContainer width="100%" height={280}>
-                  <AreaChart data={dadosEvolucao} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorLucro" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#d4a017" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="#d4a017" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.3)" }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: "rgba(255,255,255,0.3)" }} axisLine={false} tickLine={false}
-                      tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`}
-                    />
-                    <Tooltip
-                      contentStyle={{ background: "#070e20", border: "1px solid rgba(212,160,23,0.3)", borderRadius: 12, color: "#fff", fontSize: 12 }}
-                      formatter={(v: any) => [`R$ ${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, "Lucro"]}
-                    />
-                    <Area type="monotone" dataKey="lucro" stroke="#d4a017" strokeWidth={2} fill="url(#colorLucro)" />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<CarregandoGrafico altura={280} />}>
+                  <GraficoLucroHistorico data={dadosEvolucao} />
+                </Suspense>
               </div>
             ) : (
               <div className="rounded-3xl p-12 border border-white/8 text-center"

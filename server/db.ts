@@ -259,6 +259,14 @@ export async function getCasasByUserId(userId: number): Promise<Casa[]> {
   return db.select().from(casas).where(eq(casas.userId, userId));
 }
 
+export async function getNomeCasa(userId: number, casaId: string): Promise<string | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [casa] = await db.select({ nome: casas.nome }).from(casas)
+    .where(and(eq(casas.id, casaId), eq(casas.userId, userId))).limit(1);
+  return casa?.nome;
+}
+
 export async function createCasa(casa: InsertCasa): Promise<Casa | null> {
   const db = await ensureMetaRecargaSchema();
   if (!db) return null;

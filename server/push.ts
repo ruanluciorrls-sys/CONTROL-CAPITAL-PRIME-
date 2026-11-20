@@ -1,5 +1,6 @@
 // @ts-ignore - web-push não tem tipos embutidos
 import webpush from "web-push";
+import { getNomeCasa } from "./db";
 import { getPushSubscriptionsByUser, getAllPushSubscriptions, deletePushSubscription, getCasasByUserId, getPushSoCelular, getUsuariosComResumoDia, getResumoDia, getResumoFinalizadosPeriodo, getReceitasPeriodo, getPlataformas, diaBrasil } from "./db";
 
 // Chaves VAPID — usa variáveis de ambiente (Fly secrets) se existirem,
@@ -34,8 +35,7 @@ export function fmtBRL(v: number): string {
 
 /** Monta o nome de exibição da meta: "CASA-agente" (sem traço/espaço sobrando). */
 export async function nomeDaMeta(userId: number, casaId: string, agente?: string | null): Promise<string> {
-  const casas = await getCasasByUserId(userId);
-  const base = (casas.find((c) => c.id === casaId)?.nome || "Meta").replace(/[\s-]+$/, "").trim();
+  const base = ((await getNomeCasa(userId, casaId)) || "Meta").replace(/[\s-]+$/, "").trim();
   return `${base}${agente ? `-${agente}` : ""}`;
 }
 

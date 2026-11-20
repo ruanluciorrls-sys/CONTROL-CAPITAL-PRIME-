@@ -351,7 +351,8 @@ export const appRouter = router({
         // Push (no servidor — confiável, independe do cache do celular)
         if (antes) {
           try {
-            const nome = await nomeDaMeta(antes.userId, antes.casaId, antes.agente);
+            let nomePromise: Promise<string> | undefined;
+            const buscarNome = () => nomePromise ??= nomeDaMeta(antes.userId, antes.casaId, antes.agente);
 
             // 1) Ciclo com RESULTADO = linha com SAQUE preenchido (o que importa é o resultado).
             //    Notifica quando o saque é posto e DE NOVO se o resultado mudar depois
@@ -369,6 +370,7 @@ export const appRouter = router({
                 const resultadoAntes = rowAntes ? (Number(rowAntes.resultado) || 0) : 0;
                 const resultado = Number(ciclo?.resultado) || 0;
                 const avisar = async () => {
+                  const nome = await buscarNome();
                   await sendPushToUser(antes.userId, {
                     title: resultado >= 0 ? "💰 Lucro no ciclo" : "🔻 Prejuízo no ciclo",
                     body: `${nome} · Ciclo ${ciclo?.numero}: ${fmtBRL(resultado)}`,
@@ -397,7 +399,7 @@ export const appRouter = router({
               const lucro = somaCiclos + coop;
               await sendPushToUser(antes.userId, {
                 title: "🏁 Meta finalizada",
-                body: `${nome} · Lucro total: ${fmtBRL(lucro)}`,
+                body: `${await buscarNome()} · Lucro total: ${fmtBRL(lucro)}`,
                 tag: `meta-fim-${input.id}`,
                 url: "/",
               });
